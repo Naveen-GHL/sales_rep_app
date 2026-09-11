@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Shield, Building2, UserCheck, ArrowRight, Lock, Mail, Sparkles } from 'lucide-react';
-import { USERS } from '../services/mockData';
 
 export const AuthLayout: React.FC = () => {
   const { login, switchPersona } = useAuth();

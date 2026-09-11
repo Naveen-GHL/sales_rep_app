@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Plus, Shield, Mail, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { USERS, ROLES } from '../../services/mockData';
+import { SYSTEM_ROLES } from '../../constants/roles';
+import { storageService } from '../../services/storageService';
 import { DataTable, Column } from '../../components/common/DataTable';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Modal } from '../../components/common/Modal';
@@ -9,9 +10,18 @@ import { User } from '../../types';
 
 export const CompanyUsersPage: React.FC = () => {
   const { tenant } = useAuth();
-  const [usersList, setUsersList] = useState<User[]>(
-    USERS.filter(u => u.companySlug === tenant?.slug)
+  const [usersList, setUsersList] = useState<User[]>(() =>
+    storageService.getUsers(tenant?.slug)
   );
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setUsersList(storageService.getUsers(tenant?.slug));
+    };
+    window.addEventListener('nexus_storage_updated', handleUpdate);
+    return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
+  }, [tenant?.slug]);
+
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
@@ -26,7 +36,7 @@ export const CompanyUsersPage: React.FC = () => {
       name: inviteName,
       email: inviteEmail,
       phone: '+91 98000 00000',
-      role: ROLES[inviteRole],
+      role: SYSTEM_ROLES[inviteRole],
       companyId: tenant?.id,
       companySlug: tenant?.slug,
       companyName: tenant?.name,
@@ -34,7 +44,7 @@ export const CompanyUsersPage: React.FC = () => {
       lastLogin: 'Never',
     };
 
-    setUsersList([...usersList, newUser]);
+    storageService.saveUser(newUser);
     setIsInviteModalOpen(false);
     setInviteName('');
     setInviteEmail('');

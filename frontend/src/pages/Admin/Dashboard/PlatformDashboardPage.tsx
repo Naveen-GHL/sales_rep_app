@@ -9,7 +9,6 @@ import {
   TrendingUp,
   FileCheck,
 } from 'lucide-react';
-import { TENANTS, USERS } from '../../../services/mockData';
 import { useAuth } from '../../../context/AuthContext';
 import { storageService } from '../../../services/storageService';
 
@@ -20,6 +19,8 @@ interface PlatformDashboardPageProps {
 export const PlatformDashboardPage: React.FC<PlatformDashboardPageProps> = ({ onNavigate }) => {
   const { switchPersona } = useAuth();
   const auditLogs = storageService.getAuditLogs();
+  const tenants = storageService.getTenants();
+  const users = storageService.getUsers();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -40,20 +41,20 @@ export const PlatformDashboardPage: React.FC<PlatformDashboardPageProps> = ({ on
         <div className="card" style={{ backgroundColor: '#0f172a', borderColor: '#334155' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>TOTAL TENANT COMPANIES</div>
           <div style={{ fontSize: 28, fontWeight: 800, color: '#ffffff', marginTop: 8 }}>
-            {Object.keys(TENANTS).length}
+            {tenants.length}
           </div>
           <div style={{ fontSize: 12, color: '#38bdf8', marginTop: 4, fontWeight: 600 }}>
-            GHL India & Jamin Bazaar Active
+            {tenants.map(t => t.name).join(' & ')}
           </div>
         </div>
 
         <div className="card" style={{ backgroundColor: '#0f172a', borderColor: '#334155' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>PLATFORM ACTIVE USERS</div>
           <div style={{ fontSize: 28, fontWeight: 800, color: '#ffffff', marginTop: 8 }}>
-            {USERS.length}
+            {users.length}
           </div>
           <div style={{ fontSize: 12, color: '#34d399', marginTop: 4, fontWeight: 600 }}>
-            100% Account Integrity
+            Registered Accounts
           </div>
         </div>
 
@@ -102,7 +103,7 @@ export const PlatformDashboardPage: React.FC<PlatformDashboardPageProps> = ({ on
             </tr>
           </thead>
           <tbody>
-            {Object.values(TENANTS).map(t => (
+            {tenants.map(t => (
               <tr key={t.id} style={{ borderBottom: '1px solid #334155' }}>
                 <td style={{ padding: '14px 20px' }}>
                   <div style={{ fontWeight: 700, color: '#ffffff' }}>{t.name}</div>

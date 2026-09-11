@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Tenant, TenantSlug, RoleCode } from '../types';
-import { USERS, TENANTS, ROLES } from '../services/mockData';
-import { PERMISSIONS } from '../constants/permissions';
+import { DEFAULT_TENANTS } from '../constants/defaultTenants';
+import { SYSTEM_ROLES } from '../constants/roles';
 import { FEATURES } from '../constants/features';
 
 interface AuthContextType {
@@ -14,18 +14,20 @@ interface AuthContextType {
   login: (email: string, roleCode?: RoleCode, tenantSlug?: TenantSlug) => void;
   logout: () => void;
   switchPersona: (roleCode: RoleCode, tenantSlug?: TenantSlug) => void;
+  setUser: (user: User | null) => void;
+  setTenant: (tenant: Tenant | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Default to GHL Company Admin for immediate rich experience
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('nexus_current_user');
     if (saved) {
       try { return JSON.parse(saved); } catch {}
     }
-    return USERS[1]; // Vikram Malhotra (GHL Admin)
+    // Default to active session if previously saved, else null (shows Login)
+    return null;
   });
 
   const [tenant, setTenant] = useState<Tenant | null>(() => {
@@ -33,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (saved) {
       try { return JSON.parse(saved); } catch {}
     }
-    return TENANTS.ghl;
+    return DEFAULT_TENANTS.ghl;
   });
 
   useEffect(() => {
@@ -54,34 +56,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isSuperAdmin = user?.role.code === 'super_admin';
 
-  // Derive enabled features
+  // Derive enabled features from live tenant object
   const enabledFeatures = isSuperAdmin
     ? Object.values(FEATURES)
     : tenant?.enabledFeatures || [];
 
-  // Derive permissions
+  // Derive permissions from live user role
   const permissions = user?.role.permissions || [];
 
   const switchPersona = (roleCode: RoleCode, tenantSlug?: TenantSlug) => {
     if (roleCode === 'super_admin') {
-      const superUser = USERS.find(u => u.role.code === 'super_admin') || USERS[0];
+      const superUser: User = {
+        id: 'usr-super-01',
+        name: 'Alex Rivera (Super Admin)',
+        email: 'alex@nexusplatform.io',
+        phone: '+91 98800 11000',
+        role: SYSTEM_ROLES.super_admin,
+        status: 'Active',
+        lastLogin: 'Just now',
+      };
       setUser(superUser);
       setTenant(null);
       return;
     }
 
     const slug = tenantSlug || 'ghl';
-    const targetTenant = TENANTS[slug];
+    const targetTenant = DEFAULT_TENANTS[slug];
     setTenant(targetTenant);
 
-    const targetUser = USERS.find(
-      u => u.companySlug === slug && u.role.code === roleCode
-    ) || {
+    const targetUser: User = {
       id: `usr-${slug}-${roleCode}`,
-      name: `${roleCode === 'company_admin' ? 'Admin' : 'Executive'} (${targetTenant.name})`,
+      name: roleCode === 'company_admin'
+        ? (slug === 'ghl' ? 'Vikram Malhotra' : 'Kavita Rao')
+        : (slug === 'ghl' ? 'Ananya Iyer' : 'Pooja Hegde'),
       email: `${roleCode}@${slug}.com`,
-      phone: '+91 98000 00000',
-      role: ROLES[roleCode],
+      phone: '+91 98450 00000',
+      role: SYSTEM_ROLES[roleCode],
       companyId: targetTenant.id,
       companySlug: slug,
       companyName: targetTenant.name,
@@ -92,11 +102,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(targetUser);
   };
 
-  const login = (_email: string, roleCode: RoleCode = 'company_admin', tenantSlug: TenantSlug = 'ghl') => {
-    switchPersona(roleCode, tenantSlug);
+  const login = (email: string, roleCode: RoleCode = 'company_admin', tenantSlug: TenantSlug = 'ghl') => {
+    // If logging in via real credentials / token
+    const targetTenant = DEFAULT_TENANTS[tenantSlug];
+    setTenant(targetTenant);
+
+    const authenticatedUser: User = {
+      id: `usr-${Date.now()}`,
+      name: email.split('@')[0].replace('.', ' '),
+      email,
+      phone: '+91 98000 00000',
+      role: SYSTEM_ROLES[roleCode] || SYSTEM_ROLES.company_admin,
+      companyId: targetTenant.id,
+      companySlug: tenantSlug,
+      companyName: targetTenant.name,
+      status: 'Active',
+      lastLogin: 'Just now',
+    };
+
+    setUser(authenticatedUser);
   };
 
   const logout = () => {
+    localStorage.removeItem('nexus_auth_token');
+    localStorage.removeItem('nexus_current_user');
+    localStorage.removeItem('nexus_current_tenant');
     setUser(null);
     setTenant(null);
   };
@@ -113,6 +143,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         switchPersona,
+        setUser,
+        setTenant,
       }}
     >
       {children}

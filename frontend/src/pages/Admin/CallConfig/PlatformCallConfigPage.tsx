@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { PhoneCall, ShieldCheck, Radio, Server, Check } from 'lucide-react';
-import { TENANTS } from '../../../services/mockData';
 
 export const PlatformCallConfigPage: React.FC = () => {
   const [provider, setProvider] = useState('Twilio Elastic SIP Trunking');

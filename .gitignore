@@ -64,3 +64,13 @@ coverage/
 # Temporary / Scratch files
 tmp/
 temp/
+
+# Database files
+database/*.db
+database/*.db-journal
+*.sqlite
+*.db
+
+# File Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep

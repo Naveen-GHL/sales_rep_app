@@ -13,23 +13,10 @@ import {
   InvestmentOpportunity,
   AuditLog,
   NotificationItem,
+  User,
+  Tenant,
 } from '../types';
-import {
-  INITIAL_LEADS,
-  INITIAL_CUSTOMERS,
-  INITIAL_DEALS,
-  INITIAL_CALLS,
-  INITIAL_FOLLOWUPS,
-  INITIAL_PROJECTS,
-  INITIAL_PLOTS,
-  INITIAL_SITE_VISITS,
-  INITIAL_BOOKINGS,
-  INITIAL_INVESTORS,
-  INITIAL_CONSULTATIONS,
-  INITIAL_OPPORTUNITIES,
-  INITIAL_AUDIT_LOGS,
-  INITIAL_NOTIFICATIONS,
-} from './mockData';
+import { DEFAULT_TENANTS } from '../constants/defaultTenants';
 
 class StorageService {
   private get<T>(key: string, fallback: T): T {
@@ -50,9 +37,42 @@ class StorageService {
     }
   }
 
-  // Leads
+  // Tenants
+  getTenants(): Tenant[] {
+    return this.get<Tenant[]>('tenants', Object.values(DEFAULT_TENANTS));
+  }
+
+  saveTenant(tenant: Tenant): void {
+    const tenants = this.getTenants();
+    const index = tenants.findIndex(t => t.id === tenant.id);
+    if (index >= 0) {
+      tenants[index] = tenant;
+    } else {
+      tenants.push(tenant);
+    }
+    this.set('tenants', tenants);
+  }
+
+  // Users
+  getUsers(companySlug?: string): User[] {
+    const users = this.get<User[]>('users', []);
+    return companySlug ? users.filter(u => u.companySlug === companySlug) : users;
+  }
+
+  saveUser(user: User): void {
+    const users = this.getUsers();
+    const index = users.findIndex(u => u.id === user.id);
+    if (index >= 0) {
+      users[index] = user;
+    } else {
+      users.push(user);
+    }
+    this.set('users', users);
+  }
+
+  // Leads (Defaults to empty [] - real-time data only)
   getLeads(companyId?: string): Lead[] {
-    const leads = this.get<Lead[]>('leads', INITIAL_LEADS);
+    const leads = this.get<Lead[]>('leads', []);
     return companyId ? leads.filter(l => l.companyId === companyId) : leads;
   }
 
@@ -72,9 +92,9 @@ class StorageService {
     this.set('leads', leads);
   }
 
-  // Customers
+  // Customers (Defaults to empty [] - real-time data only)
   getCustomers(companyId?: string): Customer[] {
-    const customers = this.get<Customer[]>('customers', INITIAL_CUSTOMERS);
+    const customers = this.get<Customer[]>('customers', []);
     return companyId ? customers.filter(c => c.companyId === companyId) : customers;
   }
 
@@ -89,9 +109,9 @@ class StorageService {
     this.set('customers', customers);
   }
 
-  // Deals
+  // Deals (Defaults to empty [] - real-time data only)
   getDeals(companyId?: string): Deal[] {
-    const deals = this.get<Deal[]>('deals', INITIAL_DEALS);
+    const deals = this.get<Deal[]>('deals', []);
     return companyId ? deals.filter(d => d.companyId === companyId) : deals;
   }
 
@@ -106,9 +126,9 @@ class StorageService {
     this.set('deals', deals);
   }
 
-  // Calls
+  // Calls (Defaults to empty [] - real-time data only)
   getCalls(companyId?: string): CallRecord[] {
-    const calls = this.get<CallRecord[]>('calls', INITIAL_CALLS);
+    const calls = this.get<CallRecord[]>('calls', []);
     return companyId ? calls.filter(c => c.companyId === companyId) : calls;
   }
 
@@ -118,9 +138,9 @@ class StorageService {
     this.set('calls', calls);
   }
 
-  // Follow-ups
+  // Follow-ups (Defaults to empty [] - real-time data only)
   getFollowups(companyId?: string): Followup[] {
-    const followups = this.get<Followup[]>('followups', INITIAL_FOLLOWUPS);
+    const followups = this.get<Followup[]>('followups', []);
     return companyId ? followups.filter(f => f.companyId === companyId) : followups;
   }
 
@@ -135,13 +155,24 @@ class StorageService {
     this.set('followups', followups);
   }
 
-  // Projects & Plots (Jamin)
+  // Projects & Plots (Defaults to empty [] - real-time data only)
   getProjects(): PropertyProject[] {
-    return this.get<PropertyProject[]>('projects', INITIAL_PROJECTS);
+    return this.get<PropertyProject[]>('projects', []);
+  }
+
+  saveProject(project: PropertyProject): void {
+    const projects = this.getProjects();
+    const index = projects.findIndex(p => p.id === project.id);
+    if (index >= 0) {
+      projects[index] = project;
+    } else {
+      projects.push(project);
+    }
+    this.set('projects', projects);
   }
 
   getPlots(projectId?: string): Plot[] {
-    const plots = this.get<Plot[]>('plots', INITIAL_PLOTS);
+    const plots = this.get<Plot[]>('plots', []);
     return projectId ? plots.filter(p => p.projectId === projectId) : plots;
   }
 
@@ -156,9 +187,9 @@ class StorageService {
     this.set('plots', plots);
   }
 
-  // Site Visits (Jamin)
+  // Site Visits (Defaults to empty [] - real-time data only)
   getSiteVisits(companyId?: string): SiteVisit[] {
-    const visits = this.get<SiteVisit[]>('site_visits', INITIAL_SITE_VISITS);
+    const visits = this.get<SiteVisit[]>('site_visits', []);
     return companyId ? visits.filter(v => v.companyId === companyId) : visits;
   }
 
@@ -173,9 +204,9 @@ class StorageService {
     this.set('site_visits', visits);
   }
 
-  // Bookings (Jamin)
+  // Bookings (Defaults to empty [] - real-time data only)
   getBookings(companyId?: string): Booking[] {
-    const bookings = this.get<Booking[]>('bookings', INITIAL_BOOKINGS);
+    const bookings = this.get<Booking[]>('bookings', []);
     return companyId ? bookings.filter(b => b.companyId === companyId) : bookings;
   }
 
@@ -190,9 +221,9 @@ class StorageService {
     this.set('bookings', bookings);
   }
 
-  // Investors (GHL)
+  // Investors (Defaults to empty [] - real-time data only)
   getInvestors(companyId?: string): Investor[] {
-    const investors = this.get<Investor[]>('investors', INITIAL_INVESTORS);
+    const investors = this.get<Investor[]>('investors', []);
     return companyId ? investors.filter(i => i.companyId === companyId) : investors;
   }
 
@@ -207,9 +238,9 @@ class StorageService {
     this.set('investors', investors);
   }
 
-  // Consultations (GHL)
+  // Consultations (Defaults to empty [] - real-time data only)
   getConsultations(companyId?: string): Consultation[] {
-    const consultations = this.get<Consultation[]>('consultations', INITIAL_CONSULTATIONS);
+    const consultations = this.get<Consultation[]>('consultations', []);
     return companyId ? consultations.filter(c => c.companyId === companyId) : consultations;
   }
 
@@ -224,9 +255,9 @@ class StorageService {
     this.set('consultations', consultations);
   }
 
-  // Opportunities (GHL)
+  // Opportunities (Defaults to empty [] - real-time data only)
   getOpportunities(companyId?: string): InvestmentOpportunity[] {
-    const opps = this.get<InvestmentOpportunity[]>('opportunities', INITIAL_OPPORTUNITIES);
+    const opps = this.get<InvestmentOpportunity[]>('opportunities', []);
     return companyId ? opps.filter(o => o.companyId === companyId) : opps;
   }
 
@@ -241,9 +272,9 @@ class StorageService {
     this.set('opportunities', opps);
   }
 
-  // Audit Logs
+  // Audit Logs (Defaults to empty [] - real-time data only)
   getAuditLogs(companyId?: string): AuditLog[] {
-    const logs = this.get<AuditLog[]>('audit_logs', INITIAL_AUDIT_LOGS);
+    const logs = this.get<AuditLog[]>('audit_logs', []);
     return companyId ? logs.filter(l => !l.companyId || l.companyId === companyId) : logs;
   }
 
@@ -253,9 +284,9 @@ class StorageService {
     this.set('audit_logs', logs);
   }
 
-  // Notifications
+  // Notifications (Defaults to empty [] - real-time data only)
   getNotifications(): NotificationItem[] {
-    return this.get<NotificationItem[]>('notifications', INITIAL_NOTIFICATIONS);
+    return this.get<NotificationItem[]>('notifications', []);
   }
 
   markNotificationRead(id: string): void {
@@ -272,7 +303,29 @@ class StorageService {
     this.set('notifications', notifs);
   }
 
-  // Reset to default
+  // Optional: Explicitly populate demo mock data from separate mock_data folder
+  async loadMockDataFromSeparateFolder(): Promise<void> {
+    const mock = await import('../mock_data/mockData');
+    this.set('leads', mock.INITIAL_LEADS);
+    this.set('customers', mock.INITIAL_CUSTOMERS);
+    this.set('deals', mock.INITIAL_DEALS);
+    this.set('calls', mock.INITIAL_CALLS);
+    this.set('followups', mock.INITIAL_FOLLOWUPS);
+    this.set('projects', mock.INITIAL_PROJECTS);
+    this.set('plots', mock.INITIAL_PLOTS);
+    this.set('site_visits', mock.INITIAL_SITE_VISITS);
+    this.set('bookings', mock.INITIAL_BOOKINGS);
+    this.set('investors', mock.INITIAL_INVESTORS);
+    this.set('consultations', mock.INITIAL_CONSULTATIONS);
+    this.set('opportunities', mock.INITIAL_OPPORTUNITIES);
+    this.set('audit_logs', mock.INITIAL_AUDIT_LOGS);
+    this.set('notifications', mock.INITIAL_NOTIFICATIONS);
+    this.set('users', mock.USERS);
+    this.set('tenants', Object.values(mock.TENANTS));
+    window.dispatchEvent(new Event('nexus_storage_updated'));
+  }
+
+  // Reset to clean real-time empty slate
   resetData(): void {
     localStorage.clear();
     window.dispatchEvent(new Event('nexus_storage_updated'));

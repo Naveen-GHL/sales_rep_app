@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Building2, Plus, ArrowRight, Eye, Shield } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
-import { TENANTS } from '../../../services/mockData';
+import { storageService } from '../../../services/storageService';
 import { Tenant, TenantSlug } from '../../../types';
 import { StatusChip } from '../../../components/common/StatusChip';
 import { Modal } from '../../../components/common/Modal';
@@ -9,7 +9,13 @@ import { FEATURES } from '../../../constants/features';
 
 export const CompaniesPage: React.FC = () => {
   const { switchPersona } = useAuth();
-  const [companies, setCompanies] = useState<Tenant[]>(Object.values(TENANTS));
+  const [companies, setCompanies] = useState<Tenant[]>(() => storageService.getTenants());
+
+  useEffect(() => {
+    const handleUpdate = () => setCompanies(storageService.getTenants());
+    window.addEventListener('nexus_storage_updated', handleUpdate);
+    return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
+  }, []);
   const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
 
@@ -51,7 +57,7 @@ export const CompaniesPage: React.FC = () => {
       businessHours: '09:00 AM - 06:00 PM IST',
     };
 
-    setCompanies([...companies, newTenant]);
+    storageService.saveTenant(newTenant);
     setIsOnboardingModalOpen(false);
     setWizardStep(1);
     setNewCompanyName('');

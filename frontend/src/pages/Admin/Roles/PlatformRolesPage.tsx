@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Shield, Check, Save } from 'lucide-react';
 import { PERMISSIONS } from '../../../constants/permissions';
-import { ROLES } from '../../../services/mockData';
+import { SYSTEM_ROLES } from '../../../constants/roles';
 
 export const PlatformRolesPage: React.FC = () => {
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -82,7 +82,7 @@ export const PlatformRolesPage: React.FC = () => {
   ];
 
   const hasPermission = (roleCode: string, perm: string) => {
-    return ROLES[roleCode]?.permissions.includes(perm);
+    return SYSTEM_ROLES[roleCode]?.permissions.includes(perm);
   };
 
   return (

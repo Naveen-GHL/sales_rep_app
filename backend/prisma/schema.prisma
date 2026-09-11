@@ -1,0 +1,384 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Tenant {
+  id              String   @id @default(uuid())
+  name            String
+  slug            String   @unique
+  brandColor      String   @default("#0284c7")
+  logo            String?
+  tagline         String?
+  enabledFeatures String   @default("[]") // JSON string array of feature keys
+  timezone        String   @default("Asia/Kolkata")
+  currency        String   @default("₹ INR")
+  businessHours   String   @default("09:30 AM–07:00 PM IST")
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique
+  permissions String   // JSON string array of permission keys
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  phone        String
+  passwordHash String
+  roleCode     String
+  companyId    String?
+  companySlug  String?
+  companyName  String?
+  status       String    @default("Active") // Active, Invited, Disabled
+  avatar       String?
+  lastLogin    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([email])
+}
+
+model Lead {
+  id                String   @id @default(uuid())
+  companyId         String
+  name              String
+  phone             String
+  email             String
+  location          String
+  source            String
+  status            String   @default("New")
+  priority          String   @default("Medium")
+  assignedAgentId   String
+  assignedAgentName String
+  nextFollowupDate  String?
+  notes             String   @default("")
+  customFields      String   @default("{}") // JSON string
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([assignedAgentId])
+  @@index([status])
+}
+
+model Customer {
+  id                String   @id @default(uuid())
+  companyId         String
+  name              String
+  phone             String
+  email             String
+  status            String   @default("Active")
+  assignedAgentId   String
+  assignedAgentName String
+  location          String
+  lastContacted     String
+  openDealsCount    Int      @default(0)
+  totalValue        Float    @default(0)
+  notes             String   @default("")
+  customFields      String   @default("{}") // JSON string
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([assignedAgentId])
+}
+
+model Deal {
+  id                String   @id @default(uuid())
+  companyId         String
+  title             String
+  customerId        String
+  customerName      String
+  stage             String
+  value             Float
+  expectedCloseDate String
+  assignedAgentId   String
+  assignedAgentName String
+  notes             String   @default("")
+  lostReason        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([customerId])
+  @@index([assignedAgentId])
+  @@index([stage])
+}
+
+model CallRecord {
+  id            String   @id @default(uuid())
+  companyId     String
+  contactName   String
+  contactPhone  String
+  direction     String   // inbound, outbound
+  duration      Int      // seconds
+  agentId       String
+  agentName     String
+  disposition   String
+  timestamp     DateTime @default(now())
+  recordingUrl  String?
+  transcription String?
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  @@index([companyId])
+  @@index([agentId])
+  @@index([contactPhone])
+}
+
+model Followup {
+  id                String   @id @default(uuid())
+  companyId         String
+  contactId         String
+  contactName       String
+  contactPhone      String
+  contactType       String   // lead, customer, investor
+  scheduledAt       String
+  priority          String   // Low, Medium, High
+  status            String   @default("Pending") // Pending, Completed, Cancelled
+  notes             String   @default("")
+  assignedAgentId   String
+  assignedAgentName String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([assignedAgentId])
+  @@index([status])
+}
+
+model PropertyProject {
+  id             String   @id @default(uuid())
+  companyId      String   @default("jamin")
+  name           String
+  location       String
+  status         String   @default("Active") // Upcoming, Active, Sold Out
+  totalPlots     Int      @default(0)
+  availablePlots Int      @default(0)
+  holdPlots      Int      @default(0)
+  soldPlots      Int      @default(0)
+  description    String   @default("")
+  priceRange     String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([companyId])
+}
+
+model Plot {
+  id             String    @id @default(uuid())
+  companyId      String    @default("jamin")
+  projectId      String
+  projectName    String
+  plotNumber     String
+  sizeSqft       Float
+  pricePerSqft   Float
+  totalPrice     Float
+  status         String    @default("Available") // Available, Hold, Sold
+  dimension      String?
+  facing         String?
+  holdByCustomer String?
+  holdByAgent    String?
+  holdExpiry     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([projectId])
+  @@index([status])
+}
+
+model SiteVisit {
+  id                String   @id @default(uuid())
+  companyId         String
+  customerId        String
+  customerName      String
+  customerPhone     String
+  projectId         String
+  projectName       String
+  plotNumber        String?
+  scheduledAt       String
+  assignedAgentId   String
+  assignedAgentName String
+  status            String   @default("Scheduled") // Scheduled, Completed, Rescheduled, Cancelled, No-show
+  outcomeNotes      String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([customerId])
+  @@index([assignedAgentId])
+}
+
+model Booking {
+  id            String   @id @default(uuid())
+  companyId     String
+  customerId    String
+  customerName  String
+  customerPhone String
+  projectId     String
+  projectName   String
+  plotId        String
+  plotNumber    String
+  bookingDate   String
+  bookingAmount Float
+  totalAmount   Float
+  status        String   @default("Pending") // Pending, Confirmed, Cancelled
+  agentId       String
+  agentName     String
+  paymentTerms  String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([plotId])
+  @@index([customerId])
+}
+
+model Investor {
+  id                   String   @id @default(uuid())
+  companyId            String
+  name                 String
+  phone                String
+  email                String
+  status               String   @default("Lead") // Lead, Active Investor, HNW Investor, Inactive
+  investmentCapacity   String
+  preferredAssetClass  String
+  assignedAgentId      String
+  assignedAgentName    String
+  referralSource       String?
+  notes                String   @default("")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([assignedAgentId])
+}
+
+model Consultation {
+  id             String   @id @default(uuid())
+  companyId      String
+  investorId     String
+  investorName   String
+  investorPhone  String
+  scheduledAt    String
+  consultantId   String
+  consultantName String
+  status         String   @default("Scheduled") // Scheduled, Completed, Rescheduled, Cancelled, No-show
+  agenda         String   @default("")
+  outcomeNotes   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([investorId])
+}
+
+model InvestmentOpportunity {
+  id                String   @id @default(uuid())
+  companyId         String
+  title             String
+  investorId        String
+  investorName      String
+  stage             String   @default("Enquiry")
+  targetAmount      Float
+  committedAmount   Float    @default(0)
+  assignedAgentId   String
+  assignedAgentName String
+  expectedCloseDate String
+  notes             String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([investorId])
+  @@index([stage])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  timestamp   DateTime @default(now())
+  actorName   String
+  actorEmail  String
+  action      String
+  entityType  String
+  entityId    String
+  companyId   String?
+  companyName String?
+  details     String   @default("")
+
+  @@index([companyId])
+  @@index([actorEmail])
+  @@index([entityType])
+}
+
+model NotificationItem {
+  id        String   @id @default(uuid())
+  userId    String
+  companyId String?
+  type      String   // lead, call, followup, visit, booking, system
+  title     String
+  message   String
+  timestamp DateTime @default(now())
+  read      Boolean  @default(false)
+  link      String?
+
+  @@index([userId])
+  @@index([companyId])
+}
+
+model DocumentItem {
+  id         String   @id @default(uuid())
+  companyId  String
+  entityType String   // lead, customer, deal, project, investor
+  entityId   String
+  name       String
+  size       Int
+  type       String
+  uploadedBy String
+  uploadedAt DateTime @default(now())
+  category   String   @default("General")
+  filePath   String
+  url        String
+
+  @@index([companyId])
+  @@index([entityType, entityId])
+}
+
+model JobRecord {
+  id             String   @id @default(uuid())
+  companyId      String
+  type           String   // import, export
+  status         String   @default("pending") // pending, processing, completed, failed
+  initiatedBy    String
+  resultSummary  String   @default("{}") // JSON string
+  errorReportUrl String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([companyId])
+}
+
+model AgentAvailability {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  companyId String
+  status    String   @default("available") // available, busy, offline
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+}

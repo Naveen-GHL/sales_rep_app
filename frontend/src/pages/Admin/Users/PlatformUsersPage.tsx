@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Shield } from 'lucide-react';
-import { USERS } from '../../../services/mockData';
+import { storageService } from '../../../services/storageService';
 import { DataTable, Column } from '../../../components/common/DataTable';
 import { StatusChip } from '../../../components/common/StatusChip';
 import { User } from '../../../types';
 
 export const PlatformUsersPage: React.FC = () => {
+  const [usersList, setUsersList] = useState<User[]>(() => storageService.getUsers());
+
+  useEffect(() => {
+    const handleUpdate = () => setUsersList(storageService.getUsers());
+    window.addEventListener('nexus_storage_updated', handleUpdate);
+    return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
+  }, []);
   const columns: Column<User>[] = [
     {
       key: 'name',
@@ -62,7 +69,7 @@ export const PlatformUsersPage: React.FC = () => {
       <div style={{ color: '#cbd5e1' }}>
         <DataTable
           columns={columns}
-          data={USERS}
+          data={usersList}
           keyExtractor={u => u.id}
           searchPlaceholder="Search all platform users..."
         />
