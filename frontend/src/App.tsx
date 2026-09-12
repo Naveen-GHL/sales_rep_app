@@ -58,6 +58,10 @@ export const App: React.FC = () => {
   const [quickName, setQuickName] = useState('');
   const [quickPhone, setQuickPhone] = useState('+91 ');
   const [quickNotes, setQuickNotes] = useState('');
+  const [scheduledDate, setScheduledDate] = useState(
+    new Date(Date.now() + 86400000).toISOString().split('T')[0]
+  );
+  const [scheduledTime, setScheduledTime] = useState('11:00');
 
   // Handle route change
   const navigate = (route: string) => {
@@ -68,6 +72,8 @@ export const App: React.FC = () => {
     setQuickCreateType(type);
     setQuickName('');
     setQuickNotes('');
+    setScheduledDate(new Date(Date.now() + 86400000).toISOString().split('T')[0]);
+    setScheduledTime('11:00');
   };
 
   const handleSaveQuickCreate = (e: React.FormEvent) => {
@@ -92,6 +98,7 @@ export const App: React.FC = () => {
         customFields: {},
       });
     } else if (quickCreateType === 'followup') {
+      const combinedDateTime = new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString();
       storageService.saveFollowup({
         id: `flw-${Date.now()}`,
         companyId: tenant?.id || 't-ghl-01',
@@ -99,7 +106,9 @@ export const App: React.FC = () => {
         contactName: quickName,
         contactPhone: quickPhone,
         contactType: 'lead',
-        scheduledAt: 'Tomorrow, 11:00 AM',
+        scheduledAt: combinedDateTime,
+        scheduledDate,
+        scheduledTime,
         priority: 'High',
         status: 'Pending',
         notes: quickNotes,
@@ -238,6 +247,31 @@ export const App: React.FC = () => {
                 value={quickPhone}
                 onChange={e => setQuickPhone(e.target.value)}
               />
+            </div>
+          )}
+
+          {quickCreateType === 'followup' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="form-group">
+                <label className="form-label">Scheduled Date *</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  required
+                  value={scheduledDate}
+                  onChange={e => setScheduledDate(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Scheduled Time *</label>
+                <input
+                  type="time"
+                  className="form-input"
+                  required
+                  value={scheduledTime}
+                  onChange={e => setScheduledTime(e.target.value)}
+                />
+              </div>
             </div>
           )}
 

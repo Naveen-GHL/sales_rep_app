@@ -1,4 +1,4 @@
-export type TenantSlug = 'ghl' | 'jamin';
+export type TenantSlug = string;
 
 export interface Tenant {
   id: string;
@@ -11,6 +11,28 @@ export interface Tenant {
   timezone: string;
   currency: string;
   businessHours: string;
+  legalName?: string;
+  companyCode?: string;
+  industry?: string;
+  businessType?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  pincode?: string;
+  defaultLanguage?: string;
+  status?: 'Active' | 'Inactive' | 'Suspended';
+  subscriptionPlan?: string;
+  defaultRoutingStrategy?: string;
+  leadSla?: number;
+  callEnabled?: boolean;
+  recordingEnabled?: boolean;
+  transcriptionEnabled?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type RoleCode = 'super_admin' | 'company_admin' | 'sales_manager' | 'sales_executive';
@@ -34,6 +56,22 @@ export interface User {
   status: 'Active' | 'Invited' | 'Disabled';
   lastLogin?: string;
   avatar?: string;
+  employeeCode?: string;
+  designation?: string;
+  managerId?: string;
+  departmentId?: string;
+  teamId?: string;
+  skills?: string[];
+  languages?: string[];
+  specializations?: string[];
+  maxActiveLeads?: number;
+  currentActiveLeads?: number;
+  routingPriority?: number;
+  availabilityStatus?: 'available' | 'busy' | 'offline' | 'break';
+  workingHours?: { start: string; end: string; days: string[] };
+  joinedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Lead {
@@ -52,6 +90,30 @@ export interface Lead {
   createdAt: string;
   notes: string;
   customFields: Record<string, any>;
+  departmentId?: string;
+  teamId?: string;
+  queueId?: string;
+  intent?: string;
+  subIntent?: string;
+  productId?: string;
+  sourceType?: string;
+  campaignId?: string;
+  customerType?: string;
+  assignmentStatus?: 'assigned' | 'unassigned' | 'queued' | 'escalated';
+  assignmentReason?: string;
+  assignedAt?: string;
+  routingPriority?: number;
+  preferredLanguage?: string;
+  preferredContactTime?: string;
+  lastContactedAt?: string;
+  lastCallAt?: string;
+  leadScore?: number;
+  isDuplicate?: boolean;
+  duplicateOf?: string;
+  slaDueAt?: string;
+  slaStatus?: 'on_track' | 'at_risk' | 'breached';
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export interface Customer {
@@ -70,6 +132,15 @@ export interface Customer {
   createdAt: string;
   notes: string;
   customFields: Record<string, any>;
+  departmentId?: string;
+  teamId?: string;
+  customerType?: string;
+  intent?: string;
+  preferredLanguage?: string;
+  lastCallAt?: string;
+  lastContactedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export interface Deal {
@@ -112,6 +183,26 @@ export interface CallRecord {
   recordingUrl?: string;
   transcription?: string;
   notes?: string;
+  providerCallId?: string;
+  contactId?: string;
+  leadId?: string;
+  customerId?: string;
+  investorId?: string;
+  departmentId?: string;
+  teamId?: string;
+  queueId?: string;
+  routingAttemptId?: string;
+  answeredAt?: string;
+  endedAt?: string;
+  ringDuration?: number;
+  hangupReason?: string;
+  transferCount?: number;
+  transferredFrom?: string;
+  transferredTo?: string;
+  recordingConsent?: boolean;
+  recordingStatus?: 'pending' | 'completed' | 'failed';
+  callStatus?: 'completed' | 'missed' | 'abandoned' | 'transferred';
+  source?: string;
 }
 
 export interface Followup {
@@ -127,6 +218,13 @@ export interface Followup {
   notes: string;
   assignedAgentId: string;
   assignedAgentName: string;
+  followupType?: 'call' | 'meeting' | 'email' | 'whatsapp';
+  scheduledDate?: string;
+  scheduledTime?: string;
+  createdBy?: string;
+  completedAt?: string;
+  relatedCallId?: string;
+  statusReason?: string;
 }
 
 export interface PropertyProject {
@@ -249,6 +347,12 @@ export interface AuditLog {
   companyId?: string;
   companyName?: string;
   details: string;
+  ipAddress?: string;
+  userAgent?: string;
+  beforeValue?: Record<string, any>;
+  afterValue?: Record<string, any>;
+  module?: string;
+  status?: 'success' | 'failure';
 }
 
 export interface NotificationItem {
@@ -272,3 +376,140 @@ export interface DocumentItem {
   entityType?: 'lead' | 'customer' | 'investor' | 'booking' | 'consultation';
   entityId?: string;
 }
+
+export interface Department {
+  id: string;
+  companyId: string;
+  name?: string;
+  code?: string;
+  description?: string;
+  headUserId?: string;
+  status?: 'active' | 'inactive' | string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Team {
+  id: string;
+  companyId: string;
+  departmentId?: string;
+  name?: string;
+  teamLeadId?: string;
+  memberIds?: string[];
+  skills?: string[];
+  languages?: string[];
+  queueId?: string;
+  maxCapacity?: number;
+  status?: 'active' | 'inactive' | string;
+}
+
+export interface Queue {
+  id: string;
+  companyId: string;
+  departmentId?: string;
+  teamId?: string;
+  name?: string;
+  routingStrategy?: string;
+  priority?: number;
+  maxWaitSeconds?: number;
+  fallbackTeamId?: string;
+  fallbackUserId?: string;
+  status?: 'active' | 'inactive' | string;
+}
+
+export interface RoutingRule {
+  id: string;
+  companyId: string;
+  name?: string;
+  priority?: number;
+  enabled?: boolean;
+  source?: string;
+  intent?: string;
+  subIntent?: string;
+  productId?: string;
+  customerType?: string;
+  leadPriority?: string;
+  language?: string;
+  departmentId?: string;
+  teamId?: string;
+  queueId?: string;
+  requiredSkills?: string[];
+  routingStrategy?: string;
+  maxRingSeconds?: number;
+  maxAttempts?: number;
+  fallbackQueueId?: string;
+  fallbackUserId?: string;
+  businessHoursOnly?: boolean;
+  afterHoursAction?: string;
+  slaMinutes?: number;
+}
+
+export interface LeadAssignment {
+  id: string;
+  companyId: string;
+  leadId?: string;
+  fromAgentId?: string;
+  toAgentId?: string;
+  routingRuleId?: string;
+  reason?: string;
+  assignedBy?: string;
+  assignedAt?: string;
+  acceptedAt?: string;
+  rejectedAt?: string;
+  status?: string;
+}
+
+export interface AgentPresence {
+  id?: string;
+  userId?: string;
+  companyId: string;
+  status?: 'available' | 'busy' | 'offline' | 'break' | string;
+  currentCallId?: string;
+  lastHeartbeat?: string;
+  availableSince?: string;
+}
+
+export interface RoutingAttempt {
+  id: string;
+  companyId: string;
+  callId?: string;
+  leadId?: string;
+  queueId?: string;
+  candidateAgentId?: string;
+  attemptNumber?: number;
+  startedAt?: string;
+  endedAt?: string;
+  result?: string;
+  failureReason?: string;
+}
+
+export interface CustomFieldDefinition {
+  id: string;
+  companyId: string;
+  module?: string;
+  fieldKey?: string;
+  label?: string;
+  fieldType?: string;
+  required?: boolean;
+  options?: string[];
+  defaultValue?: any;
+  validation?: string | Record<string, any>;
+  displayOrder?: number;
+  active?: boolean;
+}
+
+export interface ProductService {
+  id: string;
+  companyId: string;
+  name?: string;
+  code?: string;
+  category?: string;
+  subcategory?: string;
+  description?: string;
+  departmentId?: string;
+  teamId?: string;
+  priceRange?: string;
+  requiredSkills?: string[];
+  status?: 'active' | 'inactive' | string;
+}
+

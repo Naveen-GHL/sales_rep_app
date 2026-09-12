@@ -65,6 +65,25 @@ export const PERMISSIONS = {
   PLATFORM_MANAGE_COMPANIES: 'platform.companies.manage',
   PLATFORM_MANAGE_PACKAGES: 'platform.packages.manage',
   PLATFORM_CALL_CONFIG: 'platform.call_config.manage',
+
+  // Organizational & Routing Expansion
+  DEPARTMENTS_VIEW: 'departments.view',
+  DEPARTMENTS_MANAGE: 'departments.manage',
+  TEAMS_VIEW: 'teams.view',
+  TEAMS_MANAGE: 'teams.manage',
+  QUEUES_VIEW: 'queues.view',
+  QUEUES_MANAGE: 'queues.manage',
+  ROUTING_VIEW: 'routing.view',
+  ROUTING_MANAGE: 'routing.manage',
+  CUSTOM_FIELDS_VIEW: 'custom_fields.view',
+  CUSTOM_FIELDS_MANAGE: 'custom_fields.manage',
+  PRODUCTS_VIEW: 'products.view',
+  PRODUCTS_MANAGE: 'products.manage',
+  PRESENCE_VIEW: 'presence.view',
+  PRESENCE_UPDATE: 'presence.update',
+  ASSIGNMENT_HISTORY_VIEW: 'assignment_history.view',
+  ESCALATIONS_VIEW: 'escalations.view',
+  ESCALATIONS_MANAGE: 'escalations.manage',
 } as const;
 
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS];

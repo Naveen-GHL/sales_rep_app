@@ -28,6 +28,7 @@ export const DEFAULT_TENANTS: Record<string, Tenant> = {
     timezone: 'Asia/Kolkata (IST)',
     currency: '₹ INR',
     businessHours: '09:30 AM - 07:00 PM IST',
+    status: 'Active',
   },
   jamin: {
     id: 't-jamin-02',
@@ -55,5 +56,6 @@ export const DEFAULT_TENANTS: Record<string, Tenant> = {
     timezone: 'Asia/Kolkata (IST)',
     currency: '₹ INR',
     businessHours: '09:00 AM - 06:30 PM IST',
+    status: 'Active',
   },
 };

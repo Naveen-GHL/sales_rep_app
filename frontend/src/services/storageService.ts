@@ -16,6 +16,15 @@ import {
   User,
   Tenant,
   DocumentItem,
+  Department,
+  Team,
+  Queue,
+  RoutingRule,
+  LeadAssignment,
+  AgentPresence,
+  RoutingAttempt,
+  CustomFieldDefinition,
+  ProductService,
 } from '../types';
 import { DEFAULT_TENANTS } from '../constants/defaultTenants';
 
@@ -329,6 +338,163 @@ class StorageService {
     const docs = this.get<DocumentItem[]>('documents', []).filter(d => d.id !== id);
     this.set('documents', docs);
   }
+
+  // Departments
+  getDepartments(companyId?: string): Department[] {
+    const departments = this.get<Department[]>('departments', []);
+    return companyId ? departments.filter(d => d.companyId === companyId) : departments;
+  }
+
+  saveDepartment(department: Department): void {
+    const departments = this.getDepartments();
+    const index = departments.findIndex(d => d.id === department.id);
+    if (index >= 0) {
+      departments[index] = department;
+    } else {
+      departments.unshift(department);
+    }
+    this.set('departments', departments);
+  }
+
+  // Teams
+  getTeams(companyId?: string): Team[] {
+    const teams = this.get<Team[]>('teams', []);
+    return companyId ? teams.filter(t => t.companyId === companyId) : teams;
+  }
+
+  saveTeam(team: Team): void {
+    const teams = this.getTeams();
+    const index = teams.findIndex(t => t.id === team.id);
+    if (index >= 0) {
+      teams[index] = team;
+    } else {
+      teams.unshift(team);
+    }
+    this.set('teams', teams);
+  }
+
+  // Queues
+  getQueues(companyId?: string): Queue[] {
+    const queues = this.get<Queue[]>('queues', []);
+    return companyId ? queues.filter(q => q.companyId === companyId) : queues;
+  }
+
+  saveQueue(queue: Queue): void {
+    const queues = this.getQueues();
+    const index = queues.findIndex(q => q.id === queue.id);
+    if (index >= 0) {
+      queues[index] = queue;
+    } else {
+      queues.unshift(queue);
+    }
+    this.set('queues', queues);
+  }
+
+  // Routing Rules
+  getRoutingRules(companyId?: string): RoutingRule[] {
+    const rules = this.get<RoutingRule[]>('routing_rules', []);
+    return companyId ? rules.filter(r => r.companyId === companyId) : rules;
+  }
+
+  saveRoutingRule(rule: RoutingRule): void {
+    const rules = this.getRoutingRules();
+    const index = rules.findIndex(r => r.id === rule.id);
+    if (index >= 0) {
+      rules[index] = rule;
+    } else {
+      rules.unshift(rule);
+    }
+    this.set('routing_rules', rules);
+  }
+
+  // Lead Assignments
+  getLeadAssignments(companyId?: string): LeadAssignment[] {
+    const assignments = this.get<LeadAssignment[]>('lead_assignments', []);
+    return companyId ? assignments.filter(a => a.companyId === companyId) : assignments;
+  }
+
+  saveLeadAssignment(assignment: LeadAssignment): void {
+    const assignments = this.getLeadAssignments();
+    const index = assignments.findIndex(a => a.id === assignment.id);
+    if (index >= 0) {
+      assignments[index] = assignment;
+    } else {
+      assignments.unshift(assignment);
+    }
+    this.set('lead_assignments', assignments);
+  }
+
+  // Agent Presence
+  getAgentPresence(companyId?: string): AgentPresence[] {
+    const presences = this.get<AgentPresence[]>('agent_presence', []);
+    return companyId ? presences.filter(p => p.companyId === companyId) : presences;
+  }
+
+  saveAgentPresence(presence: AgentPresence): void {
+    const presences = this.getAgentPresence();
+    const index = presences.findIndex(
+      p => (presence.id && p.id === presence.id) || (presence.userId && p.userId === presence.userId)
+    );
+    if (index >= 0) {
+      presences[index] = presence;
+    } else {
+      presences.unshift(presence);
+    }
+    this.set('agent_presence', presences);
+  }
+
+  // Routing Attempts
+  getRoutingAttempts(companyId?: string): RoutingAttempt[] {
+    const attempts = this.get<RoutingAttempt[]>('routing_attempts', []);
+    return companyId ? attempts.filter(a => a.companyId === companyId) : attempts;
+  }
+
+  saveRoutingAttempt(attempt: RoutingAttempt): void {
+    const attempts = this.getRoutingAttempts();
+    const index = attempts.findIndex(a => a.id === attempt.id);
+    if (index >= 0) {
+      attempts[index] = attempt;
+    } else {
+      attempts.unshift(attempt);
+    }
+    this.set('routing_attempts', attempts);
+  }
+
+  // Custom Field Definitions
+  getCustomFieldDefinitions(companyId?: string): CustomFieldDefinition[] {
+    const definitions = this.get<CustomFieldDefinition[]>('custom_field_definitions', []);
+    return companyId ? definitions.filter(d => d.companyId === companyId) : definitions;
+  }
+
+  saveCustomFieldDefinition(def: CustomFieldDefinition): void {
+    const definitions = this.getCustomFieldDefinitions();
+    const index = definitions.findIndex(d => d.id === def.id);
+    if (index >= 0) {
+      definitions[index] = def;
+    } else {
+      definitions.unshift(def);
+    }
+    this.set('custom_field_definitions', definitions);
+  }
+
+  // Products / Services
+  getProductsServices(companyId?: string): ProductService[] {
+    const items = this.get<ProductService[]>('products_services', []);
+    return companyId ? items.filter(p => p.companyId === companyId) : items;
+  }
+
+  saveProductService(productService: ProductService): void {
+    const items = this.getProductsServices();
+    const index = items.findIndex(p => p.id === productService.id);
+    if (index >= 0) {
+      items[index] = productService;
+    } else {
+      items.unshift(productService);
+    }
+    this.set('products_services', items);
+  }
+
+
 
   // Optional: Explicitly populate demo mock data from separate mock_data folder
   async loadMockDataFromSeparateFolder(): Promise<void> {
