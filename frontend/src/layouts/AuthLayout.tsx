@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Building2, UserCheck, ArrowRight, Lock, Mail, Sparkles } from 'lucide-react';
+import { Shield, Building2, UserCheck, ArrowRight, Lock, Mail, Sparkles, AlertCircle } from 'lucide-react';
 
 export const AuthLayout: React.FC = () => {
-  const { login, switchPersona } = useAuth();
+  const { login, switchPersona, loginError } = useAuth();
   const [email, setEmail] = useState('vikram@ghlindiatrust.com');
-  const [password, setPassword] = useState('••••••••••••');
+  const [password, setPassword] = useState('Password@123');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(email);
+    setIsLoading(true);
+    await login(email, password);
+    setIsLoading(false);
   };
 
   return (
@@ -182,12 +185,32 @@ export const AuthLayout: React.FC = () => {
             </div>
           </div>
 
+          {loginError && (
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#dc2626',
+                fontSize: 13,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <AlertCircle size={16} />
+              <span>{loginError}</span>
+            </div>
+          )}
+
           <button
             type="submit"
             className="btn btn-primary"
+            disabled={isLoading}
             style={{ width: '100%', height: 42, marginTop: 8 }}
           >
-            Sign In to Organization <ArrowRight size={16} />
+            {isLoading ? 'Signing in...' : 'Sign In to Organization'} <ArrowRight size={16} />
           </button>
         </form>
       </div>
