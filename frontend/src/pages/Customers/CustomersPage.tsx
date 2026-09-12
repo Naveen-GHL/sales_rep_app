@@ -148,23 +148,23 @@ export const CustomersPage: React.FC = () => {
 
   const timelineEvents: TimelineEvent[] = selectedCustomer
     ? [
-        {
-          id: 'ev-c1',
-          type: 'call',
-          title: 'Connected Outbound Call',
-          description: 'Discussed investment term sheet and verified KYC requirements.',
-          timestamp: selectedCustomer.lastContacted,
-          actorName: selectedCustomer.assignedAgentName,
-        },
-        {
-          id: 'ev-c2',
-          type: 'booking',
-          title: 'Customer Account Created',
-          description: `Account verified for ${selectedCustomer.name}.`,
-          timestamp: selectedCustomer.createdAt,
-          actorName: 'Platform Automation',
-        },
-      ]
+      {
+        id: 'ev-c1',
+        type: 'call',
+        title: 'Connected Outbound Call',
+        description: 'Discussed investment term sheet and verified KYC requirements.',
+        timestamp: selectedCustomer.lastContacted,
+        actorName: selectedCustomer.assignedAgentName,
+      },
+      {
+        id: 'ev-c2',
+        type: 'booking',
+        title: 'Customer Account Created',
+        description: `Account verified for ${selectedCustomer.name}.`,
+        timestamp: selectedCustomer.createdAt,
+        actorName: 'Platform Automation',
+      },
+    ]
     : [];
 
   return (
@@ -245,8 +245,8 @@ export const CustomersPage: React.FC = () => {
                         {formatCurrency(c.totalValue || 0)}
                       </span>
                       <button
-                        className="btn btn-primary btn-sm btn-icon"
-                        style={{ width: 26, height: 26 }}
+                        className="btn btn-call btn-sm btn-icon"
+                        style={{ width: 26, height: 26, borderRadius: 6 }}
                         onClick={e => {
                           e.stopPropagation();
                           initiateCall(c.name, c.phone, 'customer', c.id);

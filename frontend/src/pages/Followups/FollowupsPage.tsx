@@ -165,7 +165,7 @@ export const FollowupsPage: React.FC = () => {
                     Reschedule
                   </button>
                   <button
-                    className="btn btn-primary btn-sm"
+                    className="btn btn-call btn-sm"
                     onClick={() => initiateCall(f.contactName, f.contactPhone, f.contactType as any, f.contactId)}
                   >
                     <Phone size={13} /> Call

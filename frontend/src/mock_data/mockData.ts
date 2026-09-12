@@ -25,7 +25,8 @@ export const TENANTS: Record<string, Tenant> = {
     id: 't-ghl-01',
     name: 'GHL India Ventures',
     slug: 'ghl',
-    brandColor: '#0284c7',
+    brandColor: '#ef4444',
+    logo: '/og-image -GHL Ventures.png',
     tagline: 'Institutional Wealth & Real Estate Investment Advisory',
     enabledFeatures: [
       FEATURES.LEADS,
@@ -53,7 +54,8 @@ export const TENANTS: Record<string, Tenant> = {
     id: 't-jamin-02',
     name: 'Jamin Bazaar',
     slug: 'jamin',
-    brandColor: '#059669',
+    brandColor: '#e10600',
+    logo: '/jamin-logo.png',
     tagline: 'Premium Plotted Enclaves & Farmland Communities',
     enabledFeatures: [
       FEATURES.LEADS,

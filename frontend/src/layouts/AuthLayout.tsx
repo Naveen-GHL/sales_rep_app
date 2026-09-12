@@ -82,7 +82,7 @@ export const AuthLayout: React.FC = () => {
               style={{ justifyContent: 'flex-start', border: '1px solid #e2e8f0', padding: '8px 10px' }}
               onClick={() => switchPersona('company_admin', 'ghl')}
             >
-              <Building2 size={14} color="#0284c7" />
+              <Building2 size={14} color="#ef4444" />
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontWeight: 700, fontSize: 11, color: '#0f172a' }}>GHL India Admin</div>
                 <div style={{ fontSize: 9, color: '#64748b' }}>Wealth / Investors</div>
@@ -95,7 +95,7 @@ export const AuthLayout: React.FC = () => {
               style={{ justifyContent: 'flex-start', border: '1px solid #e2e8f0', padding: '8px 10px' }}
               onClick={() => switchPersona('company_admin', 'jamin')}
             >
-              <Building2 size={14} color="#059669" />
+              <Building2 size={14} color="#e10600" />
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontWeight: 700, fontSize: 11, color: '#0f172a' }}>Jamin Bazaar Admin</div>
                 <div style={{ fontSize: 9, color: '#64748b' }}>Plots / Operations</div>
@@ -108,7 +108,7 @@ export const AuthLayout: React.FC = () => {
               style={{ justifyContent: 'flex-start', border: '1px solid #e2e8f0', padding: '8px 10px' }}
               onClick={() => switchPersona('sales_executive', 'ghl')}
             >
-              <UserCheck size={14} color="#0284c7" />
+              <UserCheck size={14} color="#ef4444" />
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontWeight: 700, fontSize: 11, color: '#0f172a' }}>GHL Sales Agent</div>
                 <div style={{ fontSize: 9, color: '#64748b' }}>Ananya Iyer</div>

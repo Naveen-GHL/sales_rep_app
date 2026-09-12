@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Users,
   Building2,
-  Phone,
   PhoneCall,
   History,
   Kanban,
@@ -160,26 +159,196 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
           borderBottom: `1px solid ${isSuperAdmin ? '#1e293b' : 'var(--border-base)'}`,
         }}
       >
-        {!collapsed && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
+        {collapsed ? (
+          isSuperAdmin ? (
             <div
               style={{
-                width: 34,
-                height: 34,
-                borderRadius: 'var(--radius-md)',
-                background: isSuperAdmin
-                  ? 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'
-                  : tenant?.brandColor || '#2563eb',
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontWeight: 800,
-                fontSize: 16,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                fontWeight: 900,
+                fontSize: 12,
               }}
             >
-              {isSuperAdmin ? '⚡' : tenant?.slug === 'ghl' ? 'G' : 'J'}
+              ⚡
+            </div>
+          ) : tenant?.slug === 'jamin' ? (
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                overflow: 'hidden',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#e10600',
+                boxShadow: '0 2px 8px rgba(225, 6, 0, 0.3)',
+              }}
+            >
+              <img
+                src="/jamin-icon.png"
+                alt="Jamin Bazaar"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                onError={e => {
+                  (e.currentTarget as HTMLImageElement).src = '/jamin-logo.png';
+                }}
+              />
+            </div>
+          ) : tenant?.slug === 'ghl' ? (
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, #ef4444 0%, #7f1d1d 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: 12,
+                letterSpacing: '-0.02em',
+                boxShadow: '0 2px 8px rgba(220,38,38,0.35)',
+              }}
+            >
+              GHL
+            </div>
+          ) : (
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: `linear-gradient(135deg, ${tenant?.brandColor || '#8b5cf6'} 0%, #1e1b4b 100%)`,
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: 12,
+              }}
+            >
+              {tenant?.name?.charAt(0) || 'T'}
+            </div>
+          )
+        ) : tenant?.slug === 'jamin' ? (
+          <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+            <img
+              src="/jamin-logo.png"
+              alt="Jamin Bazaar"
+              style={{
+                height: 38,
+                maxWidth: 175,
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+          </div>
+        ) : tenant?.slug === 'ghl' ? (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              backgroundColor: '#0f172a',
+              borderRadius: 8,
+              padding: '4px 8px',
+              overflow: 'hidden',
+              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.15)',
+            }}
+          >
+            <img
+              src="/og-image -GHL Ventures.png"
+              alt="GHL India Ventures"
+              style={{
+                height: 32,
+                maxWidth: 160,
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+          </div>
+        ) : !isSuperAdmin ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
+            {tenant?.logo ? (
+              <img
+                src={tenant.logo}
+                alt={tenant.name}
+                style={{ height: 38, maxWidth: 175, objectFit: 'contain', display: 'block' }}
+              />
+            ) : (
+              <>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    minWidth: 36,
+                    borderRadius: 10,
+                    background: `linear-gradient(135deg, ${tenant?.brandColor || '#8b5cf6'} 0%, #1e1b4b 100%)`,
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 900,
+                    fontSize: 14,
+                  }}
+                >
+                  {tenant?.name?.charAt(0) || 'T'}
+                </div>
+                <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 800,
+                      fontSize: 14,
+                      color: 'var(--text-primary)',
+                      letterSpacing: '-0.02em',
+                    }}
+                  >
+                    {tenant?.name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {tenant?.tagline
+                      ? tenant.tagline.length > 26
+                        ? tenant.tagline.slice(0, 26) + '...'
+                        : tenant.tagline
+                      : 'Workspace'}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                minWidth: 38,
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: 13,
+              }}
+            >
+              ⚡
             </div>
             <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
               <div
@@ -191,18 +360,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
                   letterSpacing: '-0.02em',
                 }}
               >
-                {isSuperAdmin ? 'Platform Operator' : tenant?.name}
+                Platform Operator
               </div>
               <div
                 style={{
                   fontSize: 10,
-                  color: isSuperAdmin ? '#94a3b8' : 'var(--text-muted)',
+                  color: '#94a3b8',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   fontWeight: 600,
                 }}
               >
-                {isSuperAdmin ? 'Super Admin Console' : tenant?.tagline.slice(0, 28) + '...'}
+                Super Admin Console
               </div>
             </div>
           </div>
@@ -273,8 +442,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
                           ? '#c084fc'
                           : 'var(--primary-600)'
                         : isSuperAdmin
-                        ? '#cbd5e1'
-                        : 'var(--text-secondary)',
+                          ? '#cbd5e1'
+                          : 'var(--text-secondary)',
                       fontWeight: isActive ? 700 : 500,
                       border: isActive
                         ? isSuperAdmin

@@ -265,8 +265,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                       <button
-                        className="btn btn-primary btn-sm btn-icon"
-                        style={{ width: 30, height: 30 }}
+                        className="btn btn-call btn-sm btn-icon"
+                        style={{ width: 30, height: 30, borderRadius: 8 }}
                         title={`Call ${l.name}`}
                         onClick={() => initiateCall(l.name, l.phone, 'lead', l.id)}
                       >
@@ -328,7 +328,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
                 </div>
 
                 <button
-                  className="btn btn-secondary btn-sm"
+                  className="btn btn-call btn-sm"
                   onClick={() => initiateCall(f.contactName, f.contactPhone, 'lead', f.contactId)}
                 >
                   <Phone size={13} /> Call Now
