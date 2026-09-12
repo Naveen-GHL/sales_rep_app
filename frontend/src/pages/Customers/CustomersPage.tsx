@@ -21,6 +21,9 @@ import { storageService } from '../../services/storageService';
 import { DataTable, Column, RowAction } from '../../components/common/DataTable';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Timeline, TimelineEvent } from '../../components/common/Timeline';
+import { FilterBar } from '../../components/common/FilterBar';
+import { DocumentUploader } from '../../components/common/DocumentUploader';
+import { DocumentList } from '../../components/common/DocumentList';
 
 export const CustomersPage: React.FC = () => {
   const { tenant, user } = useAuth();
@@ -29,6 +32,8 @@ export const CustomersPage: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'calls' | 'followups' | 'deals' | 'timeline' | 'documents'>('overview');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [agentFilter, setAgentFilter] = useState('All');
 
   const [calls, setCalls] = useState<CallRecord[]>([]);
   const [followups, setFollowups] = useState<Followup[]>([]);
@@ -51,6 +56,16 @@ export const CustomersPage: React.FC = () => {
     window.addEventListener('nexus_storage_updated', handleUpdate);
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
+
+  const agentOptions = Array.from(new Set(customers.map(c => c.assignedAgentName)))
+    .filter(Boolean)
+    .map(name => ({ value: name, label: name }));
+
+  const filteredCustomers = customers.filter(c => {
+    if (statusFilter !== 'All' && c.status !== statusFilter) return false;
+    if (agentFilter !== 'All' && c.assignedAgentName !== agentFilter) return false;
+    return true;
+  });
 
   // Filter linked records for selected customer
   const customerCalls = calls.filter(
@@ -172,8 +187,36 @@ export const CustomersPage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="card" style={{ padding: 14 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Customer Accounts</h3>
+            <div style={{ marginBottom: 12 }}>
+              <FilterBar
+                filters={[
+                  {
+                    key: 'status',
+                    label: 'Status',
+                    value: statusFilter,
+                    onChange: setStatusFilter,
+                    options: [
+                      { value: 'Active', label: 'Active' },
+                      { value: 'VIP', label: 'VIP' },
+                      { value: 'Inactive', label: 'Inactive' },
+                    ],
+                  },
+                  {
+                    key: 'agent',
+                    label: 'Agent',
+                    value: agentFilter,
+                    onChange: setAgentFilter,
+                    options: agentOptions,
+                  },
+                ]}
+                onClearAll={() => {
+                  setStatusFilter('All');
+                  setAgentFilter('All');
+                }}
+              />
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {customers.map(c => {
+              {filteredCustomers.map(c => {
                 const isSelected = selectedCustomer?.id === c.id;
                 return (
                   <div
@@ -472,24 +515,18 @@ export const CustomersPage: React.FC = () => {
 
               {activeTab === 'timeline' && <Timeline events={timelineEvents} />}
 
-              {activeTab === 'documents' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div
-                    style={{
-                      border: '1px dashed var(--border-strong)',
-                      padding: 24,
-                      borderRadius: 'var(--radius-md)',
-                      textAlign: 'center',
-                      backgroundColor: 'var(--bg-surface-hover)',
-                    }}
-                  >
-                    <FileText size={28} color="var(--primary-600)" style={{ margin: '0 auto 8px' }} />
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>Upload KYC or Agreement Document</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>PDF, JPG, PNG up to 25MB</div>
-                    <button className="btn btn-secondary btn-sm" style={{ marginTop: 10 }}>
-                      Choose File
-                    </button>
-                  </div>
+              {activeTab === 'documents' && selectedCustomer && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <DocumentUploader
+                    entityType="customer"
+                    entityId={selectedCustomer.id}
+                    allowedCategories={['KYC', 'Agreement', 'Payment Receipt', 'Identity Proof', 'Other']}
+                  />
+                  <DocumentList
+                    entityType="customer"
+                    entityId={selectedCustomer.id}
+                    canDelete
+                  />
                 </div>
               )}
             </div>

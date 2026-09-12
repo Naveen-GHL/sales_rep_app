@@ -5,7 +5,6 @@ import {
   Plus,
   Upload,
   Download,
-  Filter,
   CheckCircle2,
   Calendar,
   Clock,
@@ -21,6 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
 import { storageService } from '../../services/storageService';
 import { DataTable, Column, RowAction } from '../../components/common/DataTable';
+import { FilterBar } from '../../components/common/FilterBar';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Drawer } from '../../components/common/Drawer';
 import { Modal } from '../../components/common/Modal';
@@ -309,56 +309,6 @@ export const LeadsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div
-        className="card"
-        style={{
-          padding: '12px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 16,
-          flexWrap: 'wrap',
-          backgroundColor: 'var(--bg-surface)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
-          <Filter size={15} /> Filters:
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 600 }}>Status:</span>
-          {['All', 'New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Converted'].map(s => (
-            <button
-              key={s}
-              className={`btn btn-sm ${statusFilter === s ? 'btn-primary' : 'btn-ghost'}`}
-              style={{ fontSize: 11, padding: '4px 10px', height: 28 }}
-              onClick={() => setStatusFilter(s)}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-          <span style={{ fontSize: 12, fontWeight: 600 }}>Priority:</span>
-          {['All', 'Urgent', 'High', 'Medium', 'Low'].map(p => (
-            <button
-              key={p}
-              className={`btn btn-sm ${priorityFilter === p ? 'btn-secondary' : 'btn-ghost'}`}
-              style={{
-                fontSize: 11,
-                padding: '4px 8px',
-                height: 28,
-                backgroundColor: priorityFilter === p ? 'var(--bg-surface-active)' : 'transparent',
-              }}
-              onClick={() => setPriorityFilter(p)}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Leads Table */}
       <DataTable
         columns={columns}
@@ -374,6 +324,42 @@ export const LeadsPage: React.FC = () => {
         emptyDescription="Create a new lead or clear your filters to display inbound leads."
         emptyActionLabel="+ Add First Lead"
         onEmptyAction={handleOpenCreate}
+        filtersNode={
+          <FilterBar
+            filters={[
+              {
+                key: 'status',
+                label: 'Status',
+                value: statusFilter,
+                onChange: setStatusFilter,
+                options: [
+                  { value: 'New', label: 'New' },
+                  { value: 'Contacted', label: 'Contacted' },
+                  { value: 'Qualified', label: 'Qualified' },
+                  { value: 'Proposal', label: 'Proposal' },
+                  { value: 'Negotiation', label: 'Negotiation' },
+                  { value: 'Converted', label: 'Converted' },
+                ],
+              },
+              {
+                key: 'priority',
+                label: 'Priority',
+                value: priorityFilter,
+                onChange: setPriorityFilter,
+                options: [
+                  { value: 'Urgent', label: 'Urgent' },
+                  { value: 'High', label: 'High' },
+                  { value: 'Medium', label: 'Medium' },
+                  { value: 'Low', label: 'Low' },
+                ],
+              },
+            ]}
+            onClearAll={() => {
+              setStatusFilter('All');
+              setPriorityFilter('All');
+            }}
+          />
+        }
       />
 
       {/* 360 Detail Drawer */}

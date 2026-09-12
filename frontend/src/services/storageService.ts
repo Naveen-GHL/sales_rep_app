@@ -15,6 +15,7 @@ import {
   NotificationItem,
   User,
   Tenant,
+  DocumentItem,
 } from '../types';
 import { DEFAULT_TENANTS } from '../constants/defaultTenants';
 
@@ -301,6 +302,32 @@ class StorageService {
   markAllNotificationsRead(): void {
     const notifs = this.getNotifications().map(n => ({ ...n, read: true }));
     this.set('notifications', notifs);
+  }
+
+  // Documents — metadata-only (no file bytes stored)
+  getDocuments(entityType?: string, entityId?: string): DocumentItem[] {
+    const docs = this.get<DocumentItem[]>('documents', []);
+    return docs.filter(d => {
+      if (entityType && d.entityType !== entityType) return false;
+      if (entityId && d.entityId !== entityId) return false;
+      return true;
+    });
+  }
+
+  saveDocument(doc: DocumentItem): void {
+    const docs = this.get<DocumentItem[]>('documents', []);
+    const index = docs.findIndex(d => d.id === doc.id);
+    if (index >= 0) {
+      docs[index] = doc;
+    } else {
+      docs.unshift(doc);
+    }
+    this.set('documents', docs);
+  }
+
+  deleteDocument(id: string): void {
+    const docs = this.get<DocumentItem[]>('documents', []).filter(d => d.id !== id);
+    this.set('documents', docs);
   }
 
   // Optional: Explicitly populate demo mock data from separate mock_data folder

@@ -6,11 +6,15 @@ import { storageService } from '../../services/storageService';
 import { DataTable, Column, RowAction } from '../../components/common/DataTable';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Modal } from '../../components/common/Modal';
+import { Drawer } from '../../components/common/Drawer';
+import { DocumentUploader } from '../../components/common/DocumentUploader';
+import { DocumentList } from '../../components/common/DocumentList';
 
 export const BookingsPage: React.FC = () => {
   const { tenant, user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isNewBookingModalOpen, setIsNewBookingModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   // Form
   const [customerName, setCustomerName] = useState('');
@@ -159,7 +163,37 @@ export const BookingsPage: React.FC = () => {
         data={bookings}
         keyExtractor={b => b.id}
         searchPlaceholder="Search bookings by customer, plot, or date..."
+        onRowClick={b => setSelectedBooking(b)}
       />
+
+      {/* Booking Documents Drawer */}
+      <Drawer
+        isOpen={!!selectedBooking}
+        onClose={() => setSelectedBooking(null)}
+        title={selectedBooking ? `Booking: ${selectedBooking.plotNumber}` : ''}
+        subtitle={selectedBooking ? `${selectedBooking.customerName} • ${selectedBooking.bookingDate}` : ''}
+        width={520}
+      >
+        {selectedBooking && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="card" style={{ padding: 18 }}>
+              <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>
+                Booking Documents
+              </h4>
+              <DocumentUploader
+                entityType="booking"
+                entityId={selectedBooking.id}
+                allowedCategories={['Token Receipt', 'Sale Agreement', 'Registration Doc', 'Payment Proof', 'Other']}
+              />
+            </div>
+            <DocumentList
+              entityType="booking"
+              entityId={selectedBooking.id}
+              canDelete
+            />
+          </div>
+        )}
+      </Drawer>
 
       {/* New Booking Modal */}
       <Modal

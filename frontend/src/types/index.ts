@@ -86,6 +86,7 @@ export interface Deal {
   notes: string;
   lostReason?: string;
   createdAt: string;
+  stageEnteredAt?: string;
 }
 
 export type CallDisposition =
@@ -268,4 +269,6 @@ export interface DocumentItem {
   uploadedBy: string;
   uploadedAt: string;
   category: string;
+  entityType?: 'lead' | 'customer' | 'investor' | 'booking' | 'consultation';
+  entityId?: string;
 }

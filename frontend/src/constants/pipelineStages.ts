@@ -14,6 +14,7 @@ export const PIPELINE_STAGES = {
     { id: 'qualified_investor', name: 'Qualified Investor', color: '#06b6d4' },
     { id: 'investment_opportunity', name: 'Investment Opportunity', color: '#ec4899' },
     { id: 'converted', name: 'Converted', color: '#10b981' },
+    { id: 'lost', name: 'Lost', color: '#ef4444' },
   ],
   jamin: [
     { id: 'enquiry', name: 'Enquiry', color: '#3b82f6' },
@@ -23,5 +24,6 @@ export const PIPELINE_STAGES = {
     { id: 'plot_selected', name: 'Plot Selected', color: '#ec4899' },
     { id: 'booking', name: 'Booking', color: '#10b981' },
     { id: 'converted', name: 'Converted', color: '#059669' },
+    { id: 'lost', name: 'Lost', color: '#ef4444' },
   ],
 };

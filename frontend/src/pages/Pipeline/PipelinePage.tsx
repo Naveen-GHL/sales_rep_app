@@ -1,24 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import {
   Kanban as KanbanIcon,
-  Plus,
-  ArrowRight,
   CheckCircle,
   XCircle,
   Clock,
-  User,
-  DollarSign,
   ChevronRight,
   ChevronLeft,
 } from 'lucide-react';
 import { Deal } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useCan } from '../../components/common/Guards';
 import { storageService } from '../../services/storageService';
 import { PIPELINE_STAGES } from '../../constants/pipelineStages';
 import { Modal } from '../../components/common/Modal';
 
 export const PipelinePage: React.FC = () => {
-  const { tenant, user } = useAuth();
+  const { tenant } = useAuth();
+  const canUpdateDeals = useCan('deals.update');
   const [deals, setDeals] = useState<Deal[]>([]);
   const [selectedDealForLoss, setSelectedDealForLoss] = useState<Deal | null>(null);
   const [lossReason, setLossReason] = useState('Competitor Pricing');
@@ -41,19 +39,31 @@ export const PipelinePage: React.FC = () => {
     ? PIPELINE_STAGES.ghl
     : PIPELINE_STAGES.default;
 
+  const wonStage = stages.find(s => s.id === 'won' || s.id === 'converted')
+    || (stages[stages.length - 1].id === 'lost' ? stages[stages.length - 2] : stages[stages.length - 1]);
+  const wonStageId = wonStage?.id || 'won';
+
   const handleMoveStage = (deal: Deal, direction: 'forward' | 'backward') => {
     const currentIndex = stages.findIndex(s => s.id === deal.stage);
     const newIndex = direction === 'forward' ? currentIndex + 1 : currentIndex - 1;
 
     if (newIndex >= 0 && newIndex < stages.length) {
-      const updatedDeal = { ...deal, stage: stages[newIndex].id };
+      if (stages[newIndex].id === 'lost') return;
+      const updatedDeal: Deal = {
+        ...deal,
+        stage: stages[newIndex].id,
+        stageEnteredAt: new Date().toISOString(),
+      };
       storageService.saveDeal(updatedDeal);
     }
   };
 
   const handleMarkWon = (deal: Deal) => {
-    const lastStage = stages[stages.length - 1].id;
-    storageService.saveDeal({ ...deal, stage: lastStage });
+    storageService.saveDeal({
+      ...deal,
+      stage: wonStageId,
+      stageEnteredAt: new Date().toISOString(),
+    });
   };
 
   const handleConfirmLost = () => {
@@ -62,9 +72,20 @@ export const PipelinePage: React.FC = () => {
         ...selectedDealForLoss,
         stage: 'lost',
         lostReason: lossReason,
+        stageEnteredAt: new Date().toISOString(),
       });
       setSelectedDealForLoss(null);
     }
+  };
+
+  const getDaysInStage = (deal: Deal) => {
+    const timestamp = deal.stageEnteredAt || deal.createdAt;
+    if (!timestamp) return 0;
+    const time = new Date(timestamp).getTime();
+    if (isNaN(time)) return 0;
+    const diffMs = new Date().getTime() - time;
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    return Math.max(0, days);
   };
 
   const formatCurrency = (val: number) => {
@@ -184,68 +205,119 @@ export const PipelinePage: React.FC = () => {
                     No deals in this stage
                   </div>
                 ) : (
-                  stageDeals.map(deal => (
-                    <div
-                      key={deal.id}
-                      className="card card-hover"
-                      style={{
-                        padding: 14,
-                        backgroundColor: 'var(--bg-surface)',
-                        boxShadow: 'var(--shadow-xs)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 10,
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
-                          {deal.title}
+                  stageDeals.map(deal => {
+                    const daysInStage = getDaysInStage(deal);
+                    const isStale = daysInStage > 14;
+                    const isWon = deal.stage === wonStageId || deal.stage === 'won' || deal.stage === 'converted';
+                    const isLost = deal.stage === 'lost';
+
+                    return (
+                      <div
+                        key={deal.id}
+                        className="card card-hover"
+                        style={{
+                          padding: 14,
+                          backgroundColor: 'var(--bg-surface)',
+                          boxShadow: 'var(--shadow-xs)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 10,
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
+                            {deal.title}
+                          </div>
+                          <div style={{ fontSize: 12, color: 'var(--primary-600)', fontWeight: 600, marginTop: 2 }}>
+                            {deal.customerName}
+                          </div>
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--primary-600)', fontWeight: 600, marginTop: 2 }}>
-                          {deal.customerName}
-                        </div>
-                      </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: 15, fontWeight: 800, color: '#059669' }}>
-                          {formatCurrency(deal.value)}
-                        </span>
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                          📅 {deal.expectedCloseDate}
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
-                        <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                          👤 {deal.assignedAgentName}
-                        </span>
-
-                        {/* Stage Mover Buttons */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          {sIdx > 0 && (
-                            <button
-                              className="btn btn-ghost btn-icon btn-sm"
-                              style={{ width: 24, height: 24 }}
-                              title="Move to Previous Stage"
-                              onClick={() => handleMoveStage(deal, 'backward')}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 15, fontWeight: 800, color: '#059669' }}>
+                            {formatCurrency(deal.value)}
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                                color: isStale ? '#d97706' : 'var(--text-muted)',
+                                fontWeight: isStale ? 700 : 500,
+                                backgroundColor: isStale ? 'rgba(245, 158, 11, 0.12)' : 'transparent',
+                                padding: isStale ? '1px 6px' : '0',
+                                borderRadius: 'var(--radius-sm)',
+                                border: isStale ? '1px solid rgba(245, 158, 11, 0.3)' : 'none',
+                              }}
+                              title={isStale ? `Stale deal: In stage for ${daysInStage} days (>14 days)` : `In stage for ${daysInStage} days`}
                             >
-                              <ChevronLeft size={13} />
-                            </button>
-                          )}
-                          {sIdx < stages.length - 1 && (
-                            <button
-                              className="btn btn-primary btn-icon btn-sm"
-                              style={{ width: 24, height: 24 }}
-                              title="Advance to Next Stage"
-                              onClick={() => handleMoveStage(deal, 'forward')}
-                            >
-                              <ChevronRight size={13} />
-                            </button>
-                          )}
+                              <Clock size={11} color={isStale ? '#d97706' : 'currentColor'} />
+                              {daysInStage}d
+                            </span>
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                              📅 {deal.expectedCloseDate}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                            👤 {deal.assignedAgentName}
+                          </span>
+
+                          {/* Stage Mover and Action Buttons */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            {!isWon && !isLost && sIdx > 0 && (
+                              <button
+                                className="btn btn-ghost btn-icon btn-sm"
+                                style={{ width: 24, height: 24 }}
+                                title="Move to Previous Stage"
+                                onClick={() => handleMoveStage(deal, 'backward')}
+                              >
+                                <ChevronLeft size={13} />
+                              </button>
+                            )}
+                            {!isWon && !isLost && sIdx < stages.length - 1 && (
+                              <button
+                                className="btn btn-primary btn-icon btn-sm"
+                                style={{ width: 24, height: 24 }}
+                                title="Advance to Next Stage"
+                                onClick={() => handleMoveStage(deal, 'forward')}
+                              >
+                                <ChevronRight size={13} />
+                              </button>
+                            )}
+                            {canUpdateDeals && (
+                              <>
+                                {!isWon && (
+                                  <button
+                                    className="btn btn-ghost btn-icon btn-sm"
+                                    style={{ width: 24, height: 24, color: '#059669' }}
+                                    title="Mark Won"
+                                    onClick={() => handleMarkWon(deal)}
+                                  >
+                                    <CheckCircle size={14} />
+                                  </button>
+                                )}
+                                {!isLost && !isWon && (
+                                  <button
+                                    className="btn btn-ghost btn-icon btn-sm"
+                                    style={{ width: 24, height: 24, color: '#ef4444' }}
+                                    title="Mark Lost"
+                                    onClick={() => setSelectedDealForLoss(deal)}
+                                  >
+                                    <XCircle size={14} />
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

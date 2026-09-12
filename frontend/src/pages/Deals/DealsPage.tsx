@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Plus, Filter, Kanban } from 'lucide-react';
+import { Briefcase, Kanban } from 'lucide-react';
 import { Deal } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { storageService } from '../../services/storageService';
 import { DataTable, Column, RowAction } from '../../components/common/DataTable';
 import { StatusChip } from '../../components/common/StatusChip';
+import { FilterBar } from '../../components/common/FilterBar';
+import { PIPELINE_STAGES } from '../../constants/pipelineStages';
 
 interface DealsPageProps {
   onNavigate: (route: string) => void;
@@ -13,6 +15,8 @@ interface DealsPageProps {
 export const DealsPage: React.FC<DealsPageProps> = ({ onNavigate }) => {
   const { tenant } = useAuth();
   const [deals, setDeals] = useState<Deal[]>([]);
+  const [stageFilter, setStageFilter] = useState('All');
+  const [agentFilter, setAgentFilter] = useState('All');
 
   useEffect(() => {
     setDeals(storageService.getDeals(tenant?.id));
@@ -20,6 +24,23 @@ export const DealsPage: React.FC<DealsPageProps> = ({ onNavigate }) => {
     window.addEventListener('nexus_storage_updated', handleUpdate);
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
+
+  const filteredDeals = deals.filter(d => {
+    if (stageFilter !== 'All' && d.stage !== stageFilter) return false;
+    if (agentFilter !== 'All' && d.assignedAgentName !== agentFilter) return false;
+    return true;
+  });
+
+  const agentOptions = Array.from(new Set(deals.map(d => d.assignedAgentName)))
+    .filter(Boolean)
+    .map(name => ({ value: name, label: name }));
+
+  const stages =
+    tenant?.slug === 'ghl'
+      ? PIPELINE_STAGES.ghl
+      : tenant?.slug === 'jamin'
+      ? PIPELINE_STAGES.jamin
+      : PIPELINE_STAGES.default;
 
   const formatCurrency = (val: number) => {
     if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
@@ -88,9 +109,33 @@ export const DealsPage: React.FC<DealsPageProps> = ({ onNavigate }) => {
 
       <DataTable
         columns={columns}
-        data={deals}
+        data={filteredDeals}
         keyExtractor={d => d.id}
         searchPlaceholder="Search deals by title or contact..."
+        filtersNode={
+          <FilterBar
+            filters={[
+              {
+                key: 'stage',
+                label: 'Stage',
+                value: stageFilter,
+                onChange: setStageFilter,
+                options: stages.map(s => ({ value: s.id, label: s.name })),
+              },
+              {
+                key: 'agent',
+                label: 'Agent',
+                value: agentFilter,
+                onChange: setAgentFilter,
+                options: agentOptions,
+              },
+            ]}
+            onClearAll={() => {
+              setStageFilter('All');
+              setAgentFilter('All');
+            }}
+          />
+        }
       />
     </div>
   );

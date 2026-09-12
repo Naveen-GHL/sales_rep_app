@@ -6,12 +6,15 @@ import { storageService } from '../../services/storageService';
 import { DataTable, Column, RowAction } from '../../components/common/DataTable';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Drawer } from '../../components/common/Drawer';
+import { FilterBar } from '../../components/common/FilterBar';
 
 export const CallHistoryPage: React.FC = () => {
   const { tenant } = useAuth();
   const [calls, setCalls] = useState<CallRecord[]>([]);
   const [selectedCall, setSelectedCall] = useState<CallRecord | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [dispositionFilter, setDispositionFilter] = useState('All');
+  const [directionFilter, setDirectionFilter] = useState('All');
 
   const loadData = () => {
     setCalls(storageService.getCalls(tenant?.id));
@@ -23,6 +26,12 @@ export const CallHistoryPage: React.FC = () => {
     window.addEventListener('nexus_storage_updated', handleUpdate);
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
+
+  const filteredCalls = calls.filter(c => {
+    if (dispositionFilter !== 'All' && c.disposition !== dispositionFilter) return false;
+    if (directionFilter !== 'All' && c.direction !== directionFilter) return false;
+    return true;
+  });
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -117,7 +126,7 @@ export const CallHistoryPage: React.FC = () => {
 
       <DataTable
         columns={columns}
-        data={calls}
+        data={filteredCalls}
         keyExtractor={c => c.id}
         rowActions={rowActions}
         onRowClick={c => {
@@ -125,6 +134,41 @@ export const CallHistoryPage: React.FC = () => {
           setIsPlayingAudio(false);
         }}
         searchPlaceholder="Search calls by contact name, phone, or agent..."
+        filtersNode={
+          <FilterBar
+            filters={[
+              {
+                key: 'disposition',
+                label: 'Disposition',
+                value: dispositionFilter,
+                onChange: setDispositionFilter,
+                options: [
+                  { value: 'Interested', label: 'Interested' },
+                  { value: 'Not Interested', label: 'Not Interested' },
+                  { value: 'Follow-up Required', label: 'Follow-up Required' },
+                  { value: 'Call Back', label: 'Call Back' },
+                  { value: 'Wrong Number', label: 'Wrong Number' },
+                  { value: 'Converted', label: 'Converted' },
+                  { value: 'No Response', label: 'No Response' },
+                ],
+              },
+              {
+                key: 'direction',
+                label: 'Direction',
+                value: directionFilter,
+                onChange: setDirectionFilter,
+                options: [
+                  { value: 'inbound', label: 'Inbound' },
+                  { value: 'outbound', label: 'Outbound' },
+                ],
+              },
+            ]}
+            onClearAll={() => {
+              setDispositionFilter('All');
+              setDirectionFilter('All');
+            }}
+          />
+        }
       />
 
       {/* Call Detail Drawer */}
