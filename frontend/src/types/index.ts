@@ -373,7 +373,7 @@ export interface DocumentItem {
   uploadedBy: string;
   uploadedAt: string;
   category: string;
-  entityType?: 'lead' | 'customer' | 'investor' | 'booking' | 'consultation';
+  entityType?: 'lead' | 'customer' | 'investor' | 'booking' | 'consultation' | 'company';
   entityId?: string;
 }
 

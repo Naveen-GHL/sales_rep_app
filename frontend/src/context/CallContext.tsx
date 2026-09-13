@@ -24,6 +24,11 @@ interface ActiveCall {
   isOnHold: boolean;
   quickNotes: string;
   matchedRecord?: MatchedRecord;
+  // view-mode fields
+  isExpanded: boolean;
+  isVideoMode: boolean;
+  // Google Meet integration
+  meetingLink: string | null;
 }
 
 interface CallContextType {
@@ -39,6 +44,9 @@ interface CallContextType {
   endCall: () => void;
   toggleMute: () => void;
   toggleHold: () => void;
+  toggleExpanded: () => void;
+  toggleVideoMode: () => void;
+  setMeetingLink: (link: string | null) => void;
   setQuickNotes: (notes: string) => void;
   saveDisposition: (
     disposition: CallDisposition,
@@ -90,6 +98,9 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: name,
         meta: recordType === 'lead' ? 'Active Inbound Lead' : 'Customer Account',
       },
+      isExpanded: true,
+      isVideoMode: false,
+      meetingLink: null,
     };
     setActiveCall(newCall);
   };
@@ -116,13 +127,16 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       matchedRecord: matchedLead
         ? { type: 'lead', id: matchedLead.id, name: matchedLead.name, meta: `Lead • Priority: ${matchedLead.priority}` }
         : { type: 'unknown', name: 'Unknown Caller', meta: 'Unregistered Number' },
+      isExpanded: true,
+      isVideoMode: false,
+      meetingLink: null,
     };
     setActiveCall(newCall);
   };
 
   const acceptCall = () => {
     if (activeCall) {
-      setActiveCall({ ...activeCall, status: 'connected', duration: 0 });
+      setActiveCall({ ...activeCall, status: 'connected', duration: 0, isExpanded: true, isVideoMode: false, meetingLink: null });
     }
   };
 
@@ -150,6 +164,24 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const toggleHold = () => {
     if (activeCall) {
       setActiveCall({ ...activeCall, isOnHold: !activeCall.isOnHold });
+    }
+  };
+
+  const toggleExpanded = () => {
+    if (activeCall) {
+      setActiveCall({ ...activeCall, isExpanded: !activeCall.isExpanded });
+    }
+  };
+
+  const toggleVideoMode = () => {
+    if (activeCall) {
+      setActiveCall({ ...activeCall, isVideoMode: !activeCall.isVideoMode });
+    }
+  };
+
+  const setMeetingLink = (link: string | null) => {
+    if (activeCall) {
+      setActiveCall({ ...activeCall, meetingLink: link });
     }
   };
 
@@ -239,6 +271,9 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         endCall,
         toggleMute,
         toggleHold,
+        toggleExpanded,
+        toggleVideoMode,
+        setMeetingLink,
         setQuickNotes,
         saveDisposition,
         closeDispositionModal,
