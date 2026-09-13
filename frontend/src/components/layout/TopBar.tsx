@@ -35,14 +35,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
   // User menu
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
-  // Incoming call popup position setting
-  const [popupPosition, setPopupPosition] = useState(
-    () => localStorage.getItem('nexus_popup_position') || 'top-right'
-  );
-  const handleSetPopupPosition = (pos: string) => {
-    setPopupPosition(pos);
-    localStorage.setItem('nexus_popup_position', pos);
-  };
+
 
   // Sync notifications
   useEffect(() => {
@@ -566,30 +559,6 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{user?.email}</div>
                   <div style={{ fontSize: 11, color: 'var(--primary-600)', fontWeight: 600, marginTop: 2 }}>
                     {user?.role.name}
-                  </div>
-                </div>
-
-                {/* Incoming Call Popup Position Setting */}
-                <div style={{ padding: '10px 10px 6px', borderBottom: '1px solid var(--border-base)' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 8 }}>
-                    Incoming Call Popup Position
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
-                    {[
-                      { value: 'top-right', label: '↗ Top Right' },
-                      { value: 'top-left', label: '↖ Top Left' },
-                      { value: 'bottom-right', label: '↘ Bottom Right' },
-                      { value: 'bottom-left', label: '↙ Bottom Left' },
-                    ].map(opt => (
-                      <button
-                        key={opt.value}
-                        className={`btn btn-sm ${popupPosition === opt.value ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ fontSize: 10, padding: '4px 6px', justifyContent: 'center' }}
-                        onClick={() => handleSetPopupPosition(opt.value)}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
                   </div>
                 </div>
 

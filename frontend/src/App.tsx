@@ -63,6 +63,11 @@ export const App: React.FC = () => {
   );
   const [scheduledTime, setScheduledTime] = useState('11:00');
 
+  // Deal-specific state
+  const [dealCustomerMode, setDealCustomerMode] = useState<'existing' | 'new'>('existing');
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [newCustomerName, setNewCustomerName] = useState('');
+
   // Handle route change
   const navigate = (route: string) => {
     setCurrentRoute(route);
@@ -71,9 +76,15 @@ export const App: React.FC = () => {
   const handleOpenQuickCreate = (type: 'lead' | 'followup' | 'deal' | 'visit' | 'consultation') => {
     setQuickCreateType(type);
     setQuickName('');
+    setQuickPhone('+91 ');
     setQuickNotes('');
     setScheduledDate(new Date(Date.now() + 86400000).toISOString().split('T')[0]);
     setScheduledTime('11:00');
+    // Reset deal-specific state; pre-select first available customer
+    setDealCustomerMode('existing');
+    setNewCustomerName('');
+    const existingCustomers = storageService.getCustomers(tenant?.id);
+    setSelectedCustomerId(existingCustomers[0]?.id || '');
   };
 
   const handleSaveQuickCreate = (e: React.FormEvent) => {
@@ -97,6 +108,7 @@ export const App: React.FC = () => {
         notes: quickNotes,
         customFields: {},
       });
+
     } else if (quickCreateType === 'followup') {
       const combinedDateTime = new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString();
       storageService.saveFollowup({
@@ -115,13 +127,82 @@ export const App: React.FC = () => {
         assignedAgentId: user?.id || 'usr-exec',
         assignedAgentName: user?.name || 'Agent',
       });
+
+    } else if (quickCreateType === 'consultation') {
+      // Task 1 — Schedule Consultation
+      const combinedDateTime = new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString();
+      storageService.saveConsultation({
+        id: `cons-${Date.now()}`,
+        companyId: tenant?.id || 't-ghl-01',
+        investorId: `investor-${Date.now()}`,
+        investorName: quickName,
+        investorPhone: quickPhone,
+        scheduledAt: combinedDateTime,
+        consultantId: user?.id || 'usr-exec',
+        consultantName: user?.name || 'Agent',
+        status: 'Scheduled',
+        agenda: quickNotes || 'Initial consultation',
+      });
+
+    } else if (quickCreateType === 'visit') {
+      // Task 2 — Schedule Site Visit
+      const combinedDateTime = new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString();
+      storageService.saveSiteVisit({
+        id: `visit-${Date.now()}`,
+        companyId: tenant?.id || 't-jamin-02',
+        customerId: `cust-${Date.now()}`,
+        customerName: quickName,
+        customerPhone: quickPhone,
+        projectId: 'proj-01',
+        projectName: 'Greenfield Meadows Phase 2',
+        scheduledAt: combinedDateTime,
+        assignedAgentId: user?.id || 'usr-exec',
+        assignedAgentName: user?.name || 'Agent',
+        status: 'Scheduled',
+        outcomeNotes: quickNotes,
+      });
+
     } else if (quickCreateType === 'deal') {
+      // Task 4 — Deal linked to real customer
+      let resolvedCustomerId: string;
+      let resolvedCustomerName: string;
+
+      if (dealCustomerMode === 'existing' && selectedCustomerId) {
+        // Link to the chosen existing customer
+        const existing = storageService.getCustomers(tenant?.id)
+          .find(c => c.id === selectedCustomerId);
+        resolvedCustomerId = existing?.id || selectedCustomerId;
+        resolvedCustomerName = existing?.name || 'Customer';
+      } else {
+        // Create a real Customer record first so it shows in Customer 360
+        if (!newCustomerName) return;
+        resolvedCustomerId = `cust-${Date.now()}`;
+        resolvedCustomerName = newCustomerName;
+        storageService.saveCustomer({
+          id: resolvedCustomerId,
+          companyId: tenant?.id || 't-ghl-01',
+          name: resolvedCustomerName,
+          phone: quickPhone,
+          email: '',
+          status: 'Active',
+          assignedAgentId: user?.id || 'usr-exec',
+          assignedAgentName: user?.name || 'Agent',
+          location: 'Bengaluru',
+          lastContacted: new Date().toISOString().split('T')[0],
+          openDealsCount: 1,
+          totalValue: 5000000,
+          createdAt: new Date().toISOString().split('T')[0],
+          notes: '',
+          customFields: {},
+        });
+      }
+
       storageService.saveDeal({
         id: `deal-${Date.now()}`,
         companyId: tenant?.id || 't-ghl-01',
         title: quickName,
-        customerId: `cust-${Date.now()}`,
-        customerName: quickNotes || 'Direct Customer',
+        customerId: resolvedCustomerId,
+        customerName: resolvedCustomerName,
         stage: 'new',
         value: 5000000,
         expectedCloseDate: '30 Days',
@@ -224,6 +305,8 @@ export const App: React.FC = () => {
         subtitle={`Instant creation into ${tenant?.name}`}
       >
         <form onSubmit={handleSaveQuickCreate} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* ── Deal Title (deals only) or Contact Name (everything else) ── */}
           <div className="form-group">
             <label className="form-label">
               {quickCreateType === 'deal' ? 'Deal Title *' : 'Contact Name *'}
@@ -234,11 +317,74 @@ export const App: React.FC = () => {
               required
               value={quickName}
               onChange={e => setQuickName(e.target.value)}
-              placeholder="e.g. Ramesh Chandra"
+              placeholder={quickCreateType === 'deal' ? 'e.g. Commercial Plot Purchase' : 'e.g. Ramesh Chandra'}
             />
           </div>
 
-          {quickCreateType !== 'deal' && (
+          {/* ── Deal: existing vs. new customer picker (Task 4) ── */}
+          {quickCreateType === 'deal' && (() => {
+            const tenantCustomers = storageService.getCustomers(tenant?.id);
+            const hasCustomers = tenantCustomers.length > 0;
+            return (
+              <div className="form-group">
+                <label className="form-label">Link to Customer</label>
+
+                {/* Segmented toggle — same style as Reports page period toggle */}
+                <div style={{ display: 'flex', backgroundColor: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', padding: 3, gap: 2, marginBottom: 10 }}>
+                  {(['existing', 'new'] as const).map(mode => (
+                    <button
+                      key={mode}
+                      type="button"
+                      className={`btn btn-sm ${dealCustomerMode === mode ? 'btn-primary' : 'btn-ghost'}`}
+                      style={{ fontSize: 12, padding: '4px 14px', opacity: mode === 'existing' && !hasCustomers ? 0.4 : 1 }}
+                      disabled={mode === 'existing' && !hasCustomers}
+                      onClick={() => setDealCustomerMode(mode)}
+                    >
+                      {mode === 'existing' ? 'Existing customer' : 'New customer'}
+                    </button>
+                  ))}
+                </div>
+
+                {!hasCustomers && (
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>
+                    No customers in this workspace yet — deal will create a new customer record.
+                  </p>
+                )}
+
+                {dealCustomerMode === 'existing' && hasCustomers ? (
+                  <select
+                    className="form-select"
+                    value={selectedCustomerId}
+                    onChange={e => setSelectedCustomerId(e.target.value)}
+                    required
+                  >
+                    {tenantCustomers.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}{c.phone ? ` · ${c.phone}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div>
+                    <label className="form-label" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                      New Customer Name * — a new Customer record will be created
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      required
+                      placeholder="Customer full name"
+                      value={newCustomerName}
+                      onChange={e => setNewCustomerName(e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── Phone (all types except deal-existing-customer) ── */}
+          {!(quickCreateType === 'deal' && dealCustomerMode === 'existing') && (
             <div className="form-group">
               <label className="form-label">Phone Number</label>
               <input
@@ -250,7 +396,8 @@ export const App: React.FC = () => {
             </div>
           )}
 
-          {quickCreateType === 'followup' && (
+          {/* ── Scheduled Date + Time (followup, consultation, visit) ── */}
+          {(quickCreateType === 'followup' || quickCreateType === 'consultation' || quickCreateType === 'visit') && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="form-group">
                 <label className="form-label">Scheduled Date *</label>
@@ -276,13 +423,21 @@ export const App: React.FC = () => {
           )}
 
           <div className="form-group">
-            <label className="form-label">Quick Notes</label>
+            <label className="form-label">
+              {quickCreateType === 'consultation' ? 'Consultation Agenda' : 'Quick Notes'}
+            </label>
             <textarea
               className="form-textarea"
               rows={2}
               value={quickNotes}
               onChange={e => setQuickNotes(e.target.value)}
-              placeholder="Brief requirement summary..."
+              placeholder={
+                quickCreateType === 'consultation'
+                  ? 'Topics to discuss, investor interest area...'
+                  : quickCreateType === 'visit'
+                  ? 'Special requirements, preferred plots...'
+                  : 'Brief requirement summary...'
+              }
             />
           </div>
 

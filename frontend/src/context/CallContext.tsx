@@ -103,6 +103,9 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       meetingLink: null,
     };
     setActiveCall(newCall);
+    if (availability === 'Available') {
+      setAvailability('Busy');
+    }
   };
 
   const simulateIncomingCall = (name = 'Kishore Varma', phone = '+91 98860 77112') => {
@@ -132,6 +135,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       meetingLink: null,
     };
     setActiveCall(newCall);
+    setAvailability('Busy');
   };
 
   const acceptCall = () => {
@@ -143,6 +147,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const rejectCall = () => {
     if (activeCall) {
       setActiveCall(null);
+      setAvailability(prev => prev === 'Busy' ? 'Available' : prev);
     }
   };
 
@@ -249,11 +254,13 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setShowDispositionModal(false);
     setLastCallRecord(null);
+    setAvailability(prev => prev === 'Busy' ? 'Available' : prev);
   };
 
   const closeDispositionModal = () => {
     setShowDispositionModal(false);
     setLastCallRecord(null);
+    setAvailability(prev => prev === 'Busy' ? 'Available' : prev);
   };
 
   return (
