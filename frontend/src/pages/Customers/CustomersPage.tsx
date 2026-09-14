@@ -24,6 +24,7 @@ import { Timeline, TimelineEvent } from '../../components/common/Timeline';
 import { FilterBar } from '../../components/common/FilterBar';
 import { DocumentUploader } from '../../components/common/DocumentUploader';
 import { DocumentList } from '../../components/common/DocumentList';
+import { Modal } from '../../components/common/Modal';
 
 export const CustomersPage: React.FC = () => {
   const { tenant, user } = useAuth();
@@ -34,6 +35,15 @@ export const CustomersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'calls' | 'followups' | 'deals' | 'timeline' | 'documents'>('overview');
   const [statusFilter, setStatusFilter] = useState('All');
   const [agentFilter, setAgentFilter] = useState('All');
+
+  // New Customer modal state
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newLocation, setNewLocation] = useState('');
+  const [newStatus, setNewStatus] = useState<'Active' | 'VIP' | 'Inactive'>('Active');
+  const [addErrors, setAddErrors] = useState<{ name?: string; phone?: string }>({});
 
   const [calls, setCalls] = useState<CallRecord[]>([]);
   const [followups, setFollowups] = useState<Followup[]>([]);
@@ -79,6 +89,46 @@ export const CustomersPage: React.FC = () => {
   const customerDeals = deals.filter(
     d => selectedCustomer && (d.customerId === selectedCustomer.id || d.customerName === selectedCustomer.name)
   );
+
+  const resetAddForm = () => {
+    setNewName('');
+    setNewPhone('');
+    setNewEmail('');
+    setNewLocation('');
+    setNewStatus('Active');
+    setAddErrors({});
+  };
+
+  const handleAddCustomer = () => {
+    const errors: { name?: string; phone?: string } = {};
+    if (!newName.trim()) errors.name = 'Name is required.';
+    if (!newPhone.trim()) errors.phone = 'Phone is required.';
+    if (Object.keys(errors).length > 0) {
+      setAddErrors(errors);
+      return;
+    }
+    const newCustomer: import('../../types').Customer = {
+      id: `cust-${Date.now()}`,
+      companyId: tenant?.id || '',
+      name: newName.trim(),
+      phone: newPhone.trim(),
+      email: newEmail.trim(),
+      status: newStatus,
+      assignedAgentId: user?.id || '',
+      assignedAgentName: user?.name || '',
+      location: newLocation.trim(),
+      lastContacted: new Date().toISOString().split('T')[0],
+      openDealsCount: 0,
+      totalValue: 0,
+      createdAt: new Date().toISOString().split('T')[0],
+      notes: '',
+      customFields: {},
+    };
+    storageService.saveCustomer(newCustomer);
+    setIsAddModalOpen(false);
+    resetAddForm();
+    setSelectedCustomer(newCustomer);
+  };
 
   const formatCurrency = (val: number) => {
     if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
@@ -146,26 +196,58 @@ export const CustomersPage: React.FC = () => {
     },
   ];
 
-  const timelineEvents: TimelineEvent[] = selectedCustomer
-    ? [
-      {
-        id: 'ev-c1',
+  const rawEvents: TimelineEvent[] = [];
+
+  if (selectedCustomer) {
+    customerCalls.forEach(c => {
+      rawEvents.push({
+        id: c.id,
         type: 'call',
-        title: 'Connected Outbound Call',
-        description: 'Discussed investment term sheet and verified KYC requirements.',
-        timestamp: selectedCustomer.lastContacted,
-        actorName: selectedCustomer.assignedAgentName,
-      },
-      {
-        id: 'ev-c2',
-        type: 'booking',
-        title: 'Customer Account Created',
-        description: `Account verified for ${selectedCustomer.name}.`,
-        timestamp: selectedCustomer.createdAt,
-        actorName: 'Platform Automation',
-      },
-    ]
-    : [];
+        title: `${c.direction === 'outbound' ? 'Outbound' : 'Inbound'} Call — ${c.disposition}`,
+        description: c.transcription || undefined,
+        timestamp: c.timestamp,
+        actorName: c.agentName,
+      });
+    });
+
+    customerFollowups.forEach(f => {
+      rawEvents.push({
+        id: f.id,
+        type: 'followup',
+        title: f.status === 'Completed' ? 'Follow-up Completed' : 'Follow-up Scheduled',
+        description: f.notes,
+        timestamp: f.scheduledAt,
+        actorName: f.assignedAgentName,
+      });
+    });
+
+    customerDeals.forEach(d => {
+      rawEvents.push({
+        id: d.id,
+        type: 'status_change',
+        title: `Deal Created — ${d.title}`,
+        description: `Stage: ${d.stage} • Value: ${formatCurrency(d.value)}`,
+        timestamp: d.createdAt,
+        actorName: d.assignedAgentName,
+      });
+    });
+
+    rawEvents.push({
+      id: `ev-create-${selectedCustomer.id}`,
+      type: 'note',
+      title: 'Customer Account Created',
+      timestamp: selectedCustomer.createdAt,
+      actorName: selectedCustomer.assignedAgentName,
+    });
+  }
+
+  const timelineEvents = rawEvents.sort((a, b) => {
+    const parseTime = (ts: string) => {
+      const parsed = Date.parse(ts);
+      return isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+    };
+    return parseTime(b.timestamp) - parseTime(a.timestamp);
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -186,7 +268,16 @@ export const CustomersPage: React.FC = () => {
         {/* Left: Customer Directory */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="card" style={{ padding: 14 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Customer Accounts</h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>Customer Accounts</h3>
+              <button
+                className="btn btn-primary btn-sm"
+                style={{ fontSize: 12, padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+                onClick={() => { resetAddForm(); setIsAddModalOpen(true); }}
+              >
+                <Plus size={13} /> New Customer
+              </button>
+            </div>
             <div style={{ marginBottom: 12 }}>
               <FilterBar
                 filters={[
@@ -537,6 +628,82 @@ export const CustomersPage: React.FC = () => {
           </div>
         )}
       </div>
+      {/* New Customer Modal */}
+      <Modal
+        isOpen={isAddModalOpen}
+        onClose={() => { setIsAddModalOpen(false); resetAddForm(); }}
+        title="New Customer"
+        subtitle="Create a fresh customer account and assign it to yourself."
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => { setIsAddModalOpen(false); resetAddForm(); }}>
+              Cancel
+            </button>
+            <button className="btn btn-primary" onClick={handleAddCustomer}>
+              Create Customer
+            </button>
+          </>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Name */}
+          <div className="form-group">
+            <label className="form-label">Name *</label>
+            <input
+              className={`form-input${addErrors.name ? ' is-invalid' : ''}`}
+              placeholder="e.g. Priya Sharma"
+              value={newName}
+              onChange={e => { setNewName(e.target.value); if (addErrors.name) setAddErrors(p => ({ ...p, name: undefined })); }}
+            />
+            {addErrors.name && <div className="form-error">{addErrors.name}</div>}
+          </div>
+          {/* Phone */}
+          <div className="form-group">
+            <label className="form-label">Phone *</label>
+            <input
+              className={`form-input${addErrors.phone ? ' is-invalid' : ''}`}
+              placeholder="e.g. +91 98765 43210"
+              value={newPhone}
+              onChange={e => { setNewPhone(e.target.value); if (addErrors.phone) setAddErrors(p => ({ ...p, phone: undefined })); }}
+            />
+            {addErrors.phone && <div className="form-error">{addErrors.phone}</div>}
+          </div>
+          {/* Email */}
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input
+              className="form-input"
+              type="email"
+              placeholder="e.g. priya@example.com"
+              value={newEmail}
+              onChange={e => setNewEmail(e.target.value)}
+            />
+          </div>
+          {/* Location */}
+          <div className="form-group">
+            <label className="form-label">Location</label>
+            <input
+              className="form-input"
+              placeholder="e.g. Bengaluru"
+              value={newLocation}
+              onChange={e => setNewLocation(e.target.value)}
+            />
+          </div>
+          {/* Status */}
+          <div className="form-group">
+            <label className="form-label">Status</label>
+            <select
+              className="form-select"
+              value={newStatus}
+              onChange={e => setNewStatus(e.target.value as 'Active' | 'VIP' | 'Inactive')}
+            >
+              <option value="Active">Active</option>
+              <option value="VIP">VIP</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

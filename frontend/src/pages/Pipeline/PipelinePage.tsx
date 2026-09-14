@@ -6,6 +6,7 @@ import {
   Clock,
   ChevronRight,
   ChevronLeft,
+  Plus,
 } from 'lucide-react';
 import { Deal } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -13,13 +14,35 @@ import { useCan } from '../../components/common/Guards';
 import { storageService } from '../../services/storageService';
 import { PIPELINE_STAGES } from '../../constants/pipelineStages';
 import { Modal } from '../../components/common/Modal';
+import { FilterBar } from '../../components/common/FilterBar';
 
-export const PipelinePage: React.FC = () => {
-  const { tenant } = useAuth();
+interface PipelinePageProps {
+  onOpenQuickCreate: (type: 'lead' | 'followup' | 'deal' | 'visit' | 'consultation') => void;
+}
+
+export const PipelinePage: React.FC<PipelinePageProps> = ({ onOpenQuickCreate }) => {
+  const { tenant, user } = useAuth();
   const canUpdateDeals = useCan('deals.update');
   const [deals, setDeals] = useState<Deal[]>([]);
   const [selectedDealForLoss, setSelectedDealForLoss] = useState<Deal | null>(null);
   const [lossReason, setLossReason] = useState('Competitor Pricing');
+  const [agentFilter, setAgentFilter] = useState('All');
+
+  // Role-based scoping: Sales Executives see only their own deals.
+  // Managers / Admins / Super Admins see every deal in the company (no filter).
+  const roleCode = user?.role?.code;
+  const isExec = roleCode === 'sales_executive';
+  const scopedDeals = isExec
+    ? deals.filter(d =>
+        (d.assignedAgentId && d.assignedAgentId === user?.id) ||
+        (d.assignedAgentName && d.assignedAgentName === user?.name)
+      )
+    : deals;
+
+  // Agent filter options — derived from the already-scoped pool so execs never see this.
+  const agentOptions = Array.from(new Set(scopedDeals.map(d => d.assignedAgentName)))
+    .filter(Boolean)
+    .map(name => ({ value: name, label: name }));
 
   const loadData = () => {
     setDeals(storageService.getDeals(tenant?.id));
@@ -106,6 +129,29 @@ export const PipelinePage: React.FC = () => {
             Visual stage-gate workflow tailored specifically for {tenant?.name}'s deal lifecycle.
           </p>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          {!isExec && (
+            <FilterBar
+              filters={[
+                {
+                  key: 'agent',
+                  label: 'Agent',
+                  value: agentFilter,
+                  onChange: setAgentFilter,
+                  options: agentOptions,
+                },
+              ]}
+              onClearAll={() => setAgentFilter('All')}
+            />
+          )}
+          <button
+            className="btn btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            onClick={() => onOpenQuickCreate('deal')}
+          >
+            <Plus size={15} /> New Deal
+          </button>
+        </div>
       </div>
 
       {/* Kanban Board Horizontal Scrolling Container */}
@@ -119,7 +165,10 @@ export const PipelinePage: React.FC = () => {
         }}
       >
         {stages.map((stage, sIdx) => {
-          const stageDeals = deals.filter(d => d.stage === stage.id);
+          const stageDeals = scopedDeals.filter(d =>
+            d.stage === stage.id &&
+            (agentFilter === 'All' || d.assignedAgentName === agentFilter)
+          );
           const stageTotal = stageDeals.reduce((sum, d) => sum + d.value, 0);
 
           return (

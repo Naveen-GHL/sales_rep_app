@@ -260,7 +260,7 @@ export const App: React.FC = () => {
       ) : currentRoute === 'customers' ? (
         <CustomersPage />
       ) : currentRoute === 'pipeline' ? (
-        <PipelinePage />
+        <PipelinePage onOpenQuickCreate={handleOpenQuickCreate} />
       ) : currentRoute === 'deals' ? (
         <DealsPage onNavigate={navigate} />
       ) : currentRoute === 'followups' ? (
