@@ -33,6 +33,17 @@ export const LeadsPage: React.FC = () => {
   const { initiateCall } = useCall();
 
   const [leads, setLeads] = useState<Lead[]>([]);
+
+  // Role-based scoping: Sales Executives see only their own leads.
+  // Managers / Admins / Super Admins see the full company lead list (no filter).
+  const roleCode = user?.role?.code;
+  const isExec = roleCode === 'sales_executive';
+  const scopedLeads = isExec
+    ? leads.filter(l =>
+        (l.assignedAgentId && l.assignedAgentId === user?.id) ||
+        (l.assignedAgentName && l.assignedAgentName === user?.name)
+      )
+    : leads;
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
@@ -68,7 +79,7 @@ export const LeadsPage: React.FC = () => {
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
 
-  const filteredLeads = leads.filter(lead => {
+  const filteredLeads = scopedLeads.filter(lead => {
     if (statusFilter !== 'All' && lead.status !== statusFilter) return false;
     if (priorityFilter !== 'All' && lead.priority !== priorityFilter) return false;
     return true;

@@ -73,8 +73,22 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
       )
       : [];
 
-    return { leads, customers, deals, plots, investors };
-  }, [searchQuery, tenant?.id, enabledFeatures]);
+    // Role-based scoping: Sales Executives only see their own leads/customers/deals.
+    // plots and investors are company-wide shared records — never scoped.
+    const roleCode = user?.role?.code;
+    const isExec = roleCode === 'sales_executive';
+    const scopedLeads = isExec
+      ? leads.filter(l => l.assignedAgentId === user?.id || l.assignedAgentName === user?.name)
+      : leads;
+    const scopedCustomers = isExec
+      ? customers.filter(c => c.assignedAgentId === user?.id || c.assignedAgentName === user?.name)
+      : customers;
+    const scopedDeals = isExec
+      ? deals.filter(d => d.assignedAgentId === user?.id || d.assignedAgentName === user?.name)
+      : deals;
+
+    return { leads: scopedLeads, customers: scopedCustomers, deals: scopedDeals, plots, investors };
+  }, [searchQuery, tenant?.id, enabledFeatures, user?.id]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 

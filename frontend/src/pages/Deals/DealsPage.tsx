@@ -13,10 +13,21 @@ interface DealsPageProps {
 }
 
 export const DealsPage: React.FC<DealsPageProps> = ({ onNavigate }) => {
-  const { tenant } = useAuth();
+  const { tenant, user } = useAuth();
   const [deals, setDeals] = useState<Deal[]>([]);
   const [stageFilter, setStageFilter] = useState('All');
   const [agentFilter, setAgentFilter] = useState('All');
+
+  // Role-based scoping: Sales Executives see only their own deals.
+  // Managers / Admins / Super Admins see the full company deal list (no filter).
+  const roleCode = user?.role?.code;
+  const isExec = roleCode === 'sales_executive';
+  const scopedDeals = isExec
+    ? deals.filter(d =>
+        (d.assignedAgentId && d.assignedAgentId === user?.id) ||
+        (d.assignedAgentName && d.assignedAgentName === user?.name)
+      )
+    : deals;
 
   useEffect(() => {
     setDeals(storageService.getDeals(tenant?.id));
@@ -25,13 +36,13 @@ export const DealsPage: React.FC<DealsPageProps> = ({ onNavigate }) => {
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
 
-  const filteredDeals = deals.filter(d => {
+  const filteredDeals = scopedDeals.filter(d => {
     if (stageFilter !== 'All' && d.stage !== stageFilter) return false;
     if (agentFilter !== 'All' && d.assignedAgentName !== agentFilter) return false;
     return true;
   });
 
-  const agentOptions = Array.from(new Set(deals.map(d => d.assignedAgentName)))
+  const agentOptions = Array.from(new Set(scopedDeals.map(d => d.assignedAgentName)))
     .filter(Boolean)
     .map(name => ({ value: name, label: name }));
 
@@ -122,13 +133,13 @@ export const DealsPage: React.FC<DealsPageProps> = ({ onNavigate }) => {
                 onChange: setStageFilter,
                 options: stages.map(s => ({ value: s.id, label: s.name })),
               },
-              {
+              ...(!isExec ? [{
                 key: 'agent',
                 label: 'Agent',
                 value: agentFilter,
                 onChange: setAgentFilter,
                 options: agentOptions,
-              },
+              }] : []),
             ]}
             onClearAll={() => {
               setStageFilter('All');

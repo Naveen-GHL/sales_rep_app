@@ -31,6 +31,17 @@ export const CustomersPage: React.FC = () => {
   const { initiateCall } = useCall();
 
   const [customers, setCustomers] = useState<Customer[]>([]);
+
+  // Role-based scoping: Sales Executives see only their own customers.
+  // Managers / Admins / Super Admins see the full company customer list (no filter).
+  const roleCode = user?.role?.code;
+  const isExec = roleCode === 'sales_executive';
+  const scopedCustomers = isExec
+    ? customers.filter(c =>
+        (c.assignedAgentId && c.assignedAgentId === user?.id) ||
+        (c.assignedAgentName && c.assignedAgentName === user?.name)
+      )
+    : customers;
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'calls' | 'followups' | 'deals' | 'timeline' | 'documents'>('overview');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -52,8 +63,16 @@ export const CustomersPage: React.FC = () => {
   const loadData = () => {
     const custs = storageService.getCustomers(tenant?.id);
     setCustomers(custs);
-    if (custs.length > 0 && !selectedCustomer) {
-      setSelectedCustomer(custs[0]);
+    // Auto-select from the scoped list so an exec doesn't land on a customer
+    // that is invisible in their own filtered left-panel list.
+    const firstVisible = isExec
+      ? custs.filter(c =>
+          (c.assignedAgentId && c.assignedAgentId === user?.id) ||
+          (c.assignedAgentName && c.assignedAgentName === user?.name)
+        )[0]
+      : custs[0];
+    if (firstVisible && !selectedCustomer) {
+      setSelectedCustomer(firstVisible);
     }
     setCalls(storageService.getCalls(tenant?.id));
     setFollowups(storageService.getFollowups(tenant?.id));
@@ -67,11 +86,11 @@ export const CustomersPage: React.FC = () => {
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
 
-  const agentOptions = Array.from(new Set(customers.map(c => c.assignedAgentName)))
+  const agentOptions = Array.from(new Set(scopedCustomers.map(c => c.assignedAgentName)))
     .filter(Boolean)
     .map(name => ({ value: name, label: name }));
 
-  const filteredCustomers = customers.filter(c => {
+  const filteredCustomers = scopedCustomers.filter(c => {
     if (statusFilter !== 'All' && c.status !== statusFilter) return false;
     if (agentFilter !== 'All' && c.assignedAgentName !== agentFilter) return false;
     return true;
@@ -292,13 +311,13 @@ export const CustomersPage: React.FC = () => {
                       { value: 'Inactive', label: 'Inactive' },
                     ],
                   },
-                  {
+                  ...(!isExec ? [{
                     key: 'agent',
                     label: 'Agent',
                     value: agentFilter,
                     onChange: setAgentFilter,
                     options: agentOptions,
-                  },
+                  }] : []),
                 ]}
                 onClearAll={() => {
                   setStatusFilter('All');
