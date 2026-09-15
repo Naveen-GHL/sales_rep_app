@@ -84,6 +84,22 @@ if (app.Environment.IsDevelopment())
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "NexusSales API v1");
         c.RoutePrefix = "swagger";
     });
+
+    // Automatically open Swagger in default browser on startup
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        var address = app.Urls.FirstOrDefault() ?? "http://localhost:5106";
+        var swaggerUrl = $"{address.TrimEnd('/')}/swagger";
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = swaggerUrl,
+                UseShellExecute = true
+            });
+        }
+        catch { }
+    });
 }
 
 app.UseCors("DefaultCorsPolicy");
