@@ -28,6 +28,8 @@ import {
 } from '../types';
 import { DEFAULT_TENANTS } from '../constants/defaultTenants';
 
+export type PopupPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+
 class StorageService {
   private get<T>(key: string, fallback: T): T {
     try {
@@ -516,6 +518,37 @@ class StorageService {
     this.set('users', mock.USERS);
     this.set('tenants', Object.values(mock.TENANTS));
     window.dispatchEvent(new Event('nexus_storage_updated'));
+  }
+
+  // Incoming Call Popup Position
+  getPopupPosition(): PopupPosition {
+    try {
+      const data = localStorage.getItem('nexus_popup_position');
+      if (!data) return 'top-right';
+      try {
+        const parsed = JSON.parse(data);
+        if (['top-right', 'top-left', 'bottom-right', 'bottom-left'].includes(parsed)) {
+          return parsed as PopupPosition;
+        }
+      } catch {
+        // In case it was saved as a raw unquoted string
+        if (['top-right', 'top-left', 'bottom-right', 'bottom-left'].includes(data)) {
+          return data as PopupPosition;
+        }
+      }
+      return 'top-right';
+    } catch {
+      return 'top-right';
+    }
+  }
+
+  setPopupPosition(pos: PopupPosition): void {
+    try {
+      localStorage.setItem('nexus_popup_position', JSON.stringify(pos));
+      window.dispatchEvent(new Event('nexus_storage_updated'));
+    } catch (e) {
+      console.error('Failed to save popup position to localStorage', e);
+    }
   }
 
   // Reset to clean real-time empty slate

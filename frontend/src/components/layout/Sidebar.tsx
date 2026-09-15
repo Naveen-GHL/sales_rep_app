@@ -48,6 +48,7 @@ interface NavSection {
 export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) => {
   const { isSuperAdmin, tenant, enabledFeatures, permissions } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [isCollapseHovered, setIsCollapseHovered] = useState(false);
 
   // Super Admin Navigation Map (Section 4.1)
   const superAdminSections: NavSection[] = [
@@ -86,6 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
       items: [
         { id: 'call-center', label: 'Call Center', icon: <PhoneCall size={18} />, feature: FEATURES.CALLS, permission: PERMISSIONS.CALLS_MAKE },
         { id: 'call-history', label: 'Call History', icon: <History size={18} />, feature: FEATURES.CALLS, permission: PERMISSIONS.CALLS_VIEW },
+        { id: 'call-settings', label: 'Call Settings', icon: <PhoneCall size={18} />, feature: FEATURES.CALLS, permission: PERMISSIONS.CALLS_VIEW },
       ],
     },
     {
@@ -152,11 +154,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
       <div
         style={{
           height: 'var(--topbar-height)',
+          backgroundColor: '#000000',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'space-between',
-          padding: collapsed ? '0' : '0 20px',
+          justifyContent: collapsed
+            ? 'center'
+            : tenant?.slug === 'ghl'
+            ? 'center'
+            : 'space-between',
+          padding: collapsed
+            ? '0'
+            : tenant?.slug === 'ghl'
+            ? '0 48px'
+            : '0 20px',
           borderBottom: `1px solid ${isSuperAdmin ? '#1e293b' : 'var(--border-base)'}`,
+          position: 'relative',
         }}
       >
         {collapsed ? (
@@ -253,21 +265,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
         ) : tenant?.slug === 'ghl' ? (
           <div
             style={{
+              width: '100%',
+              height: '100%',
               display: 'flex',
               alignItems: 'center',
-              backgroundColor: '#0f172a',
-              borderRadius: 8,
-              padding: '4px 8px',
+              justifyContent: 'center',
               overflow: 'hidden',
-              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.15)',
+              padding: '8px',
+              boxSizing: 'border-box',
             }}
           >
             <img
               src="/og-image -GHL Ventures.png"
               alt="GHL India Ventures"
               style={{
-                height: 32,
-                maxWidth: 160,
+                width: '100%',
+                height: '100%',
                 objectFit: 'contain',
                 display: 'block',
               }}
@@ -378,12 +391,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
         )}
 
         <button
-          className="btn btn-ghost btn-icon btn-sm"
-          style={{ color: isSuperAdmin ? '#94a3b8' : 'var(--text-muted)' }}
+          className="sidebar-collapse-btn"
+          style={{
+            color: isCollapseHovered ? '#ff0000' : isSuperAdmin ? '#94a3b8' : 'var(--text-muted)',
+            flexShrink: 0,
+            ...(tenant?.slug === 'ghl' && !collapsed
+              ? {
+                  position: 'absolute',
+                  right: 10,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  zIndex: 10,
+                }
+              : {}),
+          }}
+          onMouseEnter={() => setIsCollapseHovered(true)}
+          onMouseLeave={() => setIsCollapseHovered(false)}
           onClick={() => setCollapsed(!collapsed)}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {collapsed ? (
+            <ChevronRight
+              size={16}
+              color={isCollapseHovered ? '#ff0000' : undefined}
+              strokeWidth={isCollapseHovered ? 3 : 2}
+            />
+          ) : (
+            <ChevronLeft
+              size={16}
+              color={isCollapseHovered ? '#ff0000' : undefined}
+              strokeWidth={isCollapseHovered ? 3 : 2}
+            />
+          )}
         </button>
       </div>
 

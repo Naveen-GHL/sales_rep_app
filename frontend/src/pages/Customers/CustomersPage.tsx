@@ -13,6 +13,7 @@ import {
   ArrowRight,
   ExternalLink,
   Volume2,
+  Filter,
 } from 'lucide-react';
 import { Customer, CallRecord, Followup, Deal } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -21,7 +22,6 @@ import { storageService } from '../../services/storageService';
 import { DataTable, Column, RowAction } from '../../components/common/DataTable';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Timeline, TimelineEvent } from '../../components/common/Timeline';
-import { FilterBar } from '../../components/common/FilterBar';
 import { DocumentUploader } from '../../components/common/DocumentUploader';
 import { DocumentList } from '../../components/common/DocumentList';
 import { Modal } from '../../components/common/Modal';
@@ -297,33 +297,149 @@ export const CustomersPage: React.FC = () => {
                 <Plus size={13} /> New Customer
               </button>
             </div>
-            <div style={{ marginBottom: 12 }}>
-              <FilterBar
-                filters={[
-                  {
-                    key: 'status',
-                    label: 'Status',
-                    value: statusFilter,
-                    onChange: setStatusFilter,
-                    options: [
-                      { value: 'Active', label: 'Active' },
-                      { value: 'VIP', label: 'VIP' },
-                      { value: 'Inactive', label: 'Inactive' },
-                    ],
-                  },
-                  ...(!isExec ? [{
-                    key: 'agent',
-                    label: 'Agent',
-                    value: agentFilter,
-                    onChange: setAgentFilter,
-                    options: agentOptions,
-                  }] : []),
-                ]}
-                onClearAll={() => {
-                  setStatusFilter('All');
-                  setAgentFilter('All');
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                width: '100%',
+                flexWrap: 'nowrap',
+                boxSizing: 'border-box',
+                marginTop: 4,
+                marginBottom: 14,
+              }}
+            >
+              {/* Filters Label */}
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  whiteSpace: 'nowrap',
+                  userSelect: 'none',
+                  flexShrink: 0,
                 }}
-              />
+              >
+                <Filter size={13} />
+                Filters:
+              </span>
+
+              {/* Status Filter */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  flex: '1 1 0',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
+                }}
+              >
+                <label
+                  htmlFor="filter-customer-status"
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: 'var(--text-secondary)',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >
+                  Status:
+                </label>
+                <select
+                  id="filter-customer-status"
+                  className="form-select"
+                  value={statusFilter}
+                  onChange={e => setStatusFilter(e.target.value)}
+                  style={{
+                    height: 30,
+                    fontSize: 12,
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                    paddingLeft: 8,
+                    paddingRight: 22,
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-base)',
+                    backgroundColor:
+                      statusFilter !== 'All' && statusFilter !== ''
+                        ? 'var(--primary-50)'
+                        : 'var(--bg-surface)',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    width: '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <option value="All">All</option>
+                  <option value="Active">Active</option>
+                  <option value="VIP">VIP</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+
+              {/* Agent Filter */}
+              {!isExec && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  flex: '1 1 0',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
+                }}
+              >
+                <label
+                  htmlFor="filter-customer-agent"
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: 'var(--text-secondary)',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >
+                  Agent:
+                </label>
+                <select
+                  id="filter-customer-agent"
+                  className="form-select"
+                  value={agentFilter}
+                  onChange={e => setAgentFilter(e.target.value)}
+                  style={{
+                    height: 30,
+                    fontSize: 12,
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                    paddingLeft: 8,
+                    paddingRight: 22,
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-base)',
+                    backgroundColor:
+                      agentFilter !== 'All' && agentFilter !== ''
+                        ? 'var(--primary-50)'
+                        : 'var(--bg-surface)',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    width: '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <option value="All">All</option>
+                  {agentOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {filteredCustomers.map(c => {

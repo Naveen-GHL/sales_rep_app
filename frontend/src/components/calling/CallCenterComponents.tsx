@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { storageService, PopupPosition } from '../../services/storageService';
 import {
   Phone,
   PhoneCall,
@@ -145,6 +146,33 @@ export const AgentAvailabilityToggle: React.FC = () => {
 // --- Global Incoming Call Popup ---
 export const IncomingCallPopup: React.FC = () => {
   const { activeCall, acceptCall, rejectCall } = useCall();
+  const [popupPosition, setPopupPosition] = useState<PopupPosition>(() => storageService.getPopupPosition());
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setPopupPosition(storageService.getPopupPosition());
+    };
+    window.addEventListener('nexus_storage_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('nexus_storage_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
+  const getPositionStyles = (): React.CSSProperties => {
+    switch (popupPosition) {
+      case 'top-left':
+        return { top: 24, left: 24 };
+      case 'bottom-right':
+        return { bottom: 24, right: 24 };
+      case 'bottom-left':
+        return { bottom: 24, left: 24 };
+      case 'top-right':
+      default:
+        return { top: 24, right: 24 };
+    }
+  };
 
   if (!activeCall || activeCall.status !== 'ringing') return null;
 
@@ -152,8 +180,7 @@ export const IncomingCallPopup: React.FC = () => {
     <div
       style={{
         position: 'fixed',
-        top: 24,
-        right: 24,
+        ...getPositionStyles(),
         zIndex: 2000,
         width: 360,
       }}

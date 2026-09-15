@@ -13,6 +13,7 @@ import { DealsPage } from './pages/Deals/DealsPage';
 import { FollowupsPage } from './pages/Followups/FollowupsPage';
 import { CallCenterPage } from './pages/CallCenter/CallCenterPage';
 import { CallHistoryPage } from './pages/CallHistory/CallHistoryPage';
+import { CallSettingsPage } from './pages/CallSettings/CallSettingsPage';
 import { ReportsPage } from './pages/Reports/ReportsPage';
 import { NotificationsPage } from './pages/Notifications/NotificationsPage';
 
@@ -269,6 +270,8 @@ export const App: React.FC = () => {
         <CallCenterPage />
       ) : currentRoute === 'call-history' ? (
         <CallHistoryPage />
+      ) : currentRoute === 'call-settings' ? (
+        <CallSettingsPage />
       ) : currentRoute === 'projects' ? (
         <ProjectsPage onNavigate={navigate} />
       ) : currentRoute === 'plots' ? (

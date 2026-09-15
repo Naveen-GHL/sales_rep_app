@@ -96,7 +96,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
     <header
       style={{
         height: 'var(--topbar-height)',
-        backgroundColor: 'var(--bg-surface)',
+        backgroundColor: '#000000',
         borderBottom: '1px solid var(--border-base)',
         display: 'flex',
         alignItems: 'center',
@@ -524,8 +524,17 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
         {/* User Profile Avatar / Menu */}
         <div style={{ position: 'relative' }}>
           <button
-            className="btn btn-ghost"
-            style={{ padding: '4px 8px', borderRadius: 'var(--radius-full)' }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              boxShadow: 'none',
+              padding: '4px 8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
           >
             <div
