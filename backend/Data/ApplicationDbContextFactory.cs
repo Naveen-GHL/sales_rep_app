@@ -12,13 +12,17 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false)
             .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddUserSecrets<ApplicationDbContextFactory>(optional: true)
             .Build();
 
-        var connectionString = configuration.GetConnectionString("DefaultConnection") 
-                               ?? "Host=localhost;Port=5432;Database=customercare_db;Username=postgres;Password=postgres";
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            connectionString = configuration["ConnectionStrings:DefaultConnection"];
+        }
 
         var builder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        builder.UseNpgsql(connectionString);
+        builder.UseNpgsql(connectionString!);
 
         return new ApplicationDbContext(builder.Options);
     }
