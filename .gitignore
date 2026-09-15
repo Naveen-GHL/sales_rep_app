@@ -10,6 +10,12 @@ dist/
 dist-ssr/
 build/
 out/
+bin/
+**/bin/
+obj/
+**/obj/
+[Bb]in/
+[Oo]bj/
 
 # TypeScript & Cache
 *.tsbuildinfo
