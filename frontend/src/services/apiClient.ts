@@ -11,10 +11,14 @@ class ApiClient {
 
   private async handleResponse<T>(res: Response): Promise<T> {
     if (res.status === 401) {
-      localStorage.removeItem('nexus_auth_token');
-      localStorage.removeItem('nexus_current_user');
-      window.dispatchEvent(new Event('nexus_auth_unauthorized'));
-      throw new Error('Session expired. Please sign in again.');
+      const err = await res.json().catch(() => ({ message: 'Invalid credentials.' }));
+      if (!res.url.includes('/auth/login')) {
+        localStorage.removeItem('nexus_auth_token');
+        localStorage.removeItem('nexus_current_user');
+        window.dispatchEvent(new Event('nexus_auth_unauthorized'));
+        throw new Error('Session expired. Please sign in again.');
+      }
+      throw new Error(err.message || 'Invalid email or password.');
     }
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: res.statusText }));

@@ -17,8 +17,10 @@ _ReSharper*/
 publish/
 
 # Sensitive local settings
+appsettings.json
 appsettings.Development.json
 appsettings.Local.json
+!appsettings.example.json
 
 # Rider / JetBrains
 .idea/
