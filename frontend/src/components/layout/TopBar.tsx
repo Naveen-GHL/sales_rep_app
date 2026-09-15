@@ -3,13 +3,8 @@ import {
   Search,
   Bell,
   Plus,
-  User as UserIcon,
-  LogOut,
-  Building,
-  Check,
-  ExternalLink,
   ChevronDown,
-  Sparkles,
+  LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { AgentAvailabilityToggle } from '../calling/CallCenterComponents';
@@ -39,6 +34,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
 
   // User menu
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+
 
   // Sync notifications
   useEffect(() => {
@@ -72,12 +69,26 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
 
     const investors = enabledFeatures.includes(FEATURES.INVESTORS)
       ? storageService.getInvestors(tenant?.id).filter(i =>
-          i.name.toLowerCase().includes(q) || i.phone.includes(q)
-        )
+        i.name.toLowerCase().includes(q) || i.phone.includes(q)
+      )
       : [];
 
-    return { leads, customers, deals, plots, investors };
-  }, [searchQuery, tenant?.id, enabledFeatures]);
+    // Role-based scoping: Sales Executives only see their own leads/customers/deals.
+    // plots and investors are company-wide shared records — never scoped.
+    const roleCode = user?.role?.code;
+    const isExec = roleCode === 'sales_executive';
+    const scopedLeads = isExec
+      ? leads.filter(l => l.assignedAgentId === user?.id || l.assignedAgentName === user?.name)
+      : leads;
+    const scopedCustomers = isExec
+      ? customers.filter(c => c.assignedAgentId === user?.id || c.assignedAgentName === user?.name)
+      : customers;
+    const scopedDeals = isExec
+      ? deals.filter(d => d.assignedAgentId === user?.id || d.assignedAgentName === user?.name)
+      : deals;
+
+    return { leads: scopedLeads, customers: scopedCustomers, deals: scopedDeals, plots, investors };
+  }, [searchQuery, tenant?.id, enabledFeatures, user?.id]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -85,7 +96,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
     <header
       style={{
         height: 'var(--topbar-height)',
-        backgroundColor: 'var(--bg-surface)',
+        backgroundColor: '#000000',
         borderBottom: '1px solid var(--border-base)',
         display: 'flex',
         alignItems: 'center',
@@ -97,6 +108,15 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
         backdropFilter: 'blur(8px)',
       }}
     >
+      {/* Hidden SVG Gradient definition for Red Gradient icon stroke */}
+      <svg width="0" height="0" style={{ position: 'absolute', pointerEvents: 'none' }}>
+        <defs>
+          <linearGradient id="redGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ef4444" />
+            <stop offset="100%" stopColor="#991b1b" />
+          </linearGradient>
+        </defs>
+      </svg>
       {/* Left: Global Search Input */}
       <div style={{ position: 'relative', width: '100%', maxWidth: 380 }} ref={searchRef}>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -147,10 +167,10 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
               }}
             >
               {searchResults.leads.length === 0 &&
-              searchResults.customers.length === 0 &&
-              searchResults.deals.length === 0 &&
-              searchResults.plots.length === 0 &&
-              searchResults.investors.length === 0 ? (
+                searchResults.customers.length === 0 &&
+                searchResults.deals.length === 0 &&
+                searchResults.plots.length === 0 &&
+                searchResults.investors.length === 0 ? (
                 <div style={{ padding: '16px 20px', fontSize: 13, color: 'var(--text-secondary)' }}>
                   No matches found for "{searchQuery}".
                 </div>
@@ -392,17 +412,27 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
         <div style={{ position: 'relative' }}>
           <button
             className="btn btn-ghost btn-icon btn-sm"
-            style={{ position: 'relative', width: 36, height: 36 }}
+            style={{
+              position: 'relative',
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              border: '1.5px solid transparent',
+              backgroundImage: 'linear-gradient(var(--bg-surface), var(--bg-surface)), linear-gradient(135deg, #ef4444, #991b1b)',
+              backgroundOrigin: 'border-box',
+              backgroundClip: 'padding-box, border-box',
+              boxShadow: '0 2px 6px rgba(220,38,38,0.15)',
+            }}
             onClick={() => setIsNotifOpen(!isNotifOpen)}
           >
-            <Bell size={18} />
+            <Bell size={18} stroke="url(#redGradient)" />
             {unreadCount > 0 && (
               <span
                 style={{
                   position: 'absolute',
-                  top: 4,
-                  right: 4,
-                  backgroundColor: 'var(--danger)',
+                  top: -2,
+                  right: -2,
+                  background: 'linear-gradient(135deg, #ef4444 0%, #991b1b 100%)',
                   color: '#ffffff',
                   fontSize: 10,
                   fontWeight: 700,
@@ -412,6 +442,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
                 }}
               >
                 {unreadCount}
@@ -493,8 +524,17 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
         {/* User Profile Avatar / Menu */}
         <div style={{ position: 'relative' }}>
           <button
-            className="btn btn-ghost"
-            style={{ padding: '4px 8px', borderRadius: 'var(--radius-full)' }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              boxShadow: 'none',
+              padding: '4px 8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
           >
             <div
@@ -502,13 +542,16 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                 width: 32,
                 height: 32,
                 borderRadius: '50%',
-                backgroundColor: isSuperAdmin ? '#8b5cf6' : tenant?.brandColor || '#2563eb',
+                background: isSuperAdmin
+                  ? 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'
+                  : `linear-gradient(135deg, ${tenant?.brandColor || '#ef4444'} 0%, #991b1b 100%)`,
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: 700,
                 fontSize: 13,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
               }}
             >
               {user?.name.charAt(0)}

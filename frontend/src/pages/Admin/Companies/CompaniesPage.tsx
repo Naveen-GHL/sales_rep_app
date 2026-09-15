@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Plus, ArrowRight, Eye, Shield } from 'lucide-react';
+import { Building2, Plus, ArrowRight, Eye } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { storageService } from '../../../services/storageService';
-import { Tenant, TenantSlug } from '../../../types';
+import { Tenant, User } from '../../../types';
 import { StatusChip } from '../../../components/common/StatusChip';
 import { Modal } from '../../../components/common/Modal';
 import { FEATURES } from '../../../constants/features';
@@ -44,25 +44,155 @@ export const CompaniesPage: React.FC = () => {
   };
 
   const handleCompleteOnboarding = () => {
-    const slug = newCompanyName.toLowerCase().replace(/[^a-z0-9]/g, '') as TenantSlug;
+    if (!newCompanyName.trim()) return;
+    const cleanSlug = newCompanyName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const slug = cleanSlug || `tenant-${Date.now().toString().slice(-4)}`;
+
     const newTenant: Tenant = {
       id: `t-${slug}-${Date.now()}`,
-      name: newCompanyName,
-      slug: slug || 'ghl',
-      brandColor: '#2563eb',
+      name: newCompanyName.trim(),
+      legalName: newCompanyName.trim(),
+      slug,
+      brandColor: '#8b5cf6',
+      industry: newIndustry,
       tagline: `${newIndustry} Solutions`,
       enabledFeatures: selectedFeatures,
       timezone: 'Asia/Kolkata (IST)',
       currency: '₹ INR',
       businessHours: '09:00 AM - 06:00 PM IST',
+      email: adminEmail.trim() || `admin@${slug}.com`,
+      phone: didNumber,
+      defaultRoutingStrategy: routingStrategy,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
     };
 
     storageService.saveTenant(newTenant);
+
+    // Also provision the primary company admin account
+    const newAdminUser: User = {
+      id: `usr-${slug}-admin-${Date.now()}`,
+      name: adminName.trim() || `${newCompanyName.trim()} Admin`,
+      email: adminEmail.trim() || `admin@${slug}.com`,
+      phone: didNumber || '+91 80 4700 9000',
+      companyId: newTenant.id,
+      companySlug: slug,
+      companyName: newTenant.name,
+      role: {
+        id: 'r-company-admin',
+        name: 'Company Admin',
+        code: 'company_admin',
+        permissions: [],
+      },
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+    };
+    storageService.saveUser(newAdminUser);
+
+    storageService.addAuditLog({
+      id: `aud-${Date.now()}`,
+      timestamp: 'Just now',
+      actorName: 'Super Admin',
+      actorEmail: 'alex@nexusplatform.io',
+      action: 'TENANT_ONBOARDED',
+      entityType: 'Tenant',
+      entityId: newTenant.id,
+      companyId: newTenant.id,
+      companyName: newTenant.name,
+      details: `Provisioned tenant ${newTenant.name} with ${selectedFeatures.length} modules and admin ${newAdminUser.email}`,
+    });
+
     setIsOnboardingModalOpen(false);
     setWizardStep(1);
     setNewCompanyName('');
     setAdminName('');
     setAdminEmail('');
+  };
+
+  const renderCompanyLogo = (c: Tenant) => {
+    if (c.slug === 'ghl' || c.logo?.includes('ghl') || c.logo?.includes('Ventures')) {
+      return (
+        <div
+          style={{
+            height: 44,
+            padding: '4px 8px',
+            borderRadius: 8,
+            backgroundColor: '#1e293b',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid #334155',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+            flexShrink: 0,
+          }}
+        >
+          <img
+            src="/og-image -GHL Ventures.png"
+            alt={c.name}
+            style={{ height: 32, maxWidth: 120, objectFit: 'contain', display: 'block' }}
+          />
+        </div>
+      );
+    }
+    if (c.slug === 'jamin' || c.logo?.includes('jamin')) {
+      return (
+        <div
+          style={{
+            height: 44,
+            padding: '4px 8px',
+            borderRadius: 8,
+            backgroundColor: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid #334155',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+            flexShrink: 0,
+          }}
+        >
+          <img
+            src="/jamin-logo.png"
+            alt={c.name}
+            style={{ height: 32, maxWidth: 110, objectFit: 'contain', display: 'block' }}
+          />
+        </div>
+      );
+    }
+    if (c.logo) {
+      return (
+        <img
+          src={c.logo}
+          alt={c.name}
+          style={{ height: 44, maxWidth: 120, objectFit: 'contain', borderRadius: 8, flexShrink: 0 }}
+        />
+      );
+    }
+    return (
+      <div
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 8,
+          background: `linear-gradient(135deg, ${c.brandColor || '#8b5cf6'} 0%, #1e1b4b 100%)`,
+          color: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 900,
+          fontSize: 16,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+          flexShrink: 0,
+        }}
+      >
+        {c.name.charAt(0).toUpperCase()}
+      </div>
+    );
+  };
+
+  const isStepValid = () => {
+    if (wizardStep === 1) return newCompanyName.trim().length > 0;
+    if (wizardStep === 4) return adminName.trim().length > 0 && adminEmail.trim().length > 0;
+    return true;
   };
 
   return (
@@ -95,29 +225,14 @@ export const CompaniesPage: React.FC = () => {
           <div key={c.id} className="card card-hover" style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 16, backgroundColor: '#0f172a', borderColor: '#334155' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div
-                  style={{
-                    width: 42,
-                    height: 42,
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: c.brandColor,
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 800,
-                    fontSize: 18,
-                  }}
-                >
-                  {c.slug === 'ghl' ? 'G' : c.slug === 'jamin' ? 'J' : 'N'}
-                </div>
+                {renderCompanyLogo(c)}
                 <div>
                   <h3 style={{ fontSize: 16, fontWeight: 700, color: '#ffffff' }}>{c.name}</h3>
                   <div style={{ fontSize: 11, color: '#94a3b8' }}>ID: {c.id}</div>
                 </div>
               </div>
 
-              <StatusChip status="Active" size="sm" />
+              <StatusChip status={c.status || 'Active'} size="sm" />
             </div>
 
             <p style={{ fontSize: 12, color: '#cbd5e1' }}>{c.tagline}</p>
@@ -190,15 +305,25 @@ export const CompaniesPage: React.FC = () => {
             {wizardStep < 6 ? (
               <button
                 className="btn btn-primary"
-                style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}
-                onClick={() => setWizardStep(s => s + 1)}
+                style={{
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                  opacity: isStepValid() ? 1 : 0.5,
+                  cursor: isStepValid() ? 'pointer' : 'not-allowed',
+                }}
+                disabled={!isStepValid()}
+                onClick={() => isStepValid() && setWizardStep(s => s + 1)}
               >
                 Next Step <ArrowRight size={14} />
               </button>
             ) : (
               <button
                 className="btn btn-primary"
-                style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  opacity: isStepValid() ? 1 : 0.5,
+                  cursor: isStepValid() ? 'pointer' : 'not-allowed',
+                }}
+                disabled={!isStepValid()}
                 onClick={handleCompleteOnboarding}
               >
                 Review & Activate Tenant
@@ -222,6 +347,9 @@ export const CompaniesPage: React.FC = () => {
                   onChange={e => setNewCompanyName(e.target.value)}
                   placeholder="e.g. Prestige Plotted Ventures"
                 />
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Required to generate tenant namespace and isolated storage.
+                </div>
               </div>
               <div className="form-group">
                 <label className="form-label">Industry Domain *</label>
@@ -242,9 +370,29 @@ export const CompaniesPage: React.FC = () => {
           {/* Step 2: Feature Package Checklist */}
           {wizardStep === 2 && (
             <>
-              <h4 style={{ fontSize: 14, fontWeight: 700 }}>Step 2: Feature Package Selection</h4>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h4 style={{ fontSize: 14, fontWeight: 700 }}>Step 2: Feature Package Selection</h4>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: 11, padding: '2px 8px' }}
+                    onClick={() => setSelectedFeatures(Object.values(FEATURES))}
+                  >
+                    Select All
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    style={{ fontSize: 11, padding: '2px 8px' }}
+                    onClick={() => setSelectedFeatures([])}
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
               <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                Select entitlement flags to be activated for this company:
+                Select entitlement flags to be activated for this company ({selectedFeatures.length} of {Object.values(FEATURES).length} active):
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {Object.values(FEATURES).map((val: string) => (

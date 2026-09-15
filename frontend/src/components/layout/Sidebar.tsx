@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Users,
   Building2,
-  Phone,
   PhoneCall,
   History,
   Kanban,
@@ -49,6 +48,7 @@ interface NavSection {
 export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) => {
   const { isSuperAdmin, tenant, enabledFeatures, permissions } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [isCollapseHovered, setIsCollapseHovered] = useState(false);
 
   // Super Admin Navigation Map (Section 4.1)
   const superAdminSections: NavSection[] = [
@@ -87,6 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
       items: [
         { id: 'call-center', label: 'Call Center', icon: <PhoneCall size={18} />, feature: FEATURES.CALLS, permission: PERMISSIONS.CALLS_MAKE },
         { id: 'call-history', label: 'Call History', icon: <History size={18} />, feature: FEATURES.CALLS, permission: PERMISSIONS.CALLS_VIEW },
+        { id: 'call-settings', label: 'Call Settings', icon: <PhoneCall size={18} />, feature: FEATURES.CALLS, permission: PERMISSIONS.CALLS_VIEW },
       ],
     },
     {
@@ -153,33 +154,214 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
       <div
         style={{
           height: 'var(--topbar-height)',
+          backgroundColor: '#000000',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'space-between',
-          padding: collapsed ? '0' : '0 20px',
+          justifyContent: collapsed
+            ? 'center'
+            : tenant?.slug === 'ghl'
+            ? 'center'
+            : 'space-between',
+          padding: collapsed
+            ? '0'
+            : tenant?.slug === 'ghl'
+            ? '0 48px'
+            : '0 20px',
           borderBottom: `1px solid ${isSuperAdmin ? '#1e293b' : 'var(--border-base)'}`,
+          position: 'relative',
         }}
       >
-        {!collapsed && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
+        {collapsed ? (
+          isSuperAdmin ? (
             <div
               style={{
-                width: 34,
-                height: 34,
-                borderRadius: 'var(--radius-md)',
-                background: isSuperAdmin
-                  ? 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'
-                  : tenant?.brandColor || '#2563eb',
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontWeight: 800,
-                fontSize: 16,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                fontWeight: 900,
+                fontSize: 12,
               }}
             >
-              {isSuperAdmin ? '⚡' : tenant?.slug === 'ghl' ? 'G' : 'J'}
+              ⚡
+            </div>
+          ) : tenant?.slug === 'jamin' ? (
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                overflow: 'hidden',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#e10600',
+                boxShadow: '0 2px 8px rgba(225, 6, 0, 0.3)',
+              }}
+            >
+              <img
+                src="/jamin-icon.png"
+                alt="Jamin Bazaar"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                onError={e => {
+                  (e.currentTarget as HTMLImageElement).src = '/jamin-logo.png';
+                }}
+              />
+            </div>
+          ) : tenant?.slug === 'ghl' ? (
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, #ef4444 0%, #7f1d1d 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: 12,
+                letterSpacing: '-0.02em',
+                boxShadow: '0 2px 8px rgba(220,38,38,0.35)',
+              }}
+            >
+              GHL
+            </div>
+          ) : (
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: `linear-gradient(135deg, ${tenant?.brandColor || '#8b5cf6'} 0%, #1e1b4b 100%)`,
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: 12,
+              }}
+            >
+              {tenant?.name?.charAt(0) || 'T'}
+            </div>
+          )
+        ) : tenant?.slug === 'jamin' ? (
+          <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+            <img
+              src="/jamin-logo.png"
+              alt="Jamin Bazaar"
+              style={{
+                height: 38,
+                maxWidth: 175,
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+          </div>
+        ) : tenant?.slug === 'ghl' ? (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              padding: '8px',
+              boxSizing: 'border-box',
+            }}
+          >
+            <img
+              src="/og-image -GHL Ventures.png"
+              alt="GHL India Ventures"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+          </div>
+        ) : !isSuperAdmin ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
+            {tenant?.logo ? (
+              <img
+                src={tenant.logo}
+                alt={tenant.name}
+                style={{ height: 38, maxWidth: 175, objectFit: 'contain', display: 'block' }}
+              />
+            ) : (
+              <>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    minWidth: 36,
+                    borderRadius: 10,
+                    background: `linear-gradient(135deg, ${tenant?.brandColor || '#8b5cf6'} 0%, #1e1b4b 100%)`,
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 900,
+                    fontSize: 14,
+                  }}
+                >
+                  {tenant?.name?.charAt(0) || 'T'}
+                </div>
+                <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 800,
+                      fontSize: 14,
+                      color: 'var(--text-primary)',
+                      letterSpacing: '-0.02em',
+                    }}
+                  >
+                    {tenant?.name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {tenant?.tagline
+                      ? tenant.tagline.length > 26
+                        ? tenant.tagline.slice(0, 26) + '...'
+                        : tenant.tagline
+                      : 'Workspace'}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                minWidth: 38,
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: 13,
+              }}
+            >
+              ⚡
             </div>
             <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
               <div
@@ -191,30 +373,56 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
                   letterSpacing: '-0.02em',
                 }}
               >
-                {isSuperAdmin ? 'Platform Operator' : tenant?.name}
+                Platform Operator
               </div>
               <div
                 style={{
                   fontSize: 10,
-                  color: isSuperAdmin ? '#94a3b8' : 'var(--text-muted)',
+                  color: '#94a3b8',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   fontWeight: 600,
                 }}
               >
-                {isSuperAdmin ? 'Super Admin Console' : tenant?.tagline.slice(0, 28) + '...'}
+                Super Admin Console
               </div>
             </div>
           </div>
         )}
 
         <button
-          className="btn btn-ghost btn-icon btn-sm"
-          style={{ color: isSuperAdmin ? '#94a3b8' : 'var(--text-muted)' }}
+          className="sidebar-collapse-btn"
+          style={{
+            color: isCollapseHovered ? '#ff0000' : isSuperAdmin ? '#94a3b8' : 'var(--text-muted)',
+            flexShrink: 0,
+            ...(tenant?.slug === 'ghl' && !collapsed
+              ? {
+                  position: 'absolute',
+                  right: 10,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  zIndex: 10,
+                }
+              : {}),
+          }}
+          onMouseEnter={() => setIsCollapseHovered(true)}
+          onMouseLeave={() => setIsCollapseHovered(false)}
           onClick={() => setCollapsed(!collapsed)}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {collapsed ? (
+            <ChevronRight
+              size={16}
+              color={isCollapseHovered ? '#ff0000' : undefined}
+              strokeWidth={isCollapseHovered ? 3 : 2}
+            />
+          ) : (
+            <ChevronLeft
+              size={16}
+              color={isCollapseHovered ? '#ff0000' : undefined}
+              strokeWidth={isCollapseHovered ? 3 : 2}
+            />
+          )}
         </button>
       </div>
 
@@ -273,8 +481,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
                           ? '#c084fc'
                           : 'var(--primary-600)'
                         : isSuperAdmin
-                        ? '#cbd5e1'
-                        : 'var(--text-secondary)',
+                          ? '#cbd5e1'
+                          : 'var(--text-secondary)',
                       fontWeight: isActive ? 700 : 500,
                       border: isActive
                         ? isSuperAdmin

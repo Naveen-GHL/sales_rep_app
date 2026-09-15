@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Papa from 'papaparse';
 import {
   Users,
   Phone,
   Plus,
   Upload,
   Download,
-  Filter,
   CheckCircle2,
   Calendar,
   Clock,
@@ -21,6 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
 import { storageService } from '../../services/storageService';
 import { DataTable, Column, RowAction } from '../../components/common/DataTable';
+import { FilterBar } from '../../components/common/FilterBar';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Drawer } from '../../components/common/Drawer';
 import { Modal } from '../../components/common/Modal';
@@ -32,11 +33,31 @@ export const LeadsPage: React.FC = () => {
   const { initiateCall } = useCall();
 
   const [leads, setLeads] = useState<Lead[]>([]);
+
+  // Role-based scoping: Sales Executives see only their own leads.
+  // Managers / Admins / Super Admins see the full company lead list (no filter).
+  const roleCode = user?.role?.code;
+  const isExec = roleCode === 'sales_executive';
+  const scopedLeads = isExec
+    ? leads.filter(l =>
+        (l.assignedAgentId && l.assignedAgentId === user?.id) ||
+        (l.assignedAgentName && l.assignedAgentName === user?.name)
+      )
+    : leads;
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+
+  // CSV Import State
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importError, setImportError] = useState('');
+  const [parsedRows, setParsedRows] = useState<any[]>([]);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [columnMap, setColumnMap] = useState<Record<string, string>>({});
+  const [importResults, setImportResults] = useState<{ success: number; skipped: number } | null>(null);
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState('All');
@@ -58,7 +79,7 @@ export const LeadsPage: React.FC = () => {
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
 
-  const filteredLeads = leads.filter(lead => {
+  const filteredLeads = scopedLeads.filter(lead => {
     if (statusFilter !== 'All' && lead.status !== statusFilter) return false;
     if (priorityFilter !== 'All' && lead.priority !== priorityFilter) return false;
     return true;
@@ -175,6 +196,108 @@ export const LeadsPage: React.FC = () => {
 
     setIsConvertModalOpen(false);
     setIsDetailDrawerOpen(false);
+  };
+
+  const handleFileSelect = (file: File) => {
+    setImportError('');
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      setImportError('Only .csv files are supported right now');
+      return;
+    }
+    setImportFile(file);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const headers = results.meta.fields || [];
+        setCsvHeaders(headers);
+        setParsedRows(results.data);
+        
+        // Auto-map
+        const newMap: Record<string, string> = {};
+        const targetFields = ['name', 'phone', 'email', 'location', 'source', 'priority'];
+        targetFields.forEach(tf => {
+          const match = headers.find(h => h.toLowerCase().includes(tf.toLowerCase()));
+          if (match) newMap[tf] = match;
+        });
+        setColumnMap(newMap);
+      }
+    });
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileSelect(file);
+  };
+
+  const handleImportLeads = () => {
+    let successCount = 0;
+    let skipCount = 0;
+
+    parsedRows.forEach((row, index) => {
+      const nameVal = row[columnMap['name']];
+      const phoneVal = row[columnMap['phone']];
+      
+      if (!nameVal || !phoneVal) {
+        skipCount++;
+        return;
+      }
+      
+      const emailVal = row[columnMap['email']] || '';
+      const locationVal = row[columnMap['location']] || '';
+      const sourceVal = row[columnMap['source']] || 'CSV Import';
+      const rawPriority = row[columnMap['priority']];
+      let priorityVal = 'Medium';
+      if (['Low', 'Medium', 'High', 'Urgent'].includes(String(rawPriority))) {
+        priorityVal = rawPriority;
+      }
+
+      const newLead: Lead = {
+        id: `lead-${Date.now()}-${index}`,
+        companyId: tenant?.id || 't-ghl-01',
+        name: nameVal,
+        phone: phoneVal,
+        email: emailVal,
+        location: locationVal,
+        source: sourceVal,
+        priority: priorityVal as any,
+        status: 'New',
+        assignedAgentId: user?.id || 'usr-exec',
+        assignedAgentName: user?.name || 'Agent',
+        createdAt: new Date().toISOString().split('T')[0],
+        notes: '',
+        customFields: {}
+      };
+
+      storageService.saveLead(newLead);
+      successCount++;
+    });
+
+    storageService.addAuditLog({
+      id: `aud-${Date.now()}`,
+      timestamp: 'Just now',
+      actorName: user?.name || 'Agent',
+      actorEmail: user?.email || 'agent@nexus.io',
+      action: 'LEADS_BULK_IMPORTED',
+      entityType: 'Lead',
+      entityId: `batch-${Date.now()}`,
+      companyId: tenant?.id,
+      companyName: tenant?.name,
+      details: `Bulk imported ${successCount} leads, skipped ${skipCount}.`,
+    });
+
+    setImportResults({ success: successCount, skipped: skipCount });
+    loadData();
+  };
+
+  const resetImportState = () => {
+    setImportFile(null);
+    setImportError('');
+    setParsedRows([]);
+    setCsvHeaders([]);
+    setColumnMap({});
+    setImportResults(null);
   };
 
   // Columns for DataTable
@@ -309,56 +432,6 @@ export const LeadsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div
-        className="card"
-        style={{
-          padding: '12px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 16,
-          flexWrap: 'wrap',
-          backgroundColor: 'var(--bg-surface)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
-          <Filter size={15} /> Filters:
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 600 }}>Status:</span>
-          {['All', 'New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Converted'].map(s => (
-            <button
-              key={s}
-              className={`btn btn-sm ${statusFilter === s ? 'btn-primary' : 'btn-ghost'}`}
-              style={{ fontSize: 11, padding: '4px 10px', height: 28 }}
-              onClick={() => setStatusFilter(s)}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-          <span style={{ fontSize: 12, fontWeight: 600 }}>Priority:</span>
-          {['All', 'Urgent', 'High', 'Medium', 'Low'].map(p => (
-            <button
-              key={p}
-              className={`btn btn-sm ${priorityFilter === p ? 'btn-secondary' : 'btn-ghost'}`}
-              style={{
-                fontSize: 11,
-                padding: '4px 8px',
-                height: 28,
-                backgroundColor: priorityFilter === p ? 'var(--bg-surface-active)' : 'transparent',
-              }}
-              onClick={() => setPriorityFilter(p)}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Leads Table */}
       <DataTable
         columns={columns}
@@ -374,6 +447,42 @@ export const LeadsPage: React.FC = () => {
         emptyDescription="Create a new lead or clear your filters to display inbound leads."
         emptyActionLabel="+ Add First Lead"
         onEmptyAction={handleOpenCreate}
+        filtersNode={
+          <FilterBar
+            filters={[
+              {
+                key: 'status',
+                label: 'Status',
+                value: statusFilter,
+                onChange: setStatusFilter,
+                options: [
+                  { value: 'New', label: 'New' },
+                  { value: 'Contacted', label: 'Contacted' },
+                  { value: 'Qualified', label: 'Qualified' },
+                  { value: 'Proposal', label: 'Proposal' },
+                  { value: 'Negotiation', label: 'Negotiation' },
+                  { value: 'Converted', label: 'Converted' },
+                ],
+              },
+              {
+                key: 'priority',
+                label: 'Priority',
+                value: priorityFilter,
+                onChange: setPriorityFilter,
+                options: [
+                  { value: 'Urgent', label: 'Urgent' },
+                  { value: 'High', label: 'High' },
+                  { value: 'Medium', label: 'Medium' },
+                  { value: 'Low', label: 'Low' },
+                ],
+              },
+            ]}
+            onClearAll={() => {
+              setStatusFilter('All');
+              setPriorityFilter('All');
+            }}
+          />
+        }
       />
 
       {/* 360 Detail Drawer */}
@@ -777,39 +886,162 @@ export const LeadsPage: React.FC = () => {
       {/* CSV Import Modal */}
       <Modal
         isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        title="Bulk Import Leads (CSV / Excel)"
+        onClose={() => {
+          setIsImportModalOpen(false);
+          resetImportState();
+        }}
+        title="Bulk Import Leads (CSV)"
         subtitle="Upload a file and map columns to ingest prospects"
         footer={
-          <button className="btn btn-primary" onClick={() => setIsImportModalOpen(false)}>
-            Close Import
-          </button>
+          importResults ? (
+            <button className="btn btn-primary" onClick={() => {
+              setIsImportModalOpen(false);
+              resetImportState();
+            }}>
+              Done
+            </button>
+          ) : parsedRows.length > 0 ? (
+            <div style={{ display: 'flex', gap: 10, width: '100%', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={resetImportState}>
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={handleImportLeads}
+                disabled={!columnMap['name'] || !columnMap['phone']}
+              >
+                Import Leads
+              </button>
+            </div>
+          ) : (
+            <button className="btn btn-secondary" onClick={() => setIsImportModalOpen(false)}>
+              Close Import
+            </button>
+          )
         }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div
-            style={{
-              border: '2px dashed var(--border-strong)',
-              borderRadius: 'var(--radius-lg)',
-              padding: 32,
-              textAlign: 'center',
-              backgroundColor: 'var(--bg-surface-hover)',
-              cursor: 'pointer',
-            }}
-          >
-            <Upload size={32} color="var(--primary-600)" style={{ margin: '0 auto 12px' }} />
-            <div style={{ fontWeight: 600, fontSize: 14 }}>Drag & drop your CSV file here</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-              Supports .csv, .xlsx up to 10MB
+          {importResults ? (
+            <div style={{ textAlign: 'center', padding: '30px 20px' }}>
+              <CheckCircle2 size={48} color="var(--primary-600)" style={{ margin: '0 auto 16px' }} />
+              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Import Complete</h3>
+              <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+                {importResults.success} leads imported successfully, {importResults.skipped} skipped — missing name or phone.
+              </p>
             </div>
-            <button className="btn btn-secondary btn-sm" style={{ marginTop: 12 }}>
-              Browse File
-            </button>
-          </div>
+          ) : parsedRows.length > 0 ? (
+            <>
+              {/* Mapping */}
+              <div className="card" style={{ padding: 16, backgroundColor: 'var(--bg-surface-hover)' }}>
+                <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Map Columns</h4>
+                {(!columnMap['name'] || !columnMap['phone']) && (
+                  <div style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 12 }}>
+                    ⚠️ Name and Phone columns must be mapped to proceed.
+                  </div>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {['name', 'phone', 'email', 'location', 'source', 'priority'].map(tf => (
+                    <div key={tf} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, textTransform: 'capitalize' }}>
+                        {tf}{['name', 'phone'].includes(tf) ? ' *' : ''}
+                      </span>
+                      <select 
+                        className="form-select" 
+                        style={{ width: 140, padding: '4px 8px', fontSize: 12 }}
+                        value={columnMap[tf] || ''}
+                        onChange={e => setColumnMap(prev => ({ ...prev, [tf]: e.target.value }))}
+                      >
+                        <option value="">— Not Mapped —</option>
+                        {csvHeaders.map(h => (
+                          <option key={h} value={h}>{h}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            <strong>Sample Columns Supported:</strong> Name, Phone, Email, Location, Source, Priority, Custom Fields.
-          </div>
+              {/* Preview */}
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                  {parsedRows.length} rows found — showing first 10
+                </div>
+                <div style={{ overflowX: 'auto', border: '1px solid var(--border-base)', borderRadius: 'var(--radius-md)' }}>
+                  <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead style={{ backgroundColor: 'var(--bg-surface-hover)' }}>
+                      <tr>
+                        {csvHeaders.map(h => (
+                          <th key={h} style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-base)', fontWeight: 600 }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parsedRows.slice(0, 10).map((row, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid var(--border-base)' }}>
+                          {csvHeaders.map(h => (
+                            <td key={h} style={{ padding: '8px 12px' }}>{row[h]}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <input
+                type="file"
+                accept=".csv"
+                style={{ display: 'none' }}
+                ref={fileInputRef}
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileSelect(file);
+                }}
+              />
+              <div
+                onDragOver={e => e.preventDefault()}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: '2px dashed var(--border-strong)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: 32,
+                  textAlign: 'center',
+                  backgroundColor: 'var(--bg-surface-hover)',
+                  cursor: 'pointer',
+                }}
+              >
+                <Upload size={32} color="var(--primary-600)" style={{ margin: '0 auto 12px' }} />
+                <div style={{ fontWeight: 600, fontSize: 14 }}>Drag & drop your CSV file here</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Supports .csv only
+                </div>
+                <button 
+                  type="button"
+                  className="btn btn-secondary btn-sm" 
+                  style={{ marginTop: 12 }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                >
+                  Browse File
+                </button>
+              </div>
+              
+              {importError && (
+                <div style={{ fontSize: 13, color: 'var(--danger)', textAlign: 'center', marginTop: 12 }}>
+                  {importError}
+                </div>
+              )}
+
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                <strong>Sample Columns Supported:</strong> Name, Phone, Email, Location, Source, Priority, Custom Fields.
+              </div>
+            </>
+          )}
         </div>
       </Modal>
     </div>

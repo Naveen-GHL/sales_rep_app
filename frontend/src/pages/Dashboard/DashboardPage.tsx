@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Plus,
+  PhoneMissed,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
@@ -51,16 +52,91 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
 
-  // Derived metrics
-  const totalPipelineValue = deals.reduce((acc, d) => acc + d.value, 0);
-  const overdueFollowups = followups.filter(f => f.status === 'Pending' && f.scheduledAt.toLowerCase().includes('yesterday'));
-  const pendingFollowups = followups.filter(f => f.status === 'Pending');
+  // ── Role-based scoping (Task 2) ──────────────────────────────────────────
+  const roleCode = user?.role?.code;
+  const isExec = roleCode === 'sales_executive';
+
+  const scopedLeads = isExec
+    ? leads.filter(l =>
+        (l.assignedAgentId && l.assignedAgentId === user?.id) ||
+        (l.assignedAgentName && l.assignedAgentName === user?.name)
+      )
+    : leads;
+
+  const scopedDeals = isExec
+    ? deals.filter(d =>
+        (d.assignedAgentId && d.assignedAgentId === user?.id) ||
+        (d.assignedAgentName && d.assignedAgentName === user?.name)
+      )
+    : deals;
+
+  const scopedCalls = isExec
+    ? calls.filter(c =>
+        (c.agentId && c.agentId === user?.id) ||
+        (c.agentName && c.agentName === user?.name)
+      )
+    : calls;
+
+  const scopedFollowups = isExec
+    ? followups.filter(f =>
+        (f.assignedAgentId && f.assignedAgentId === user?.id) ||
+        (f.assignedAgentName && f.assignedAgentName === user?.name)
+      )
+    : followups;
+
+  // ── Derived metrics ──────────────────────────────────────────────────────
+  const totalPipelineValue = scopedDeals.reduce((acc, d) => acc + d.value, 0);
+  const overdueFollowups = scopedFollowups.filter(
+    f => f.status === 'Pending' && f.scheduledAt.toLowerCase().includes('yesterday')
+  );
+  const pendingFollowups = scopedFollowups.filter(f => f.status === 'Pending');
+
+  // Task 1a — real "+N this week" delta from scopedLeads.createdAt
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const leadsThisWeek = scopedLeads.filter(l => {
+    if (!l.createdAt) return false;
+    const d = new Date(l.createdAt);
+    return !isNaN(d.getTime()) && d.getTime() >= sevenDaysAgo;
+  }).length;
+
+  // Task 1b — real avg-duration from scopedCalls (same formula as ReportsPage)
+  const formatDuration = (seconds: number) => {
+    if (!seconds || seconds <= 0) return '0s';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.round(seconds % 60);
+    if (mins === 0) return `${secs}s`;
+    return `${mins}m ${secs < 10 ? '0' : ''}${secs}s`;
+  };
+  const connectedCalls = scopedCalls.filter(c => c.duration > 0);
+  const totalConnectedDuration = connectedCalls.reduce((sum, c) => sum + (c.duration || 0), 0);
+  const avgDuration =
+    connectedCalls.length > 0
+      ? formatDuration(Math.round(totalConnectedDuration / connectedCalls.length))
+      : '0s';
+
+  // Task 4 — missed calls: duration === 0 or disposition === 'No Response'
+  const missedCalls = scopedCalls.filter(
+    c => c.duration === 0 || c.disposition === 'No Response'
+  ).length;
 
   // Format currency
   const formatCurrency = (val: number) => {
     if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
     if (val >= 100000) return `₹${(val / 100000).toFixed(1)} L`;
     return `₹${val.toLocaleString('en-IN')}`;
+  };
+
+  // ── Task 3 — label helpers ───────────────────────────────────────────────
+  const label = {
+    activeleads:     isExec ? 'MY ACTIVE LEADS'       : 'ACTIVE LEADS',
+    pendingfollowups: isExec ? 'MY PENDING FOLLOW-UPS' : 'PENDING FOLLOW-UPS',
+    callslogged:     isExec ? 'MY CALLS LOGGED'       : 'CALLS LOGGED',
+    pipelinevalue:   isExec ? 'MY PIPELINE VALUE'     : 'PIPELINE VALUE',
+    bannerSubtitle:  isExec
+      ? "Here's your personal pipeline, assigned leads, and today's action items."
+      : 'Here is your daily pipeline, incoming inquiries, and pending action items for today.',
+    recentLeads:     isExec ? 'My Recent Leads'                   : 'Recent Inbound Leads',
+    followupsTable:  isExec ? 'My Follow-ups & Reminders'         : 'Scheduled Reminders & Follow-ups',
   };
 
   return (
@@ -88,7 +164,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
             Welcome back, {user?.name.split(' ')[0]} 👋
           </h1>
           <p style={{ fontSize: 13, color: '#cbd5e1', marginTop: 4 }}>
-            Here is your daily pipeline, incoming inquiries, and pending action items for today.
+            {label.bannerSubtitle}
           </p>
         </div>
 
@@ -111,26 +187,26 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
 
       {/* KPI Cards Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-        {/* Card 1: Today's Leads */}
+        {/* Card 1: Active Leads */}
         <div className="card card-hover" style={{ cursor: 'pointer' }} onClick={() => onNavigate('leads')}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>ACTIVE LEADS</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{label.activeleads}</span>
             <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Users size={18} />
             </div>
           </div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 12, color: 'var(--text-primary)' }}>
-            {leads.length}
+            {scopedLeads.length}
           </div>
           <div style={{ fontSize: 12, color: '#059669', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, fontWeight: 600 }}>
-            <ArrowUpRight size={14} /> +3 this week
+            <ArrowUpRight size={14} /> +{leadsThisWeek} this week
           </div>
         </div>
 
         {/* Card 2: Follow-ups */}
         <div className="card card-hover" style={{ cursor: 'pointer' }} onClick={() => onNavigate('followups')}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>PENDING FOLLOW-UPS</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{label.pendingfollowups}</span>
             <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Clock size={18} />
             </div>
@@ -152,23 +228,49 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
         {/* Card 3: Calls Logged */}
         <div className="card card-hover" style={{ cursor: 'pointer' }} onClick={() => onNavigate('call-history')}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>CALLS LOGGED</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{label.callslogged}</span>
             <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <PhoneCall size={18} />
             </div>
           </div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 12, color: 'var(--text-primary)' }}>
-            {calls.length}
+            {scopedCalls.length}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-            Avg duration: 3m 48s
-          </div>
+          {/* Task 4 — Missed Calls inline stat for Sales Executive */}
+          {isExec ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                Avg duration: {avgDuration}
+              </span>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: missedCalls > 0 ? '#dc2626' : '#64748b',
+                  backgroundColor: missedCalls > 0 ? 'rgba(220,38,38,0.08)' : 'var(--bg-surface-hover)',
+                  border: `1px solid ${missedCalls > 0 ? 'rgba(220,38,38,0.2)' : 'var(--border-base)'}`,
+                  borderRadius: 6,
+                  padding: '2px 7px',
+                }}
+              >
+                <PhoneMissed size={11} />
+                {missedCalls} missed
+              </span>
+            </div>
+          ) : (
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+              Avg duration: {avgDuration}
+            </div>
+          )}
         </div>
 
         {/* Card 4: Pipeline Value */}
         <div className="card card-hover" style={{ cursor: 'pointer' }} onClick={() => onNavigate('pipeline')}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>PIPELINE VALUE</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{label.pipelinevalue}</span>
             <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'rgba(139, 92, 246, 0.1)', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <TrendingUp size={18} />
             </div>
@@ -177,11 +279,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
             {formatCurrency(totalPipelineValue)}
           </div>
           <div style={{ fontSize: 12, color: '#2563eb', marginTop: 4, fontWeight: 600 }}>
-            {deals.length} active deals
+            {scopedDeals.length} active deals
           </div>
         </div>
 
-        {/* Tenant Specific 5th Card */}
+        {/* Tenant Specific 5th Card — plots (not scoped per-agent per spec) */}
         {enabledFeatures.includes(FEATURES.PROPERTIES) && (
           <div className="card card-hover" style={{ cursor: 'pointer' }} onClick={() => onNavigate('plots')}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -220,7 +322,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
 
       {/* Main Split Row: Recent Inquiries & Actionable Followups */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 20 }}>
-        {/* Recent Inquiries Table */}
+        {/* Recent Leads Table */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div
             style={{
@@ -232,7 +334,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
             }}
           >
             <div>
-              <h3 style={{ fontSize: 15, fontWeight: 700 }}>Recent Inbound Leads</h3>
+              <h3 style={{ fontSize: 15, fontWeight: 700 }}>{label.recentLeads}</h3>
               <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Click phone icon to dial immediately</p>
             </div>
             <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('leads')}>
@@ -251,7 +353,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
                 </tr>
               </thead>
               <tbody>
-                {leads.slice(0, 4).map(l => (
+                {scopedLeads.slice(0, 4).map(l => (
                   <tr key={l.id} style={{ borderBottom: '1px solid var(--border-base)' }}>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{l.name}</div>
@@ -265,8 +367,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                       <button
-                        className="btn btn-primary btn-sm btn-icon"
-                        style={{ width: 30, height: 30 }}
+                        className="btn btn-call btn-sm btn-icon"
+                        style={{ width: 30, height: 30, borderRadius: 8 }}
                         title={`Call ${l.name}`}
                         onClick={() => initiateCall(l.name, l.phone, 'lead', l.id)}
                       >
@@ -292,7 +394,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
             }}
           >
             <div>
-              <h3 style={{ fontSize: 15, fontWeight: 700 }}>Scheduled Reminders & Follow-ups</h3>
+              <h3 style={{ fontSize: 15, fontWeight: 700 }}>{label.followupsTable}</h3>
               <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Critical agent engagement tasks</p>
             </div>
             <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('followups')}>
@@ -301,7 +403,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
           </div>
 
           <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {followups.slice(0, 4).map(f => (
+            {scopedFollowups.slice(0, 4).map(f => (
               <div
                 key={f.id}
                 style={{
@@ -328,7 +430,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
                 </div>
 
                 <button
-                  className="btn btn-secondary btn-sm"
+                  className="btn btn-call btn-sm"
                   onClick={() => initiateCall(f.contactName, f.contactPhone, 'lead', f.contactId)}
                 >
                   <Phone size={13} /> Call Now

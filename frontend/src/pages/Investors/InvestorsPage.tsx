@@ -7,6 +7,9 @@ import { storageService } from '../../services/storageService';
 import { DataTable, Column, RowAction } from '../../components/common/DataTable';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Drawer } from '../../components/common/Drawer';
+import { FilterBar } from '../../components/common/FilterBar';
+import { DocumentUploader } from '../../components/common/DocumentUploader';
+import { DocumentList } from '../../components/common/DocumentList';
 
 export const InvestorsPage: React.FC = () => {
   const { tenant } = useAuth();
@@ -14,6 +17,8 @@ export const InvestorsPage: React.FC = () => {
 
   const [investors, setInvestors] = useState<Investor[]>([]);
   const [selectedInvestor, setSelectedInvestor] = useState<Investor | null>(null);
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [assetClassFilter, setAssetClassFilter] = useState('All');
 
   const loadData = () => {
     setInvestors(storageService.getInvestors(tenant?.id));
@@ -25,6 +30,16 @@ export const InvestorsPage: React.FC = () => {
     window.addEventListener('nexus_storage_updated', handleUpdate);
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
+
+  const filteredInvestors = investors.filter(inv => {
+    if (statusFilter !== 'All' && inv.status !== statusFilter) return false;
+    if (assetClassFilter !== 'All' && inv.preferredAssetClass !== assetClassFilter) return false;
+    return true;
+  });
+
+  const assetClassOptions = Array.from(new Set(investors.map(inv => inv.preferredAssetClass)))
+    .filter(Boolean)
+    .map(cls => ({ value: cls, label: cls }));
 
   const columns: Column<Investor>[] = [
     {
@@ -95,11 +110,40 @@ export const InvestorsPage: React.FC = () => {
 
       <DataTable
         columns={columns}
-        data={investors}
+        data={filteredInvestors}
         keyExtractor={inv => inv.id}
         rowActions={rowActions}
         onRowClick={inv => setSelectedInvestor(inv)}
         searchPlaceholder="Search investors by name, asset class, or capacity..."
+        filtersNode={
+          <FilterBar
+            filters={[
+              {
+                key: 'status',
+                label: 'Status',
+                value: statusFilter,
+                onChange: setStatusFilter,
+                options: [
+                  { value: 'Lead', label: 'Lead' },
+                  { value: 'Active Investor', label: 'Active Investor' },
+                  { value: 'HNW Investor', label: 'HNW Investor' },
+                  { value: 'Inactive', label: 'Inactive' },
+                ],
+              },
+              {
+                key: 'assetClass',
+                label: 'Asset Class',
+                value: assetClassFilter,
+                onChange: setAssetClassFilter,
+                options: assetClassOptions,
+              },
+            ]}
+            onClearAll={() => {
+              setStatusFilter('All');
+              setAssetClassFilter('All');
+            }}
+          />
+        }
       />
 
       {/* Investor 360 Drawer */}
@@ -172,6 +216,25 @@ export const InvestorsPage: React.FC = () => {
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                 {selectedInvestor.notes || 'Institutional investor evaluation completed.'}
               </p>
+            </div>
+
+            {/* Documents */}
+            <div className="card" style={{ padding: 18 }}>
+              <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>
+                Documents
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <DocumentUploader
+                  entityType="investor"
+                  entityId={selectedInvestor.id}
+                  allowedCategories={['KYC', 'Mandate Agreement', 'Term Sheet', 'PAN / Aadhar', 'Other']}
+                />
+                <DocumentList
+                  entityType="investor"
+                  entityId={selectedInvestor.id}
+                  canDelete
+                />
+              </div>
             </div>
           </div>
         )}

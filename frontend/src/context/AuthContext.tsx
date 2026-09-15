@@ -3,8 +3,7 @@ import { User, Tenant, TenantSlug, RoleCode } from '../types';
 import { DEFAULT_TENANTS } from '../constants/defaultTenants';
 import { SYSTEM_ROLES } from '../constants/roles';
 import { FEATURES } from '../constants/features';
-
-import { apiClient } from '../services/apiClient';
+import { storageService } from '../services/storageService';
 
 interface AuthContextType {
   user: User | null;
@@ -13,8 +12,7 @@ interface AuthContextType {
   permissions: string[];
   isAuthenticated: boolean;
   isSuperAdmin: boolean;
-  loginError: string | null;
-  login: (email: string, password?: string, roleCode?: RoleCode, tenantSlug?: TenantSlug) => Promise<boolean>;
+  login: (email: string, roleCode?: RoleCode, tenantSlug?: TenantSlug) => void;
   logout: () => void;
   switchPersona: (roleCode: RoleCode, tenantSlug?: TenantSlug) => void;
   setUser: (user: User | null) => void;
@@ -24,7 +22,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [loginError, setLoginError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('nexus_current_user');
     if (saved) {
@@ -85,17 +82,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const slug = tenantSlug || 'ghl';
-    const targetTenant = DEFAULT_TENANTS[slug];
+    const allTenants = storageService.getTenants();
+    const targetTenant =
+      allTenants.find(t => t.slug === slug || t.id === slug) ||
+      DEFAULT_TENANTS[slug] ||
+      DEFAULT_TENANTS.ghl;
     setTenant(targetTenant);
+
+    // Check if a real user exists for this tenant and role in storage
+    const tenantUsers = storageService.getUsers(targetTenant.id);
+    const existingUser = tenantUsers.find(u => u.role.code === roleCode);
+    if (existingUser) {
+      setUser(existingUser);
+      return;
+    }
 
     const targetUser: User = {
       id: `usr-${slug}-${roleCode}`,
-      name: roleCode === 'company_admin'
-        ? (slug === 'ghl' ? 'Vikram Malhotra' : 'Kavita Rao')
-        : (slug === 'ghl' ? 'Ananya Iyer' : 'Pooja Hegde'),
+      name:
+        roleCode === 'company_admin'
+          ? slug === 'ghl'
+            ? 'Vikram Malhotra'
+            : slug === 'jamin'
+            ? 'Kavita Rao'
+            : `${targetTenant.name} Admin`
+          : slug === 'ghl'
+          ? 'Ananya Iyer'
+          : slug === 'jamin'
+          ? 'Pooja Hegde'
+          : `${targetTenant.name} Agent`,
       email: `${roleCode}@${slug}.com`,
       phone: '+91 98450 00000',
-      role: SYSTEM_ROLES[roleCode],
+      role: SYSTEM_ROLES[roleCode] || SYSTEM_ROLES.company_admin,
       companyId: targetTenant.id,
       companySlug: slug,
       companyName: targetTenant.name,
@@ -106,47 +124,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(targetUser);
   };
 
-  const login = async (
-    email: string,
-    password?: string,
-    roleCode: RoleCode = 'company_admin',
-    tenantSlug: TenantSlug = 'ghl'
-  ): Promise<boolean> => {
-    setLoginError(null);
-
-    // If password provided, call real ASP.NET Core backend
-    if (password) {
-      try {
-        const response: any = await apiClient.post('/auth/login', { email, password });
-
-        if (response && response.success && response.data) {
-          const { token, user: userData, tenant: tenantData } = response.data;
-
-          if (token) {
-            localStorage.setItem('nexus_auth_token', token);
-          }
-
-          if (userData) {
-            setUser(userData);
-          }
-
-          if (tenantData) {
-            setTenant(tenantData);
-          }
-
-          return true;
-        } else {
-          setLoginError(response?.message || 'Login failed. Please check credentials.');
-          return false;
-        }
-      } catch (error: any) {
-        setLoginError(error.message || 'Unable to connect to server.');
-        return false;
-      }
-    }
-
-    // Fallback: fast-login demo mode without password
-    const targetTenant = DEFAULT_TENANTS[tenantSlug];
+  const login = (email: string, roleCode: RoleCode = 'company_admin', tenantSlug: TenantSlug = 'ghl') => {
+    // If logging in via real credentials / token
+    const allTenants = storageService.getTenants();
+    const targetTenant =
+      allTenants.find(t => t.slug === tenantSlug || t.id === tenantSlug) ||
+      DEFAULT_TENANTS[tenantSlug] ||
+      DEFAULT_TENANTS.ghl;
     setTenant(targetTenant);
 
     const authenticatedUser: User = {
@@ -163,14 +147,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setUser(authenticatedUser);
-    return true;
   };
 
   const logout = () => {
     localStorage.removeItem('nexus_auth_token');
     localStorage.removeItem('nexus_current_user');
     localStorage.removeItem('nexus_current_tenant');
-    setLoginError(null);
     setUser(null);
     setTenant(null);
   };
@@ -184,7 +166,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         permissions,
         isAuthenticated: !!user,
         isSuperAdmin,
-        loginError,
         login,
         logout,
         switchPersona,

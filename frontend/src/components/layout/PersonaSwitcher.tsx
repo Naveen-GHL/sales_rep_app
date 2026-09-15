@@ -20,7 +20,7 @@ export const PersonaSwitcher: React.FC = () => {
       role: 'company_admin' as const,
       slug: 'ghl' as const,
       badge: 'Wealth & Advisory',
-      icon: <Building2 size={14} color="#0284c7" />,
+      icon: <Building2 size={14} color="#ef4444" />,
       desc: 'Investors, Consultations, Opportunities, Full Admin',
     },
     {
@@ -28,7 +28,7 @@ export const PersonaSwitcher: React.FC = () => {
       role: 'sales_executive' as const,
       slug: 'ghl' as const,
       badge: 'Sales Agent',
-      icon: <UserCheck size={14} color="#0284c7" />,
+      icon: <UserCheck size={14} color="#ef4444" />,
       desc: 'Assigned Leads, Calling, Consultations',
     },
     {
@@ -36,7 +36,7 @@ export const PersonaSwitcher: React.FC = () => {
       role: 'company_admin' as const,
       slug: 'jamin' as const,
       badge: 'Plotted Real Estate',
-      icon: <Building2 size={14} color="#059669" />,
+      icon: <Building2 size={14} color="#e10600" />,
       desc: 'Plot Inventory, Site Visits, Bookings, Full Admin',
     },
     {
@@ -44,10 +44,12 @@ export const PersonaSwitcher: React.FC = () => {
       role: 'sales_executive' as const,
       slug: 'jamin' as const,
       badge: 'Sales Agent',
-      icon: <UserCheck size={14} color="#059669" />,
+      icon: <UserCheck size={14} color="#e10600" />,
       desc: 'Assigned Leads, Calling, Plot Holds, Site Visits',
     },
   ];
+
+  const customTenants = storageService.getTenants().filter(t => t.slug !== 'ghl' && t.slug !== 'jamin');
 
   const handleResetData = () => {
     if (confirm('Reset demo data to initial defaults?')) {
@@ -64,19 +66,37 @@ export const PersonaSwitcher: React.FC = () => {
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          background: isSuperAdmin ? 'rgba(139, 92, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
-          border: `1px solid ${isSuperAdmin ? '#8b5cf6' : 'var(--primary-500)'}`,
+          color: '#ffffff',
+          background: isSuperAdmin
+            ? 'rgba(139, 92, 246, 0.1)'
+            : 'rgba(59, 130, 246, 0.08)',
+          border: `1px solid ${isSuperAdmin ? '#8b5cf6' : 'var(--primary-500)'
+            }`,
           padding: '5px 12px',
         }}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span style={{ fontSize: 11, fontWeight: 700, color: isSuperAdmin ? '#8b5cf6' : 'var(--primary-600)' }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: '#ffffff',
+          }}
+        >
           ROLE:
         </span>
-        <span style={{ fontSize: 12, fontWeight: 600 }}>
+
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: '#ffffff',
+          }}
+        >
           {isSuperAdmin ? 'Super Admin' : `${tenant?.name} (${user?.role.name})`}
         </span>
-        <ChevronDown size={14} />
+
+        <ChevronDown size={14} color="#ffffff" />
       </button>
 
       {isOpen && (
@@ -96,6 +116,7 @@ export const PersonaSwitcher: React.FC = () => {
               width: 320,
               padding: 8,
               boxShadow: 'var(--shadow-xl)',
+              overflow: 'hidden',
             }}
           >
             <div
@@ -150,8 +171,22 @@ export const PersonaSwitcher: React.FC = () => {
                   >
                     <div style={{ marginTop: 2, marginRight: 10 }}>{p.icon}</div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'center',
+                          gap: 6,
+                          whiteSpace: 'normal',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: isActive ? '#0f172a' : 'var(--text-primary)',
+                          }}
+                        >
                           {p.label}
                         </span>
                         <span
@@ -161,18 +196,113 @@ export const PersonaSwitcher: React.FC = () => {
                             borderRadius: 'var(--radius-full)',
                             background: 'var(--bg-surface-hover)',
                             color: 'var(--text-secondary)',
+                            flexShrink: 0,
                           }}
                         >
                           {p.badge}
                         </span>
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: isActive ? '#475569' : 'var(--text-muted)',
+                          marginTop: 2,
+                          whiteSpace: 'normal',
+                        }}
+                      >
                         {p.desc}
                       </div>
                     </div>
                   </button>
                 );
               })}
+
+              {customTenants.length > 0 && (
+                <>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      color: 'var(--text-muted)',
+                      padding: '8px 10px 4px',
+                      borderTop: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    Custom Tenants
+                  </div>
+                  {customTenants.map(t => {
+                    const isActive = tenant?.slug === t.slug && user?.role.code === 'company_admin';
+                    return (
+                      <button
+                        key={t.id}
+                        className="btn btn-ghost"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          textAlign: 'left',
+                          padding: '8px 10px',
+                          borderRadius: 'var(--radius-md)',
+                          backgroundColor: isActive ? 'var(--primary-50)' : 'transparent',
+                          border: isActive ? '1px solid var(--primary-100)' : '1px solid transparent',
+                        }}
+                        onClick={() => {
+                          switchPersona('company_admin', t.slug);
+                          setIsOpen(false);
+                        }}
+                      >
+                        <div style={{ marginTop: 2, marginRight: 10 }}>
+                          <Building2 size={14} color={t.brandColor || '#8b5cf6'} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              alignItems: 'center',
+                              gap: 6,
+                              whiteSpace: 'normal',
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 700,
+                                color: isActive ? '#0f172a' : 'var(--text-primary)',
+                              }}
+                            >
+                              {t.name}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 10,
+                                padding: '1px 6px',
+                                borderRadius: 'var(--radius-full)',
+                                background: 'var(--bg-surface-hover)',
+                                color: 'var(--text-secondary)',
+                                flexShrink: 0,
+                              }}
+                            >
+                              Admin
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: isActive ? '#475569' : 'var(--text-muted)',
+                              marginTop: 2,
+                              whiteSpace: 'normal',
+                            }}
+                          >
+                            {t.tagline}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
             </div>
           </div>
         </>

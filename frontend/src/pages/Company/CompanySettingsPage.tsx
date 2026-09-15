@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { Settings, Save, Building2, Clock, Globe, Shield } from 'lucide-react';
+import { Settings, Save, Building2, Clock, Globe, Shield, Library } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { DocumentUploader } from '../../components/common/DocumentUploader';
+import { DocumentList } from '../../components/common/DocumentList';
+import { PERMISSIONS } from '../../constants/permissions';
 
 export const CompanySettingsPage: React.FC = () => {
-  const { tenant } = useAuth();
+  const { tenant, permissions } = useAuth();
+  const canManageSettings = permissions.includes(PERMISSIONS.SETTINGS_UPDATE);
   const [companyName, setCompanyName] = useState(tenant?.name || '');
   const [tagline, setTagline] = useState(tenant?.tagline || '');
   const [timezone, setTimezone] = useState(tenant?.timezone || 'Asia/Kolkata (IST)');
@@ -120,6 +124,33 @@ export const CompanySettingsPage: React.FC = () => {
           <Save size={15} /> Save Organization Settings
         </button>
       </form>
+
+      {/* ── Company Document Library ── */}
+      {tenant && (
+        <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 680 }}>
+          <div>
+            <h3 style={{ fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Library size={17} color="var(--primary-600)" />
+              Company Document Library
+            </h3>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+              Shared brochures, policy documents, and price lists available to all sales agents during calls.
+            </p>
+          </div>
+
+          <DocumentUploader
+            entityType="company"
+            entityId={tenant.id}
+            allowedCategories={['Brochure', 'Price List', 'Terms & Conditions', 'Policy Document', 'Other']}
+          />
+
+          <DocumentList
+            entityType="company"
+            entityId={tenant.id}
+            canDelete={canManageSettings}
+          />
+        </div>
+      )}
     </div>
   );
 };

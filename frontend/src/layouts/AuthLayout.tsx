@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Building2, UserCheck, ArrowRight, Lock, Mail, Sparkles, AlertCircle } from 'lucide-react';
+import { Shield, Building2, UserCheck, ArrowRight, Lock, Mail, Sparkles } from 'lucide-react';
 
 export const AuthLayout: React.FC = () => {
-  const { login, switchPersona, loginError } = useAuth();
+  const { login, switchPersona } = useAuth();
   const [email, setEmail] = useState('vikram@ghlindiatrust.com');
-  const [password, setPassword] = useState('Password@123');
-  const [isLoading, setIsLoading] = useState(false);
+  const [password, setPassword] = useState('••••••••••••');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    await login(email, password);
-    setIsLoading(false);
+    login(email);
   };
 
   return (
@@ -85,7 +82,7 @@ export const AuthLayout: React.FC = () => {
               style={{ justifyContent: 'flex-start', border: '1px solid #e2e8f0', padding: '8px 10px' }}
               onClick={() => switchPersona('company_admin', 'ghl')}
             >
-              <Building2 size={14} color="#0284c7" />
+              <Building2 size={14} color="#ef4444" />
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontWeight: 700, fontSize: 11, color: '#0f172a' }}>GHL India Admin</div>
                 <div style={{ fontSize: 9, color: '#64748b' }}>Wealth / Investors</div>
@@ -98,7 +95,7 @@ export const AuthLayout: React.FC = () => {
               style={{ justifyContent: 'flex-start', border: '1px solid #e2e8f0', padding: '8px 10px' }}
               onClick={() => switchPersona('company_admin', 'jamin')}
             >
-              <Building2 size={14} color="#059669" />
+              <Building2 size={14} color="#e10600" />
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontWeight: 700, fontSize: 11, color: '#0f172a' }}>Jamin Bazaar Admin</div>
                 <div style={{ fontSize: 9, color: '#64748b' }}>Plots / Operations</div>
@@ -111,7 +108,7 @@ export const AuthLayout: React.FC = () => {
               style={{ justifyContent: 'flex-start', border: '1px solid #e2e8f0', padding: '8px 10px' }}
               onClick={() => switchPersona('sales_executive', 'ghl')}
             >
-              <UserCheck size={14} color="#0284c7" />
+              <UserCheck size={14} color="#ef4444" />
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontWeight: 700, fontSize: 11, color: '#0f172a' }}>GHL Sales Agent</div>
                 <div style={{ fontSize: 9, color: '#64748b' }}>Ananya Iyer</div>
@@ -185,32 +182,12 @@ export const AuthLayout: React.FC = () => {
             </div>
           </div>
 
-          {loginError && (
-            <div
-              style={{
-                padding: '10px 14px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: '#fef2f2',
-                border: '1px solid #fecaca',
-                color: '#dc2626',
-                fontSize: 13,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <AlertCircle size={16} />
-              <span>{loginError}</span>
-            </div>
-          )}
-
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={isLoading}
             style={{ width: '100%', height: 42, marginTop: 8 }}
           >
-            {isLoading ? 'Signing in...' : 'Sign In to Organization'} <ArrowRight size={16} />
+            Sign In to Organization <ArrowRight size={16} />
           </button>
         </form>
       </div>

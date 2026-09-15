@@ -20,16 +20,17 @@
   --text-muted: #94a3b8;
   --text-inverse: #ffffff;
 
-  /* Brand Primary */
-  --primary-50: #eff6ff;
-  --primary-100: #dbeafe;
-  --primary-500: #3b82f6;
-  --primary-600: #2563eb;
-  --primary-700: #1d4ed8;
-  --primary-glow: rgba(59, 130, 246, 0.25);
+  /* Brand Primary — GHL India Ventures: Red + Black + White */
+  --primary-50: #fff1f2;
+  --primary-100: #ffe4e6;
+  --primary-500: #ef4444;
+  --primary-600: #dc2626;
+  --primary-700: #b91c1c;
+  --primary-glow: rgba(239, 68, 68, 0.25);
 
   /* Accent Gradients */
-  --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  --gradient-primary: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  --gradient-signin: linear-gradient(135deg, #dc2626 0%, #0f172a 100%);
   --gradient-gold: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   --gradient-emerald: linear-gradient(135deg, #10b981 0%, #059669 100%);
   --gradient-dark: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
@@ -98,13 +99,17 @@
 }
 
 /* Reset & Base */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   width: 100%;
   font-family: var(--font-sans);
@@ -121,13 +126,16 @@ html, body, #root {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--border-strong);
   border-radius: var(--radius-full);
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
@@ -147,7 +155,13 @@ html, body, #root {
   min-width: 0;
   height: 100vh;
   overflow: hidden;
-  background-color: var(--bg-app);
+  background: linear-gradient(
+    to bottom,
+    #FAF9F4 0%,
+    #F7F5EF 28%,
+    #F4F1EA 55%,
+    #E7E8EA 100%
+  );
 }
 
 .page-scrollable {
@@ -157,6 +171,18 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  background: linear-gradient(
+    to bottom,
+    #FAF9F4 0%,
+    #F7F5EF 28%,
+    #F4F1EA 55%,
+    #E7E8EA 100%
+  );
+}
+
+.admin-theme .main-content-area,
+.admin-theme .page-scrollable {
+  background: #090d16 !important;
 }
 
 @media (max-width: 768px) {
@@ -167,7 +193,12 @@ html, body, #root {
 }
 
 /* Typography Helpers */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-display);
   font-weight: 700;
   color: var(--text-primary);
@@ -223,14 +254,54 @@ h1, h2, h3, h4, h5, h6 {
 .btn-primary {
   background: var(--gradient-primary);
   color: #ffffff;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
 }
+
 .btn-primary:hover {
   filter: brightness(1.08);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
   transform: translateY(-1px);
 }
+
 .btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Sign-in button: red to dark gradient */
+.btn-signin {
+  background: var(--gradient-signin);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(185, 28, 28, 0.3);
+}
+
+.btn-signin:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 16px rgba(185, 28, 28, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-signin:active {
+  transform: translateY(0);
+}
+
+/* Call button: rich emerald green gradient */
+.btn-call,
+.btn-success {
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+  border: none;
+}
+
+.btn-call:hover,
+.btn-success:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn-call:active,
+.btn-success:active {
   transform: translateY(0);
 }
 
@@ -239,6 +310,7 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary);
   border-color: var(--border-base);
 }
+
 .btn-secondary:hover {
   background: var(--bg-surface-hover);
   border-color: var(--border-strong);
@@ -248,6 +320,7 @@ h1, h2, h3, h4, h5, h6 {
   background: transparent;
   color: var(--text-secondary);
 }
+
 .btn-ghost:hover {
   background: var(--bg-surface-hover);
   color: var(--text-primary);
@@ -257,6 +330,7 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--danger);
   color: #ffffff;
 }
+
 .btn-danger:hover {
   filter: brightness(1.1);
 }
@@ -302,7 +376,9 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-secondary);
 }
 
-.form-input, .form-select, .form-textarea {
+.form-input,
+.form-select,
+.form-textarea {
   font-family: var(--font-sans);
   font-size: 13px;
   padding: 9px 12px;
@@ -315,9 +391,21 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
 }
 
-.form-input:focus, .form-select:focus, .form-textarea:focus {
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
   border-color: var(--primary-500);
   box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+/* Sticky page header */
+.page-header-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-app);
+  padding-bottom: 16px;
+  margin-bottom: 0;
 }
 
 /* Status Chips */
@@ -354,24 +442,52 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Animations */
 @keyframes pulse-ring {
-  0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.15); opacity: 0.4; }
-  100% { transform: scale(0.95); opacity: 0.8; }
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.15);
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .animate-fade-in {
@@ -384,4 +500,31 @@ h1, h2, h3, h4, h5, h6 {
 
 .animate-slide-right {
   animation: slideInRight var(--transition-smooth) ease-out forwards;
+}
+
+.sidebar-collapse-btn {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  transition: color var(--transition-fast);
+}
+
+.sidebar-collapse-btn:hover {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #ff0000 !important;
+}
+
+.sidebar-collapse-btn:hover svg {
+  stroke: #ff0000 !important;
+  stroke-width: 3px !important;
 }
