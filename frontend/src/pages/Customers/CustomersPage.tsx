@@ -38,9 +38,9 @@ export const CustomersPage: React.FC = () => {
   const isExec = roleCode === 'sales_executive';
   const scopedCustomers = isExec
     ? customers.filter(c =>
-        (c.assignedAgentId && c.assignedAgentId === user?.id) ||
-        (c.assignedAgentName && c.assignedAgentName === user?.name)
-      )
+      (c.assignedAgentId && c.assignedAgentId === user?.id) ||
+      (c.assignedAgentName && c.assignedAgentName === user?.name)
+    )
     : customers;
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'calls' | 'followups' | 'deals' | 'timeline' | 'documents'>('overview');
@@ -67,9 +67,9 @@ export const CustomersPage: React.FC = () => {
     // that is invisible in their own filtered left-panel list.
     const firstVisible = isExec
       ? custs.filter(c =>
-          (c.assignedAgentId && c.assignedAgentId === user?.id) ||
-          (c.assignedAgentName && c.assignedAgentName === user?.name)
-        )[0]
+        (c.assignedAgentId && c.assignedAgentId === user?.id) ||
+        (c.assignedAgentName && c.assignedAgentName === user?.name)
+      )[0]
       : custs[0];
     if (firstVisible && !selectedCustomer) {
       setSelectedCustomer(firstVisible);
@@ -384,61 +384,61 @@ export const CustomersPage: React.FC = () => {
 
               {/* Agent Filter */}
               {!isExec && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  flex: '1 1 0',
-                  minWidth: 0,
-                  boxSizing: 'border-box',
-                }}
-              >
-                <label
-                  htmlFor="filter-customer-agent"
+                <div
                   style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: 'var(--text-secondary)',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}
-                >
-                  Agent:
-                </label>
-                <select
-                  id="filter-customer-agent"
-                  className="form-select"
-                  value={agentFilter}
-                  onChange={e => setAgentFilter(e.target.value)}
-                  style={{
-                    height: 30,
-                    fontSize: 12,
-                    paddingTop: 0,
-                    paddingBottom: 0,
-                    paddingLeft: 8,
-                    paddingRight: 22,
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-base)',
-                    backgroundColor:
-                      agentFilter !== 'All' && agentFilter !== ''
-                        ? 'var(--primary-50)'
-                        : 'var(--bg-surface)',
-                    color: 'var(--text-primary)',
-                    cursor: 'pointer',
-                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    flex: '1 1 0',
                     minWidth: 0,
                     boxSizing: 'border-box',
                   }}
                 >
-                  <option value="All">All</option>
-                  {agentOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <label
+                    htmlFor="filter-customer-agent"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: 'var(--text-secondary)',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}
+                  >
+                    Agent:
+                  </label>
+                  <select
+                    id="filter-customer-agent"
+                    className="form-select"
+                    value={agentFilter}
+                    onChange={e => setAgentFilter(e.target.value)}
+                    style={{
+                      height: 30,
+                      fontSize: 12,
+                      paddingTop: 0,
+                      paddingBottom: 0,
+                      paddingLeft: 8,
+                      paddingRight: 22,
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-base)',
+                      backgroundColor:
+                        agentFilter !== 'All' && agentFilter !== ''
+                          ? 'var(--primary-50)'
+                          : 'var(--bg-surface)',
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      width: '100%',
+                      minWidth: 0,
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <option value="All">All</option>
+                    {agentOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
