@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { AuthLayout } from './layouts/AuthLayout';
 import { SalesLayout } from './layouts/SalesLayout';
@@ -50,6 +50,13 @@ import { storageService } from './services/storageService';
 export const App: React.FC = () => {
   const { isAuthenticated, isSuperAdmin, tenant, user } = useAuth();
   const [currentRoute, setCurrentRoute] = useState<string>('dashboard');
+
+  // Seed initial mock data on clean install / empty session
+  useEffect(() => {
+    if (storageService.getUsers().length === 0) {
+      storageService.loadMockDataFromSeparateFolder();
+    }
+  }, []);
 
   // Quick Create Modal State
   const [quickCreateType, setQuickCreateType] = useState<
