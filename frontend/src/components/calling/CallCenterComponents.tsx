@@ -32,6 +32,7 @@ import { Drawer } from '../common/Drawer';
 import { DocumentUploader } from '../common/DocumentUploader';
 import { DocumentList } from '../common/DocumentList';
 import { EmptyState } from '../common/EmptyState';
+import './CallCenterComponents.css';
 
 // --- Agent Availability Toggle ---
 export const AgentAvailabilityToggle: React.FC = () => {
@@ -50,40 +51,25 @@ export const AgentAvailabilityToggle: React.FC = () => {
   };
 
   return (
-    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div className="agent-availability-container">
       <button
-        className="btn btn-secondary btn-sm"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          borderColor: 'var(--border-base)',
-          padding: '6px 12px',
-        }}
+        className="btn btn-secondary btn-sm agent-availability-btn"
         onClick={() => setIsOpen(!isOpen)}
       >
         <span
+          className="agent-availability-status-dot"
           style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
             backgroundColor: getStatusColor(availability),
             boxShadow: `0 0 6px ${getStatusColor(availability)}`,
           }}
         />
-        <span style={{ fontSize: 12, fontWeight: 600 }}>{availability}</span>
+        <span className="agent-availability-label">{availability}</span>
       </button>
 
       {/* Demo helper: button to simulate incoming call */}
       <button
-        className="btn btn-ghost btn-sm"
+        className="btn btn-ghost btn-sm agent-availability-simulate-btn"
         title="Simulate Inbound Call for Testing"
-        style={{
-          fontSize: 11,
-          color: 'var(--primary-600)',
-          background: 'var(--primary-50)',
-          border: '1px dashed var(--primary-500)',
-        }}
         onClick={() => simulateIncomingCall()}
       >
         <PhoneCall size={13} /> Simulate Ring
@@ -92,29 +78,15 @@ export const AgentAvailabilityToggle: React.FC = () => {
       {isOpen && (
         <>
           <div
-            style={{ position: 'fixed', inset: 0, zIndex: 100 }}
+            className="agent-availability-backdrop"
             onClick={() => setIsOpen(false)}
           />
-          <div
-            className="card animate-slide-down"
-            style={{
-              position: 'absolute',
-              top: '100%',
-              right: 0,
-              marginTop: 6,
-              zIndex: 110,
-              minWidth: 160,
-              padding: 6,
-              boxShadow: 'var(--shadow-lg)',
-            }}
-          >
+          <div className="card animate-slide-down agent-availability-dropdown">
             {(['Available', 'Busy', 'Offline'] as AgentAvailability[]).map(status => (
               <button
                 key={status}
-                className="btn btn-ghost btn-sm"
+                className="btn btn-ghost btn-sm agent-availability-item-btn"
                 style={{
-                  width: '100%',
-                  justifyContent: 'flex-start',
                   fontWeight: availability === status ? 700 : 400,
                   color:
                     availability === status ? getStatusColor(status) : 'var(--text-primary)',
@@ -125,12 +97,9 @@ export const AgentAvailabilityToggle: React.FC = () => {
                 }}
               >
                 <span
+                  className="agent-availability-item-dot"
                   style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
                     backgroundColor: getStatusColor(status),
-                    marginRight: 8,
                   }}
                 />
                 {status}
@@ -178,94 +147,43 @@ export const IncomingCallPopup: React.FC = () => {
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        ...getPositionStyles(),
-        zIndex: 2000,
-        width: 360,
-      }}
+      className="incoming-call-popup-wrapper"
+      style={getPositionStyles()}
     >
-      <div
-        className="card animate-slide-down"
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          border: '2px solid var(--primary-500)',
-          boxShadow: '0 20px 30px -10px rgba(37, 99, 235, 0.3)',
-          padding: 20,
-          borderRadius: 'var(--radius-xl)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              backgroundColor: 'var(--primary-50)',
-              color: 'var(--primary-600)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              animation: 'pulse-ring 1.5s infinite',
-            }}
-          >
+      <div className="card animate-slide-down incoming-call-card">
+        <div className="incoming-call-header">
+          <div className="incoming-call-icon-pulse">
             <Volume2 size={24} />
           </div>
           <div>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: 'var(--primary-600)',
-              }}
-            >
+            <div className="incoming-call-title">
               Incoming Call
             </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div className="incoming-call-caller-name">
               {activeCall.contactName}
             </div>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            <div className="incoming-call-caller-phone">
               {activeCall.contactPhone}
             </div>
           </div>
         </div>
 
         {activeCall.matchedRecord && (
-          <div
-            style={{
-              backgroundColor: 'var(--bg-surface-hover)',
-              borderRadius: 'var(--radius-md)',
-              padding: '8px 12px',
-              fontSize: 12,
-              marginBottom: 16,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              border: '1px solid var(--border-base)',
-            }}
-          >
+          <div className="incoming-call-matched-badge">
             <User size={14} color="var(--primary-600)" />
             <span>{activeCall.matchedRecord.meta || 'Matched Contact Record'}</span>
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div className="incoming-call-actions">
           <button
             className="btn btn-danger"
-            style={{ flex: 1, height: 42 }}
             onClick={rejectCall}
           >
             <PhoneOff size={16} /> Decline
           </button>
           <button
-            className="btn btn-primary"
-            style={{
-              flex: 1,
-              height: 42,
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            }}
+            className="btn btn-primary incoming-call-btn-accept"
             onClick={acceptCall}
           >
             <Phone size={16} /> Accept Call
@@ -380,60 +298,23 @@ export const InCallBar: React.FC = () => {
   // ── MINIMIZED MODE ──────────────────────────────────────────────────────────
   if (!activeCall.isExpanded) {
     return (
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 24,
-          right: 24,
-          zIndex: 1500,
-        }}
-      >
-        <div
-          style={{
-            backgroundColor: '#0f172a',
-            color: '#ffffff',
-            border: '1px solid #334155',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)',
-            padding: '10px 14px',
-            borderRadius: 'var(--radius-full)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
+      <div className="incall-minimized-wrapper">
+        <div className="incall-minimized-card">
           {/* Pulse dot */}
-          <div
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              backgroundColor: '#10b981',
-              boxShadow: '0 0 8px #10b981',
-              animation: 'pulse-ring 1.5s infinite',
-              flexShrink: 0,
-            }}
-          />
+          <div className="incall-minimized-dot" />
 
           {/* Name + timer */}
-          <div style={{ lineHeight: 1.2 }}>
-            <div style={{ fontSize: 13, fontWeight: 700 }}>{activeCall.contactName}</div>
-            <div style={{ fontSize: 11, color: '#38bdf8', fontWeight: 600 }}>
+          <div className="incall-minimized-info">
+            <div className="incall-minimized-name">{activeCall.contactName}</div>
+            <div className="incall-minimized-timer">
               {formatDuration(activeCall.duration)}
             </div>
           </div>
 
           {/* Expand */}
           <button
-            className="btn btn-icon btn-sm"
+            className="btn btn-icon btn-sm incall-minimized-btn-expand"
             title="Expand panel"
-            style={{
-              borderRadius: '50%',
-              backgroundColor: '#1e293b',
-              borderColor: '#475569',
-              color: '#ffffff',
-              width: 30,
-              height: 30,
-            }}
             onClick={toggleExpanded}
           >
             <Maximize2 size={14} />
@@ -441,9 +322,8 @@ export const InCallBar: React.FC = () => {
 
           {/* End Call — always accessible even when minimised */}
           <button
-            className="btn btn-danger btn-icon btn-sm"
+            className="btn btn-danger btn-icon btn-sm incall-minimized-btn-end"
             title="End Call"
-            style={{ borderRadius: '50%', width: 30, height: 30 }}
             onClick={endCall}
           >
             <PhoneOff size={14} />
@@ -456,76 +336,26 @@ export const InCallBar: React.FC = () => {
   // ── EXPANDED MODE ───────────────────────────────────────────────────────────
   return (
     <>
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 24,
-          right: 24,
-          zIndex: 1500,
-          width: 420,
-        }}
-      >
-        <div
-          className="animate-slide-down"
-          style={{
-            backgroundColor: '#0f172a',
-            color: '#ffffff',
-            border: '1px solid #334155',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)',
-            borderRadius: 16,
-            overflow: 'hidden',
-          }}
-        >
+      <div className="incall-expanded-wrapper">
+        <div className="animate-slide-down incall-expanded-card">
           {/* ── Header row ── */}
-          <div
-            style={{
-              padding: '14px 16px',
-              borderBottom: '1px solid #1e293b',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}
-          >
+          <div className="incall-header">
             {/* Avatar */}
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                backgroundColor: '#1e40af',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 800,
-                fontSize: 15,
-                flexShrink: 0,
-                color: '#bfdbfe',
-              }}
-            >
+            <div className="incall-avatar">
               {initials}
             </div>
 
             {/* Name / phone / timer */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>
+            <div className="incall-caller-info">
+              <div className="incall-caller-name">
                 {activeCall.contactName}
               </div>
-              <div style={{ fontSize: 12, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <div className="incall-caller-sub">
                 {activeCall.contactPhone}
-                <span style={{ color: '#334155' }}>•</span>
+                <span>•</span>
                 {/* Pulse dot + live timer */}
-                <span
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    backgroundColor: '#10b981',
-                    boxShadow: '0 0 6px #10b981',
-                    animation: 'pulse-ring 1.5s infinite',
-                    display: 'inline-block',
-                  }}
-                />
-                <span style={{ color: '#38bdf8', fontWeight: 700 }}>
+                <span className="incall-live-dot" />
+                <span className="incall-live-timer">
                   {formatDuration(activeCall.duration)}
                 </span>
               </div>
@@ -533,17 +363,8 @@ export const InCallBar: React.FC = () => {
 
             {/* Minimize button */}
             <button
-              className="btn btn-icon btn-sm"
+              className="btn btn-icon btn-sm incall-btn-minimize"
               title="Minimize panel"
-              style={{
-                borderRadius: '50%',
-                backgroundColor: '#1e293b',
-                borderColor: '#475569',
-                color: '#94a3b8',
-                width: 30,
-                height: 30,
-                flexShrink: 0,
-              }}
               onClick={toggleExpanded}
             >
               <Minimize2 size={14} />
@@ -551,111 +372,46 @@ export const InCallBar: React.FC = () => {
           </div>
 
           {/* ── Audio / Video segmented toggle ── */}
-          <div style={{ padding: '12px 16px 0' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                backgroundColor: '#1e293b',
-                borderRadius: 8,
-                padding: 3,
-                gap: 2,
-              }}
-            >
+          <div className="incall-mode-toggle-bar">
+            <div className="incall-toggle-group">
               <button
                 onClick={() => activeCall.isVideoMode && toggleVideoMode()}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '5px 14px',
-                  borderRadius: 6,
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  backgroundColor: !activeCall.isVideoMode ? '#2563eb' : 'transparent',
-                  color: !activeCall.isVideoMode ? '#ffffff' : '#94a3b8',
-                  transition: 'all 0.15s ease',
-                }}
+                className={`incall-toggle-btn ${!activeCall.isVideoMode ? 'incall-toggle-btn-audio-active' : 'incall-toggle-btn-inactive'}`}
               >
                 <Headphones size={13} /> Audio
               </button>
               <button
                 onClick={() => !activeCall.isVideoMode && toggleVideoMode()}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '5px 14px',
-                  borderRadius: 6,
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  backgroundColor: activeCall.isVideoMode ? '#7c3aed' : 'transparent',
-                  color: activeCall.isVideoMode ? '#ffffff' : '#94a3b8',
-                  transition: 'all 0.15s ease',
-                }}
+                className={`incall-toggle-btn ${activeCall.isVideoMode ? 'incall-toggle-btn-video-active' : 'incall-toggle-btn-inactive'}`}
               >
                 <Video size={13} /> Video
               </button>
             </div>
 
             {/* Simulated-call disclaimer */}
-            <span
-              style={{
-                marginLeft: 10,
-                fontSize: 10,
-                color: '#475569',
-                fontStyle: 'italic',
-              }}
-            >
+            <span className="incall-simulated-tag">
               Simulated call — no live audio
             </span>
           </div>
 
           {/* ── Camera preview (Video mode only) ── */}
           {activeCall.isVideoMode && (
-            <div style={{ padding: '10px 16px 0' }}>
+            <div className="incall-video-container">
               {cameraError ? (
-                <div
-                  style={{
-                    backgroundColor: '#1e293b',
-                    border: '1px solid #334155',
-                    borderRadius: 10,
-                    padding: '12px 14px',
-                    fontSize: 12,
-                    color: '#f87171',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                  }}
-                >
+                <div className="incall-video-error">
                   <AlertCircle size={14} />
                   {cameraError}
                 </div>
               ) : (
-                <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', backgroundColor: '#000' }}>
+                <div className="incall-video-preview-wrapper">
                   <video
                     ref={videoRef}
                     autoPlay
                     muted
                     playsInline
-                    style={{ width: '100%', maxHeight: 180, display: 'block', objectFit: 'cover' }}
+                    className="incall-video-element"
                   />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      padding: '6px 10px',
-                      background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                      fontSize: 10,
-                      color: '#cbd5e1',
-                      fontStyle: 'italic',
-                    }}
-                  >
+                  <div className="incall-video-caption">
                     Your camera preview — the customer isn't receiving live video yet
                   </div>
                 </div>
@@ -664,21 +420,10 @@ export const InCallBar: React.FC = () => {
           )}
 
           {/* ── Quick notes ── */}
-          <div style={{ padding: '12px 16px 0' }}>
+          <div className="incall-notes-container">
             <input
               type="text"
-              className="form-input"
-              style={{
-                width: '100%',
-                height: 36,
-                backgroundColor: '#1e293b',
-                border: '1px solid #475569',
-                color: '#ffffff',
-                fontSize: 12,
-                borderRadius: 8,
-                padding: '0 12px',
-                boxSizing: 'border-box',
-              }}
+              className="form-input incall-notes-input"
               placeholder="Quick call note..."
               value={activeCall.quickNotes}
               onChange={e => setQuickNotes(e.target.value)}
@@ -686,29 +431,10 @@ export const InCallBar: React.FC = () => {
           </div>
 
           {/* ── Action row: Documents + WhatsApp + divider + call controls ── */}
-          <div
-            style={{
-              padding: '12px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              flexWrap: 'wrap',
-            }}
-          >
+          <div className="incall-action-row">
             {/* Documents */}
             <button
-              className="btn btn-sm"
-              style={{
-                backgroundColor: '#1e293b',
-                borderColor: '#475569',
-                color: '#cbd5e1',
-                borderRadius: 8,
-                fontSize: 12,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                border: '1px solid #475569',
-              }}
+              className="btn btn-sm incall-btn-action incall-btn-docs"
               onClick={() => setDocsOpen(true)}
             >
               <FileText size={13} /> Documents
@@ -716,19 +442,8 @@ export const InCallBar: React.FC = () => {
 
             {/* WhatsApp (contact number only — no meet link) */}
             <button
-              className="btn btn-sm"
+              className="btn btn-sm incall-btn-action incall-btn-whatsapp"
               title="Open WhatsApp chat with this number"
-              style={{
-                backgroundColor: '#14532d',
-                borderColor: '#16a34a',
-                color: '#bbf7d0',
-                borderRadius: 8,
-                fontSize: 12,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                border: '1px solid #16a34a',
-              }}
               onClick={handleWhatsApp}
             >
               <MessageCircle size={13} /> WhatsApp
@@ -736,19 +451,8 @@ export const InCallBar: React.FC = () => {
 
             {/* Google Meet */}
             <button
-              className="btn btn-sm"
+              className="btn btn-sm incall-btn-action incall-btn-meet"
               title="Start a Google Meet room"
-              style={{
-                backgroundColor: '#1e3a5f',
-                borderColor: '#2563eb',
-                color: '#93c5fd',
-                borderRadius: 8,
-                fontSize: 12,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                border: '1px solid #2563eb',
-              }}
               onClick={() => {
                 window.open('https://meet.google.com/new', '_blank', 'noopener,noreferrer');
                 setMeetLaunched(true);
@@ -762,15 +466,9 @@ export const InCallBar: React.FC = () => {
 
             {/* Mute */}
             <button
-              className="btn btn-icon btn-sm"
+              className="btn btn-icon btn-sm incall-btn-ctrl-round"
               style={{
-                borderRadius: '50%',
                 backgroundColor: activeCall.isMuted ? '#dc2626' : '#1e293b',
-                borderColor: '#475569',
-                color: '#ffffff',
-                width: 34,
-                height: 34,
-                border: '1px solid #475569',
               }}
               title={activeCall.isMuted ? 'Unmute' : 'Mute'}
               onClick={toggleMute}
@@ -780,15 +478,9 @@ export const InCallBar: React.FC = () => {
 
             {/* Hold */}
             <button
-              className="btn btn-icon btn-sm"
+              className="btn btn-icon btn-sm incall-btn-ctrl-round"
               style={{
-                borderRadius: '50%',
                 backgroundColor: activeCall.isOnHold ? '#d97706' : '#1e293b',
-                borderColor: '#475569',
-                color: '#ffffff',
-                width: 34,
-                height: 34,
-                border: '1px solid #475569',
               }}
               title={activeCall.isOnHold ? 'Resume Call' : 'Hold Call'}
               onClick={toggleHold}
@@ -798,16 +490,7 @@ export const InCallBar: React.FC = () => {
 
             {/* End Call */}
             <button
-              className="btn btn-danger btn-sm"
-              style={{
-                borderRadius: 8,
-                padding: '6px 14px',
-                fontSize: 12,
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-              }}
+              className="btn btn-danger btn-sm incall-btn-end"
               onClick={endCall}
             >
               <PhoneOff size={14} /> End
@@ -816,22 +499,11 @@ export const InCallBar: React.FC = () => {
 
           {/* ── Google Meet paste-link row (appears after Meet is launched) ── */}
           {meetLaunched && (
-            <div style={{ padding: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div className="incall-meet-link-box">
+              <div className="incall-meet-link-input-row">
                 <input
                   type="text"
-                  className="form-input"
-                  style={{
-                    flex: 1,
-                    height: 32,
-                    backgroundColor: '#1e293b',
-                    border: '1px solid #475569',
-                    color: '#ffffff',
-                    fontSize: 11,
-                    borderRadius: 7,
-                    padding: '0 10px',
-                    boxSizing: 'border-box',
-                  }}
+                  className="form-input incall-meet-input"
                   placeholder="Paste the Meet link here to share it"
                   value={meetInput}
                   onChange={e => {
@@ -841,20 +513,8 @@ export const InCallBar: React.FC = () => {
                 />
                 {meetInput.trim() && (
                   <button
-                    className="btn btn-sm"
+                    className="btn btn-sm incall-btn-action incall-btn-whatsapp"
                     title="Share Meet link via WhatsApp"
-                    style={{
-                      backgroundColor: '#14532d',
-                      borderColor: '#16a34a',
-                      color: '#bbf7d0',
-                      borderRadius: 7,
-                      fontSize: 11,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      border: '1px solid #16a34a',
-                      whiteSpace: 'nowrap',
-                    }}
                     onClick={() =>
                       window.open(
                         `https://wa.me/${waNumber}?text=${encodeURIComponent('Join our call here: ' + meetInput.trim())}`,
@@ -867,7 +527,7 @@ export const InCallBar: React.FC = () => {
                   </button>
                 )}
               </div>
-              <span style={{ fontSize: 10, color: '#475569', fontStyle: 'italic' }}>
+              <span className="incall-simulated-tag">
                 Opens a real Google Meet room — screen share and video happen inside Meet itself, not in this app.
               </span>
             </div>
@@ -884,28 +544,18 @@ export const InCallBar: React.FC = () => {
         width={500}
       >
         {/* Tab bar — same active-underline style as CustomersPage */}
-        <div
-          style={{
-            display: 'flex',
-            borderBottom: '1px solid var(--border-base)',
-            marginBottom: 4,
-            marginTop: -8,
-          }}
-        >
+        <div className="incall-docs-tabs-bar">
           {[
             { id: 'customer' as const, label: 'Customer Documents' },
             { id: 'company'  as const, label: 'Company Resources'  },
           ].map(tab => (
             <button
               key={tab.id}
-              className="btn btn-ghost"
+              className="btn btn-ghost incall-docs-tab-btn"
               style={{
-                borderRadius: 0,
                 borderBottom: docsTab === tab.id ? '2px solid var(--primary-600)' : '2px solid transparent',
                 color: docsTab === tab.id ? 'var(--primary-600)' : 'var(--text-secondary)',
                 fontWeight: docsTab === tab.id ? 700 : 500,
-                fontSize: 13,
-                padding: '10px 14px',
               }}
               onClick={() => setDocsTab(tab.id)}
             >
@@ -1035,17 +685,16 @@ export const DispositionModal: React.FC = () => {
         </>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div className="disposition-form-container">
         {/* Disposition Selector */}
         <div className="form-group">
           <label className="form-label">Call Outcome / Disposition *</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
+          <div className="disposition-grid">
             {dispositions.map(d => (
               <button
                 key={d}
                 type="button"
-                className={`btn btn-sm ${disposition === d ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ justifyContent: 'flex-start', fontSize: 12, padding: '8px 12px' }}
+                className={`btn btn-sm disposition-choice-btn ${disposition === d ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => {
                   setDisposition(d);
                   if (d === 'Follow-up Required' || d === 'Call Back') {
@@ -1073,32 +722,12 @@ export const DispositionModal: React.FC = () => {
         </div>
 
         {/* Conditional Follow-up Section */}
-        <div
-          style={{
-            backgroundColor: 'var(--bg-surface-hover)',
-            borderRadius: 'var(--radius-md)',
-            padding: 16,
-            border: '1px solid var(--border-base)',
-          }}
-        >
+        <div className="disposition-followup-box">
           <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: scheduleFollowup ? 12 : 0,
-            }}
+            className="disposition-followup-header"
+            style={{ marginBottom: scheduleFollowup ? 12 : 0 }}
           >
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
+            <label className="disposition-followup-label">
               <input
                 type="checkbox"
                 checked={scheduleFollowup}
@@ -1111,7 +740,7 @@ export const DispositionModal: React.FC = () => {
           </div>
 
           {scheduleFollowup && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 10 }}>
+            <div className="disposition-followup-fields">
               <div className="form-group">
                 <label className="form-label">Follow-up Date</label>
                 <input

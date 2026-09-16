@@ -6,7 +6,7 @@ import { storageService } from '../../services/storageService';
 import { AgentAvailabilityToggle } from '../../components/calling/CallCenterComponents';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Followup } from '../../types';
-
+import './CallCenterPage.css';
 // ── Calendar-day comparison helper (same pattern as elsewhere in the app) ──────
 const isSameCalendarDay = (dateStr: string, ref: Date): boolean => {
   if (!dateStr) return false;
@@ -399,8 +399,8 @@ export const CallCenterPage: React.FC = () => {
                     item.priority === 'Urgent'
                       ? '#dc2626'
                       : item.priority === 'High'
-                      ? '#f59e0b'
-                      : 'var(--text-muted)';
+                        ? '#f59e0b'
+                        : 'var(--text-muted)';
 
                   return (
                     <div

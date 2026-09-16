@@ -9,6 +9,7 @@ import { DataTable, Column, RowAction } from '../../components/common/DataTable'
 import { StatusChip } from '../../components/common/StatusChip';
 import { Drawer } from '../../components/common/Drawer';
 import { FilterBar } from '../../components/common/FilterBar';
+import './CallHistoryPage.css';
 
 export const CallHistoryPage: React.FC = () => {
   const { tenant, user } = useAuth();
@@ -34,9 +35,9 @@ export const CallHistoryPage: React.FC = () => {
   const isExec = user?.role?.code === 'sales_executive';
   const scopedCalls = isExec
     ? calls.filter(c =>
-        (c.agentId && c.agentId === user?.id) ||
-        (c.agentName && c.agentName === user?.name)
-      )
+      (c.agentId && c.agentId === user?.id) ||
+      (c.agentName && c.agentName === user?.name)
+    )
     : calls;
 
   // ── Filters applied on top of role-scoped calls ───────────────────────────

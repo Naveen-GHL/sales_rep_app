@@ -6,6 +6,7 @@ import { PIPELINE_STAGES } from '../../constants/pipelineStages';
 import { FEATURES } from '../../constants/features';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Lead, Deal, CallRecord, SiteVisit, Booking, Consultation, InvestmentOpportunity } from '../../types';
+import './ReportsPage.css';
 
 export const ReportsPage: React.FC = () => {
   const { tenant, user, enabledFeatures } = useAuth();
@@ -115,8 +116,8 @@ export const ReportsPage: React.FC = () => {
   const stages = tenant?.slug === 'jamin'
     ? PIPELINE_STAGES.jamin
     : tenant?.slug === 'ghl'
-    ? PIPELINE_STAGES.ghl
-    : PIPELINE_STAGES.default;
+      ? PIPELINE_STAGES.ghl
+      : PIPELINE_STAGES.default;
 
   const wonStage = stages.find(s => s.id === 'won' || s.id === 'converted')
     || (stages[stages.length - 1].id === 'lost' ? stages[stages.length - 2] : stages[stages.length - 1]);
@@ -474,26 +475,26 @@ export const ReportsPage: React.FC = () => {
               {leaderboard.map((agent, aIdx) => {
                 const isCurrentUser = user?.id ? agent.id === user.id : agent.name === user?.name;
                 return (
-                <tr key={agent.id || aIdx} style={{
-                  borderBottom: '1px solid var(--border-base)',
-                  backgroundColor: isCurrentUser ? 'rgba(37, 99, 235, 0.05)' : 'transparent',
-                  fontWeight: isCurrentUser ? 700 : 'normal'
-                }}>
-                  <td style={{ padding: '14px 20px' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{agent.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{agent.role || 'Sales Representative'}</div>
-                  </td>
-                  <td style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 600 }}>{agent.calls}</td>
-                  <td style={{ padding: '14px 16px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                    {agent.calls > 0 ? formatDuration(Math.round(agent.totalDuration / agent.calls)) : '0s'}
-                  </td>
-                  <td style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700, color: '#059669' }}>
-                    {agent.convertedLeads}
-                  </td>
-                  <td style={{ padding: '14px 20px', textAlign: 'right', fontWeight: 800, color: '#2563eb' }}>
-                    {formatCurrency(agent.revenue)}
-                  </td>
-                </tr>
+                  <tr key={agent.id || aIdx} style={{
+                    borderBottom: '1px solid var(--border-base)',
+                    backgroundColor: isCurrentUser ? 'rgba(37, 99, 235, 0.05)' : 'transparent',
+                    fontWeight: isCurrentUser ? 700 : 'normal'
+                  }}>
+                    <td style={{ padding: '14px 20px' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{agent.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{agent.role || 'Sales Representative'}</div>
+                    </td>
+                    <td style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 600 }}>{agent.calls}</td>
+                    <td style={{ padding: '14px 16px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      {agent.calls > 0 ? formatDuration(Math.round(agent.totalDuration / agent.calls)) : '0s'}
+                    </td>
+                    <td style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700, color: '#059669' }}>
+                      {agent.convertedLeads}
+                    </td>
+                    <td style={{ padding: '14px 20px', textAlign: 'right', fontWeight: 800, color: '#2563eb' }}>
+                      {formatCurrency(agent.revenue)}
+                    </td>
+                  </tr>
                 );
               })}
             </tbody>
@@ -524,7 +525,7 @@ export const ReportsPage: React.FC = () => {
               <MapPin size={20} color="var(--primary-600)" />
               <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Site Visits & Bookings Performance</h3>
             </div>
-            
+
             {periodVisits.length === 0 ? (
               <EmptyState
                 icon={<MapPin size={24} />}
@@ -578,7 +579,7 @@ export const ReportsPage: React.FC = () => {
 
         // Opps stage breakdown - scoped by expectedCloseDate
         const periodOpps = scopedOpps.filter(o => isWithinPeriod(o.expectedCloseDate, period));
-        
+
         // Group by stage (reuse pipeline stages for GHL)
         const oppStages = PIPELINE_STAGES.ghl;
         const oppFunnelSteps = oppStages.map((stage, idx) => {

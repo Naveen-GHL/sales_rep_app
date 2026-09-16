@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { storageService, PopupPosition } from '../../services/storageService';
 import { useCall } from '../../context/CallContext';
-
+import './CallSettingsPage.css';
 // ── Shared inline toggle component matching this file's visual language ──────
 const SettingToggle: React.FC<{
   checked: boolean;
@@ -134,31 +134,31 @@ export const CallSettingsPage: React.FC = () => {
     description: string;
     icon: React.ReactNode;
   }[] = [
-    {
-      value: 'top-right',
-      label: 'Top Right',
-      description: 'Popup appears at the top-right corner of the viewport (Standard default)',
-      icon: <ArrowUpRight size={18} />,
-    },
-    {
-      value: 'top-left',
-      label: 'Top Left',
-      description: 'Popup appears at the top-left corner of the viewport',
-      icon: <ArrowUpLeft size={18} />,
-    },
-    {
-      value: 'bottom-right',
-      label: 'Bottom Right',
-      description: 'Popup appears at the bottom-right corner of the viewport',
-      icon: <ArrowDownRight size={18} />,
-    },
-    {
-      value: 'bottom-left',
-      label: 'Bottom Left',
-      description: 'Popup appears at the bottom-left corner of the viewport',
-      icon: <ArrowDownLeft size={18} />,
-    },
-  ];
+      {
+        value: 'top-right',
+        label: 'Top Right',
+        description: 'Popup appears at the top-right corner of the viewport (Standard default)',
+        icon: <ArrowUpRight size={18} />,
+      },
+      {
+        value: 'top-left',
+        label: 'Top Left',
+        description: 'Popup appears at the top-left corner of the viewport',
+        icon: <ArrowUpLeft size={18} />,
+      },
+      {
+        value: 'bottom-right',
+        label: 'Bottom Right',
+        description: 'Popup appears at the bottom-right corner of the viewport',
+        icon: <ArrowDownRight size={18} />,
+      },
+      {
+        value: 'bottom-left',
+        label: 'Bottom Left',
+        description: 'Popup appears at the bottom-left corner of the viewport',
+        icon: <ArrowDownLeft size={18} />,
+      },
+    ];
 
   // Notification permission status label
   const notifPermissionLabel = () => {
