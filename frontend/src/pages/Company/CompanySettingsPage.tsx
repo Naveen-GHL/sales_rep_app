@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { DocumentUploader } from '../../components/common/DocumentUploader';
 import { DocumentList } from '../../components/common/DocumentList';
 import { PERMISSIONS } from '../../constants/permissions';
+import './CompanySettingsPage.css';
 
 export const CompanySettingsPage: React.FC = () => {
   const { tenant, permissions } = useAuth();
@@ -21,7 +22,7 @@ export const CompanySettingsPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="company-settings-page">
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -33,25 +34,15 @@ export const CompanySettingsPage: React.FC = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSave} style={{ maxWidth: 680, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <form onSubmit={handleSave} className="company-settings-form">
         {savedSuccess && (
-          <div
-            style={{
-              padding: '12px 16px',
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              borderRadius: 'var(--radius-md)',
-              color: '#059669',
-              fontSize: 13,
-              fontWeight: 600,
-            }}
-          >
+          <div className="company-settings-alert-success">
             ✓ Settings saved successfully!
           </div>
         )}
 
-        <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700 }}>General Organization Profile</h3>
+        <div className="card company-settings-card">
+          <h3 className="company-settings-card-title">General Organization Profile</h3>
 
           <div className="form-group">
             <label className="form-label">Legal Organization Name</label>
@@ -73,7 +64,7 @@ export const CompanySettingsPage: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="company-settings-grid-2">
             <div className="form-group">
               <label className="form-label">Primary Timezone</label>
               <input
@@ -95,24 +86,16 @@ export const CompanySettingsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700 }}>Subscription Feature Entitlements</h3>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+        <div className="card company-settings-entitlements-card">
+          <h3 className="company-settings-card-title">Subscription Feature Entitlements</h3>
+          <p className="company-settings-sub">
             These modules are enabled by your Platform Super Admin contract:
           </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div className="company-settings-badges-row">
             {tenant?.enabledFeatures.map(f => (
               <span
                 key={f}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: 'var(--radius-full)',
-                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                  color: 'var(--primary-600)',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  border: '1px solid rgba(59, 130, 246, 0.2)',
-                }}
+                className="company-settings-feature-badge"
               >
                 ✓ {f}
               </span>
@@ -120,20 +103,20 @@ export const CompanySettingsPage: React.FC = () => {
           </div>
         </div>
 
-        <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
+        <button type="submit" className="btn btn-primary company-settings-save-btn">
           <Save size={15} /> Save Organization Settings
         </button>
       </form>
 
       {/* ── Company Document Library ── */}
       {tenant && (
-        <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 680 }}>
+        <div className="card company-settings-library-card">
           <div>
-            <h3 style={{ fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h3 className="company-settings-library-title">
               <Library size={17} color="var(--primary-600)" />
               Company Document Library
             </h3>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+            <p className="company-settings-library-sub">
               Shared brochures, policy documents, and price lists available to all sales agents during calls.
             </p>
           </div>

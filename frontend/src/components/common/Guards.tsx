@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { ShieldAlert } from 'lucide-react';
+import './Guards.css';
 
 interface RequireFeatureProps {
   feature: string;

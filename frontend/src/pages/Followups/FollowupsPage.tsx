@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarCheck, Phone, CheckCircle, Clock, AlertTriangle, Filter, Plus } from 'lucide-react';
+import { CalendarCheck, Phone, CheckCircle, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Followup } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
 import { storageService } from '../../services/storageService';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Modal } from '../../components/common/Modal';
+import './FollowupsPage.css';
 
 export const FollowupsPage: React.FC = () => {
   const { tenant, user } = useAuth();
@@ -14,7 +15,18 @@ export const FollowupsPage: React.FC = () => {
   const [followups, setFollowups] = useState<Followup[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'due' | 'overdue' | 'completed'>('all');
   const [rescheduleItem, setRescheduleItem] = useState<Followup | null>(null);
-  const [newDate, setNewDate] = useState('Tomorrow, 11:30 AM');
+  const [newDate, setNewDate] = useState('');
+
+  // Role-based scoping: Sales Executives see only their own follow-ups.
+  // Managers / Admins / Super Admins see the full company follow-up list (no filter).
+  const roleCode = user?.role?.code;
+  const isExec = roleCode === 'sales_executive';
+  const scopedFollowups = isExec
+    ? followups.filter(f =>
+        (f.assignedAgentId && f.assignedAgentId === user?.id) ||
+        (f.assignedAgentName && f.assignedAgentName === user?.name)
+      )
+    : followups;
 
   const loadData = () => {
     setFollowups(storageService.getFollowups(tenant?.id));
@@ -27,56 +39,63 @@ export const FollowupsPage: React.FC = () => {
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
 
-  const filteredFollowups = followups.filter(f => {
-    if (activeTab === 'completed') return f.status === 'Completed';
-    if (activeTab === 'overdue') return f.status === 'Pending' && f.scheduledAt.toLowerCase().includes('yesterday');
-    if (activeTab === 'due') return f.status === 'Pending' && f.scheduledAt.toLowerCase().includes('today');
-    return true;
-  });
-
   const handleComplete = (f: Followup) => {
-    storageService.saveFollowup({ ...f, status: 'Completed' });
+    storageService.saveFollowup({
+      ...f,
+      status: f.status === 'Completed' ? 'Pending' : 'Completed',
+    });
   };
 
   const handleSaveReschedule = () => {
-    if (rescheduleItem) {
+    if (rescheduleItem && newDate) {
       storageService.saveFollowup({
         ...rescheduleItem,
         scheduledAt: newDate,
         status: 'Pending',
       });
       setRescheduleItem(null);
+      setNewDate('');
     }
   };
 
+  const filteredFollowups = scopedFollowups.filter(f => {
+    if (activeTab === 'due') {
+      return f.status === 'Pending' && f.scheduledAt.toLowerCase().includes('today');
+    }
+    if (activeTab === 'overdue') {
+      return f.status === 'Pending' && f.scheduledAt.toLowerCase().includes('yesterday');
+    }
+    if (activeTab === 'completed') {
+      return f.status === 'Completed';
+    }
+    return true;
+  });
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="followups-page-container">
+      {/* Header */}
       <div className="page-header">
         <div>
           <h1 className="page-title">
             <CalendarCheck size={24} color="var(--primary-600)" /> Follow-ups & Reminders
           </h1>
           <p className="page-subtitle">
-            Time-sensitive client touchpoints, follow-up calls, and task scheduling for {tenant?.name}.
+            Keep commitments, maintain pipeline velocity, and log outcomes seamlessly.
           </p>
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div style={{ display: 'flex', gap: 10 }}>
+      {/* Tabs */}
+      <div className="followups-tabs-container">
         {[
-          { id: 'all', label: `All Follow-ups (${followups.length})` },
+          { id: 'all', label: `All Tasks (${followups.length})` },
           { id: 'due', label: `Due Today (${followups.filter(f => f.status === 'Pending' && f.scheduledAt.toLowerCase().includes('today')).length})` },
           { id: 'overdue', label: `Overdue (${followups.filter(f => f.status === 'Pending' && f.scheduledAt.toLowerCase().includes('yesterday')).length})`, danger: true },
           { id: 'completed', label: `Completed (${followups.filter(f => f.status === 'Completed').length})` },
         ].map(tab => (
           <button
             key={tab.id}
-            className={`btn btn-sm ${activeTab === tab.id ? 'btn-primary' : 'btn-secondary'}`}
-            style={{
-              backgroundColor: tab.danger && activeTab === tab.id ? '#dc2626' : undefined,
-              borderColor: tab.danger && activeTab !== tab.id ? 'rgba(239,68,68,0.4)' : undefined,
-            }}
+            className={`btn btn-sm ${activeTab === tab.id ? 'btn-primary' : 'btn-secondary'} ${tab.danger && activeTab === tab.id ? 'followups-tab-danger-active' : tab.danger ? 'followups-tab-danger-inactive' : ''}`}
             onClick={() => setActiveTab(tab.id as any)}
           >
             {tab.danger && <AlertTriangle size={13} color={activeTab === tab.id ? '#ffffff' : '#dc2626'} />}
@@ -86,9 +105,9 @@ export const FollowupsPage: React.FC = () => {
       </div>
 
       {/* Follow-ups List Cards */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="followups-list">
         {filteredFollowups.length === 0 ? (
-          <div className="card text-center" style={{ padding: 48, color: 'var(--text-secondary)' }}>
+          <div className="card text-center followups-empty-card">
             No tasks in this category. You're all caught up!
           </div>
         ) : (
@@ -98,66 +117,44 @@ export const FollowupsPage: React.FC = () => {
             return (
               <div
                 key={f.id}
-                className="card card-hover"
-                style={{
-                  padding: 16,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  borderLeft: isOverdue ? '4px solid #dc2626' : '1px solid var(--border-base)',
-                  backgroundColor: f.status === 'Completed' ? 'var(--bg-surface-hover)' : 'var(--bg-surface)',
-                  opacity: f.status === 'Completed' ? 0.75 : 1,
-                }}
+                className={`card card-hover followup-item-card ${isOverdue ? 'overdue' : ''} ${f.status === 'Completed' ? 'completed' : ''}`}
               >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                <div className="followup-item-left">
                   <button
-                    className="btn btn-ghost btn-icon btn-sm"
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      border: '1px solid var(--border-strong)',
-                      marginTop: 2,
-                    }}
+                    className="btn btn-ghost btn-icon btn-sm followup-check-btn"
                     title={f.status === 'Completed' ? 'Completed' : 'Mark Completed'}
                     onClick={() => handleComplete(f)}
                   >
                     {f.status === 'Completed' ? (
                       <CheckCircle size={16} color="#059669" />
                     ) : (
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'transparent' }} />
+                      <span className="followup-check-empty" />
                     )}
                   </button>
 
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          fontSize: 14,
-                          textDecoration: f.status === 'Completed' ? 'line-through' : 'none',
-                        }}
-                      >
+                    <div className="followup-contact-header">
+                      <span className={`followup-contact-name ${f.status === 'Completed' ? 'completed' : ''}`}>
                         {f.contactName}
                       </span>
                       <StatusChip status={f.priority} size="sm" />
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      <span className="followup-contact-phone">
                         Phone: {f.contactPhone}
                       </span>
                     </div>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
+                    <p className="followup-notes">
                       {f.notes}
                     </p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, fontSize: 12 }}>
-                      <span style={{ fontWeight: 600, color: isOverdue ? '#dc2626' : 'var(--primary-600)' }}>
+                    <div className="followup-meta-row">
+                      <span className={`followup-schedule-time ${isOverdue ? 'overdue' : ''}`}>
                         ⏰ {f.scheduledAt}
                       </span>
-                      <span style={{ color: 'var(--text-muted)' }}>• Assignee: {f.assignedAgentName}</span>
+                      <span className="followup-assignee">• Assignee: {f.assignedAgentName}</span>
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="followup-actions-right">
                   <button
                     className="btn btn-secondary btn-sm"
                     onClick={() => setRescheduleItem(f)}

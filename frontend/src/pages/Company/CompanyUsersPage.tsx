@@ -7,6 +7,7 @@ import { DataTable, Column } from '../../components/common/DataTable';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Modal } from '../../components/common/Modal';
 import { User } from '../../types';
+import './CompanyUsersPage.css';
 
 export const CompanyUsersPage: React.FC = () => {
   const { tenant } = useAuth();
@@ -57,8 +58,8 @@ export const CompanyUsersPage: React.FC = () => {
       sortable: true,
       render: u => (
         <div>
-          <div style={{ fontWeight: 700 }}>{u.name}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{u.email}</div>
+          <div className="company-user-name">{u.name}</div>
+          <div className="company-user-email">{u.email}</div>
         </div>
       ),
     },
@@ -67,7 +68,7 @@ export const CompanyUsersPage: React.FC = () => {
       header: 'Assigned Role',
       sortable: true,
       render: u => (
-        <span style={{ fontWeight: 600, color: 'var(--primary-600)' }}>{u.role.name}</span>
+        <span className="company-user-role">{u.role.name}</span>
       ),
     },
     {
@@ -87,7 +88,7 @@ export const CompanyUsersPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="company-users-page">
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -117,7 +118,7 @@ export const CompanyUsersPage: React.FC = () => {
         title="Invite New Agent / Team Member"
         subtitle={`Send an email invitation link to join ${tenant?.name}`}
       >
-        <form onSubmit={handleInvite} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form onSubmit={handleInvite} className="company-user-form">
           <div className="form-group">
             <label className="form-label">Full Name *</label>
             <input
@@ -154,7 +155,7 @@ export const CompanyUsersPage: React.FC = () => {
             </select>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+          <div className="company-user-modal-actions">
             <button type="button" className="btn btn-secondary" onClick={() => setIsInviteModalOpen(false)}>
               Cancel
             </button>

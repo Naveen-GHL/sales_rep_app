@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Plus, Phone, Mail, FileText, CheckCircle, ExternalLink, Calendar } from 'lucide-react';
+import { TrendingUp, Phone, ExternalLink } from 'lucide-react';
 import { Investor } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
@@ -10,6 +10,7 @@ import { Drawer } from '../../components/common/Drawer';
 import { FilterBar } from '../../components/common/FilterBar';
 import { DocumentUploader } from '../../components/common/DocumentUploader';
 import { DocumentList } from '../../components/common/DocumentList';
+import './InvestorsPage.css';
 
 export const InvestorsPage: React.FC = () => {
   const { tenant } = useAuth();
@@ -48,8 +49,8 @@ export const InvestorsPage: React.FC = () => {
       sortable: true,
       render: inv => (
         <div>
-          <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{inv.name}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+          <div className="investor-name-cell">{inv.name}</div>
+          <div className="investor-meta-cell">
             {inv.phone} {inv.email && `• ${inv.email}`}
           </div>
         </div>
@@ -60,7 +61,7 @@ export const InvestorsPage: React.FC = () => {
       header: 'Capital Capacity',
       sortable: true,
       render: inv => (
-        <span style={{ fontWeight: 800, color: '#0284c7' }}>{inv.investmentCapacity}</span>
+        <span className="investor-capacity-badge">{inv.investmentCapacity}</span>
       ),
     },
     {
@@ -96,7 +97,7 @@ export const InvestorsPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="investors-page-container">
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -155,42 +156,31 @@ export const InvestorsPage: React.FC = () => {
         width={560}
       >
         {selectedInvestor && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div
-              style={{
-                backgroundColor: 'var(--bg-surface-hover)',
-                borderRadius: 'var(--radius-lg)',
-                padding: 16,
-                border: '1px solid var(--border-base)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
+          <div className="investor-drawer-body">
+            <div className="investor-quick-card">
               <div>
                 <StatusChip status={selectedInvestor.status} />
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
+                <div className="investor-partner-label">
                   Lead Wealth Partner: <strong>{selectedInvestor.assignedAgentName}</strong>
                 </div>
               </div>
 
               <button
-                className="btn btn-primary btn-sm"
-                style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' }}
+                className="btn btn-primary btn-sm investor-call-btn-blue"
                 onClick={() => initiateCall(selectedInvestor.name, selectedInvestor.phone, 'customer', selectedInvestor.id)}
               >
                 <Phone size={13} /> Call Investor
               </button>
             </div>
 
-            <div className="card" style={{ padding: 18 }}>
-              <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>
+            <div className="card investor-info-card">
+              <h4 className="investor-info-title">
                 Investment Allocation & Capacity
               </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, fontSize: 13 }}>
+              <div className="investor-details-grid">
                 <div>
                   <span style={{ color: 'var(--text-secondary)' }}>Capital Ticket:</span>
-                  <div style={{ fontWeight: 800, color: '#0284c7', fontSize: 16 }}>
+                  <div className="investor-ticket-val">
                     {selectedInvestor.investmentCapacity}
                   </div>
                 </div>
@@ -209,18 +199,18 @@ export const InvestorsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="card" style={{ padding: 18 }}>
-              <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10 }}>
+            <div className="card investor-info-card">
+              <h4 className="investor-info-title">
                 Advisory Portfolio Notes
               </h4>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              <p className="investor-notes-text">
                 {selectedInvestor.notes || 'Institutional investor evaluation completed.'}
               </p>
             </div>
 
             {/* Documents */}
-            <div className="card" style={{ padding: 18 }}>
-              <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>
+            <div className="card investor-info-card">
+              <h4 className="investor-info-title">
                 Documents
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

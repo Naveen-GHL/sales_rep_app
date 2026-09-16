@@ -9,6 +9,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { EmptyState } from './EmptyState';
+import './DataTable.css';
 
 export interface Column<T> {
   key: string;

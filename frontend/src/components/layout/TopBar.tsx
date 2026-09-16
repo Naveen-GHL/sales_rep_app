@@ -11,6 +11,7 @@ import { AgentAvailabilityToggle } from '../calling/CallCenterComponents';
 import { PersonaSwitcher } from './PersonaSwitcher';
 import { storageService } from '../../services/storageService';
 import { FEATURES } from '../../constants/features';
+import './TopBar.css';
 
 interface TopBarProps {
   onNavigate: (route: string, extraState?: any) => void;
@@ -34,8 +35,6 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
 
   // User menu
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-
-
 
   // Sync notifications
   useEffect(() => {
@@ -73,8 +72,6 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
       )
       : [];
 
-    // Role-based scoping: Sales Executives only see their own leads/customers/deals.
-    // plots and investors are company-wide shared records — never scoped.
     const roleCode = user?.role?.code;
     const isExec = roleCode === 'sales_executive';
     const scopedLeads = isExec
@@ -88,28 +85,14 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
       : deals;
 
     return { leads: scopedLeads, customers: scopedCustomers, deals: scopedDeals, plots, investors };
-  }, [searchQuery, tenant?.id, enabledFeatures, user?.id]);
+  }, [searchQuery, tenant?.id, enabledFeatures, user?.id, user?.name, user?.role?.code]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <header
-      style={{
-        height: 'var(--topbar-height)',
-        backgroundColor: '#000000',
-        borderBottom: '1px solid var(--border-base)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 24px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        backdropFilter: 'blur(8px)',
-      }}
-    >
+    <header className="topbar-header">
       {/* Hidden SVG Gradient definition for Red Gradient icon stroke */}
-      <svg width="0" height="0" style={{ position: 'absolute', pointerEvents: 'none' }}>
+      <svg width="0" height="0" className="topbar-svg-def">
         <defs>
           <linearGradient id="redGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#ef4444" />
@@ -118,22 +101,12 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
         </defs>
       </svg>
       {/* Left: Global Search Input */}
-      <div style={{ position: 'relative', width: '100%', maxWidth: 380 }} ref={searchRef}>
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-          <Search
-            size={16}
-            style={{ position: 'absolute', left: 12, color: 'var(--text-muted)' }}
-          />
+      <div className="topbar-search-container" ref={searchRef}>
+        <div className="topbar-search-input-wrapper">
+          <Search size={16} className="topbar-search-icon" />
           <input
             type="text"
-            className="form-input"
-            style={{
-              paddingLeft: 38,
-              height: 38,
-              backgroundColor: 'var(--bg-surface-hover)',
-              borderRadius: 'var(--radius-full)',
-              fontSize: 13,
-            }}
+            className="form-input topbar-search-input"
             placeholder="Search leads, customers, deals, plots... (Press /)"
             value={searchQuery}
             onFocus={() => setIsSearchOpen(true)}
@@ -148,50 +121,29 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
         {isSearchOpen && searchResults && (
           <>
             <div
-              style={{ position: 'fixed', inset: 0, zIndex: 100 }}
+              className="topbar-dropdown-backdrop"
               onClick={() => setIsSearchOpen(false)}
             />
-            <div
-              className="card animate-slide-down"
-              style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                marginTop: 8,
-                zIndex: 110,
-                maxHeight: 420,
-                overflowY: 'auto',
-                padding: '10px 0',
-                boxShadow: 'var(--shadow-xl)',
-              }}
-            >
+            <div className="card animate-slide-down topbar-search-results">
               {searchResults.leads.length === 0 &&
                 searchResults.customers.length === 0 &&
                 searchResults.deals.length === 0 &&
                 searchResults.plots.length === 0 &&
                 searchResults.investors.length === 0 ? (
-                <div style={{ padding: '16px 20px', fontSize: 13, color: 'var(--text-secondary)' }}>
+                <div className="topbar-search-empty">
                   No matches found for "{searchQuery}".
                 </div>
               ) : (
                 <>
                   {searchResults.leads.length > 0 && (
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ padding: '4px 16px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>
+                    <div className="topbar-search-group">
+                      <div className="topbar-search-category-title">
                         LEADS
                       </div>
                       {searchResults.leads.map(lead => (
                         <div
                           key={lead.id}
-                          style={{
-                            padding: '8px 16px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                          }}
-                          className="btn-ghost"
+                          className="btn-ghost topbar-search-result-item"
                           onClick={() => {
                             onNavigate('leads', { selectId: lead.id });
                             setIsSearchOpen(false);
@@ -199,8 +151,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                           }}
                         >
                           <div>
-                            <div style={{ fontWeight: 600, fontSize: 13 }}>{lead.name}</div>
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{lead.phone} • {lead.location}</div>
+                            <div className="topbar-search-item-name">{lead.name}</div>
+                            <div className="topbar-search-item-meta">{lead.phone} • {lead.location}</div>
                           </div>
                           <span style={{ fontSize: 11, color: 'var(--primary-600)', fontWeight: 600 }}>{lead.status}</span>
                         </div>
@@ -209,21 +161,14 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                   )}
 
                   {searchResults.customers.length > 0 && (
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ padding: '4px 16px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>
+                    <div className="topbar-search-group">
+                      <div className="topbar-search-category-title">
                         CUSTOMERS
                       </div>
                       {searchResults.customers.map(cust => (
                         <div
                           key={cust.id}
-                          style={{
-                            padding: '8px 16px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                          }}
-                          className="btn-ghost"
+                          className="btn-ghost topbar-search-result-item"
                           onClick={() => {
                             onNavigate('customers', { selectId: cust.id });
                             setIsSearchOpen(false);
@@ -231,8 +176,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                           }}
                         >
                           <div>
-                            <div style={{ fontWeight: 600, fontSize: 13 }}>{cust.name}</div>
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{cust.phone} • {cust.location}</div>
+                            <div className="topbar-search-item-name">{cust.name}</div>
+                            <div className="topbar-search-item-meta">{cust.phone} • {cust.location}</div>
                           </div>
                           <span style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>{cust.status}</span>
                         </div>
@@ -241,21 +186,14 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                   )}
 
                   {searchResults.deals.length > 0 && (
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ padding: '4px 16px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>
+                    <div className="topbar-search-group">
+                      <div className="topbar-search-category-title">
                         DEALS
                       </div>
                       {searchResults.deals.map(deal => (
                         <div
                           key={deal.id}
-                          style={{
-                            padding: '8px 16px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                          }}
-                          className="btn-ghost"
+                          className="btn-ghost topbar-search-result-item"
                           onClick={() => {
                             onNavigate('deals');
                             setIsSearchOpen(false);
@@ -263,8 +201,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                           }}
                         >
                           <div>
-                            <div style={{ fontWeight: 600, fontSize: 13 }}>{deal.title}</div>
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{deal.customerName}</div>
+                            <div className="topbar-search-item-name">{deal.title}</div>
+                            <div className="topbar-search-item-meta">{deal.customerName}</div>
                           </div>
                           <span style={{ fontSize: 11, fontWeight: 600 }}>₹{(deal.value / 100000).toFixed(1)}L</span>
                         </div>
@@ -273,21 +211,14 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                   )}
 
                   {searchResults.plots.length > 0 && (
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ padding: '4px 16px', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>
+                    <div className="topbar-search-group">
+                      <div className="topbar-search-category-title">
                         PLOTS (JAMIN)
                       </div>
                       {searchResults.plots.map(plot => (
                         <div
                           key={plot.id}
-                          style={{
-                            padding: '8px 16px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                          }}
-                          className="btn-ghost"
+                          className="btn-ghost topbar-search-result-item"
                           onClick={() => {
                             onNavigate('plots');
                             setIsSearchOpen(false);
@@ -295,8 +226,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                           }}
                         >
                           <div>
-                            <div style={{ fontWeight: 600, fontSize: 13 }}>{plot.plotNumber} ({plot.sizeSqft} sqft)</div>
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{plot.projectName}</div>
+                            <div className="topbar-search-item-name">{plot.plotNumber} ({plot.sizeSqft} sqft)</div>
+                            <div className="topbar-search-item-meta">{plot.projectName}</div>
                           </div>
                           <span style={{ fontSize: 11, fontWeight: 600 }}>{plot.status}</span>
                         </div>
@@ -311,7 +242,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
       </div>
 
       {/* Right Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div className="topbar-right-controls">
         {/* Agent Availability (Only for company users) */}
         {!isSuperAdmin && <AgentAvailabilityToggle />}
 
@@ -322,8 +253,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
         {!isSuperAdmin && (
           <div style={{ position: 'relative' }}>
             <button
-              className="btn btn-primary btn-sm"
-              style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)' }}
+              className="btn btn-primary btn-sm topbar-new-btn"
               onClick={() => setIsNewMenuOpen(!isNewMenuOpen)}
             >
               <Plus size={15} /> New <ChevronDown size={12} />
@@ -332,25 +262,12 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
             {isNewMenuOpen && (
               <>
                 <div
-                  style={{ position: 'fixed', inset: 0, zIndex: 100 }}
+                  className="topbar-dropdown-backdrop"
                   onClick={() => setIsNewMenuOpen(false)}
                 />
-                <div
-                  className="card animate-slide-down"
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    right: 0,
-                    marginTop: 8,
-                    zIndex: 110,
-                    width: 190,
-                    padding: 6,
-                    boxShadow: 'var(--shadow-xl)',
-                  }}
-                >
+                <div className="card animate-slide-down topbar-menu-dropdown">
                   <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ width: '100%', justifyContent: 'flex-start' }}
+                    className="btn btn-ghost btn-sm topbar-menu-item-btn"
                     onClick={() => {
                       setIsNewMenuOpen(false);
                       onOpenQuickCreate('lead');
@@ -359,8 +276,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                     + New Lead
                   </button>
                   <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ width: '100%', justifyContent: 'flex-start' }}
+                    className="btn btn-ghost btn-sm topbar-menu-item-btn"
                     onClick={() => {
                       setIsNewMenuOpen(false);
                       onOpenQuickCreate('followup');
@@ -369,8 +285,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                     + New Follow-up
                   </button>
                   <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ width: '100%', justifyContent: 'flex-start' }}
+                    className="btn btn-ghost btn-sm topbar-menu-item-btn"
                     onClick={() => {
                       setIsNewMenuOpen(false);
                       onOpenQuickCreate('deal');
@@ -380,8 +295,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                   </button>
                   {enabledFeatures.includes(FEATURES.SITE_VISITS) && (
                     <button
-                      className="btn btn-ghost btn-sm"
-                      style={{ width: '100%', justifyContent: 'flex-start' }}
+                      className="btn btn-ghost btn-sm topbar-menu-item-btn"
                       onClick={() => {
                         setIsNewMenuOpen(false);
                         onOpenQuickCreate('visit');
@@ -392,8 +306,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                   )}
                   {enabledFeatures.includes(FEATURES.CONSULTATIONS) && (
                     <button
-                      className="btn btn-ghost btn-sm"
-                      style={{ width: '100%', justifyContent: 'flex-start' }}
+                      className="btn btn-ghost btn-sm topbar-menu-item-btn"
                       onClick={() => {
                         setIsNewMenuOpen(false);
                         onOpenQuickCreate('consultation');
@@ -411,40 +324,12 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
         {/* Notifications Bell */}
         <div style={{ position: 'relative' }}>
           <button
-            className="btn btn-ghost btn-icon btn-sm"
-            style={{
-              position: 'relative',
-              width: 36,
-              height: 36,
-              borderRadius: '50%',
-              border: '1.5px solid transparent',
-              backgroundImage: 'linear-gradient(var(--bg-surface), var(--bg-surface)), linear-gradient(135deg, #ef4444, #991b1b)',
-              backgroundOrigin: 'border-box',
-              backgroundClip: 'padding-box, border-box',
-              boxShadow: '0 2px 6px rgba(220,38,38,0.15)',
-            }}
+            className="btn btn-ghost btn-icon btn-sm topbar-notif-btn"
             onClick={() => setIsNotifOpen(!isNotifOpen)}
           >
             <Bell size={18} stroke="url(#redGradient)" />
             {unreadCount > 0 && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: -2,
-                  right: -2,
-                  background: 'linear-gradient(135deg, #ef4444 0%, #991b1b 100%)',
-                  color: '#ffffff',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  width: 16,
-                  height: 16,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-                }}
-              >
+              <span className="topbar-notif-badge">
                 {unreadCount}
               </span>
             )}
@@ -453,32 +338,11 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
           {isNotifOpen && (
             <>
               <div
-                style={{ position: 'fixed', inset: 0, zIndex: 100 }}
+                className="topbar-dropdown-backdrop"
                 onClick={() => setIsNotifOpen(false)}
               />
-              <div
-                className="card animate-slide-down"
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: 8,
-                  zIndex: 110,
-                  width: 340,
-                  padding: 0,
-                  boxShadow: 'var(--shadow-xl)',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    padding: '12px 16px',
-                    borderBottom: '1px solid var(--border-base)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
+              <div className="card animate-slide-down topbar-notif-dropdown">
+                <div className="topbar-notif-header">
                   <span style={{ fontWeight: 700, fontSize: 13 }}>Notifications</span>
                   <button
                     className="btn btn-ghost btn-sm"
@@ -489,17 +353,11 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                   </button>
                 </div>
 
-                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                <div className="topbar-notif-list">
                   {notifications.map(n => (
                     <div
                       key={n.id}
-                      style={{
-                        padding: '12px 16px',
-                        borderBottom: '1px solid var(--border-subtle)',
-                        backgroundColor: n.read ? 'transparent' : 'rgba(59, 130, 246, 0.04)',
-                        cursor: 'pointer',
-                      }}
-                      className="btn-ghost"
+                      className={`btn-ghost topbar-notif-item ${!n.read ? 'unread' : ''}`}
                       onClick={() => {
                         storageService.markNotificationRead(n.id);
                         if (n.link) onNavigate(n.link.replace('/', ''));
@@ -524,34 +382,15 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
         {/* User Profile Avatar / Menu */}
         <div style={{ position: 'relative' }}>
           <button
-            style={{
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              boxShadow: 'none',
-              padding: '4px 8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            className="topbar-user-avatar-btn"
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
           >
             <div
+              className="topbar-user-avatar"
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
                 background: isSuperAdmin
                   ? 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'
                   : `linear-gradient(135deg, ${tenant?.brandColor || '#ef4444'} 0%, #991b1b 100%)`,
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: 13,
-                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
               }}
             >
               {user?.name.charAt(0)}
@@ -561,26 +400,14 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
           {isUserMenuOpen && (
             <>
               <div
-                style={{ position: 'fixed', inset: 0, zIndex: 100 }}
+                className="topbar-dropdown-backdrop"
                 onClick={() => setIsUserMenuOpen(false)}
               />
-              <div
-                className="card animate-slide-down"
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: 8,
-                  zIndex: 110,
-                  width: 220,
-                  padding: 8,
-                  boxShadow: 'var(--shadow-xl)',
-                }}
-              >
-                <div style={{ padding: '8px 10px 10px', borderBottom: '1px solid var(--border-base)' }}>
+              <div className="card animate-slide-down topbar-user-dropdown">
+                <div className="topbar-user-dropdown-header">
                   <div style={{ fontWeight: 700, fontSize: 13 }}>{user?.name}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{user?.email}</div>
-                  <div style={{ fontSize: 11, color: 'var(--primary-600)', fontWeight: 600, marginTop: 2 }}>
+                  <div className="topbar-user-role-label">
                     {user?.role.name}
                   </div>
                 </div>

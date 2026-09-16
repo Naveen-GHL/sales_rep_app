@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Plus, Phone, CheckCircle, Clock } from 'lucide-react';
+import { Calendar, Plus, Phone, CheckCircle } from 'lucide-react';
 import { Consultation } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
@@ -7,6 +7,7 @@ import { storageService } from '../../services/storageService';
 import { DataTable, Column, RowAction } from '../../components/common/DataTable';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Modal } from '../../components/common/Modal';
+import './ConsultationsPage.css';
 
 export const ConsultationsPage: React.FC = () => {
   const { tenant, user } = useAuth();
@@ -74,8 +75,8 @@ export const ConsultationsPage: React.FC = () => {
       sortable: true,
       render: c => (
         <div>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{c.scheduledAt}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>ID: {c.id}</div>
+          <div className="consultation-slot-title">{c.scheduledAt}</div>
+          <div className="consultation-slot-id">ID: {c.id}</div>
         </div>
       ),
     },
@@ -85,20 +86,20 @@ export const ConsultationsPage: React.FC = () => {
       sortable: true,
       render: c => (
         <div>
-          <div style={{ fontWeight: 600 }}>{c.investorName}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{c.investorPhone}</div>
+          <div className="consultation-client-name">{c.investorName}</div>
+          <div className="consultation-client-phone">{c.investorPhone}</div>
         </div>
       ),
     },
     {
       key: 'agenda',
       header: 'Advisory Agenda & Scope',
-      render: c => <span style={{ fontSize: 12 }}>{c.agenda}</span>,
+      render: c => <span className="consultation-agenda-text">{c.agenda}</span>,
     },
     {
       key: 'consultantName',
       header: 'Private Wealth Advisor',
-      render: c => <span style={{ fontSize: 12, fontWeight: 500 }}>{c.consultantName}</span>,
+      render: c => <span className="consultation-advisor-name">{c.consultantName}</span>,
     },
     {
       key: 'status',
@@ -123,7 +124,7 @@ export const ConsultationsPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="consultations-page-container">
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -154,7 +155,7 @@ export const ConsultationsPage: React.FC = () => {
         title="Schedule Private Wealth Advisory Consultation"
         subtitle="Book advisory slot with high net-worth client"
       >
-        <form onSubmit={handleCreateConsultation} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form onSubmit={handleCreateConsultation} className="consultation-form">
           <div className="form-group">
             <label className="form-label">Investor Full Name *</label>
             <input
@@ -167,7 +168,7 @@ export const ConsultationsPage: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="consultation-form-grid-2">
             <div className="form-group">
               <label className="form-label">Phone Number *</label>
               <input
@@ -202,7 +203,7 @@ export const ConsultationsPage: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+          <div className="consultation-form-actions">
             <button type="button" className="btn btn-secondary" onClick={() => setIsScheduleModalOpen(false)}>
               Cancel
             </button>

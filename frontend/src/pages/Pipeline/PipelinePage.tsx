@@ -15,6 +15,7 @@ import { storageService } from '../../services/storageService';
 import { PIPELINE_STAGES } from '../../constants/pipelineStages';
 import { Modal } from '../../components/common/Modal';
 import { FilterBar } from '../../components/common/FilterBar';
+import './PipelinePage.css';
 
 interface PipelinePageProps {
   onOpenQuickCreate: (type: 'lead' | 'followup' | 'deal' | 'visit' | 'consultation') => void;
@@ -62,16 +63,15 @@ export const PipelinePage: React.FC<PipelinePageProps> = ({ onOpenQuickCreate })
     ? PIPELINE_STAGES.ghl
     : PIPELINE_STAGES.default;
 
-  const wonStage = stages.find(s => s.id === 'won' || s.id === 'converted')
-    || (stages[stages.length - 1].id === 'lost' ? stages[stages.length - 2] : stages[stages.length - 1]);
-  const wonStageId = wonStage?.id || 'won';
+  // ID of the won stage for this pipeline
+  const wonStageId = stages[stages.length - 1].id;
 
   const handleMoveStage = (deal: Deal, direction: 'forward' | 'backward') => {
     const currentIndex = stages.findIndex(s => s.id === deal.stage);
-    const newIndex = direction === 'forward' ? currentIndex + 1 : currentIndex - 1;
+    if (currentIndex === -1) return;
 
+    const newIndex = direction === 'forward' ? currentIndex + 1 : currentIndex - 1;
     if (newIndex >= 0 && newIndex < stages.length) {
-      if (stages[newIndex].id === 'lost') return;
       const updatedDeal: Deal = {
         ...deal,
         stage: stages[newIndex].id,
@@ -118,7 +118,7 @@ export const PipelinePage: React.FC<PipelinePageProps> = ({ onOpenQuickCreate })
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="pipeline-page-container">
       {/* Header */}
       <div className="page-header">
         <div>
@@ -129,7 +129,7 @@ export const PipelinePage: React.FC<PipelinePageProps> = ({ onOpenQuickCreate })
             Visual stage-gate workflow tailored specifically for {tenant?.name}'s deal lifecycle.
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div className="pipeline-header-controls">
           {!isExec && (
             <FilterBar
               filters={[
@@ -145,8 +145,7 @@ export const PipelinePage: React.FC<PipelinePageProps> = ({ onOpenQuickCreate })
             />
           )}
           <button
-            className="btn btn-primary"
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            className="btn btn-primary pipeline-new-deal-btn"
             onClick={() => onOpenQuickCreate('deal')}
           >
             <Plus size={15} /> New Deal
@@ -155,15 +154,7 @@ export const PipelinePage: React.FC<PipelinePageProps> = ({ onOpenQuickCreate })
       </div>
 
       {/* Kanban Board Horizontal Scrolling Container */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 16,
-          overflowX: 'auto',
-          paddingBottom: 16,
-          minHeight: 'calc(100vh - 220px)',
-        }}
-      >
+      <div className="pipeline-board-container">
         {stages.map((stage, sIdx) => {
           const stageDeals = scopedDeals.filter(d =>
             d.stage === stage.id &&
@@ -172,85 +163,32 @@ export const PipelinePage: React.FC<PipelinePageProps> = ({ onOpenQuickCreate })
           const stageTotal = stageDeals.reduce((sum, d) => sum + d.value, 0);
 
           return (
-            <div
-              key={stage.id}
-              style={{
-                flex: '0 0 300px',
-                display: 'flex',
-                flexDirection: 'column',
-                borderRadius: 'var(--radius-lg)',
-                backgroundColor: 'var(--bg-surface-hover)',
-                border: '1px solid var(--border-base)',
-                maxHeight: '100%',
-              }}
-            >
+            <div key={stage.id} className="pipeline-column">
               {/* Stage Header */}
-              <div
-                style={{
-                  padding: '14px 16px',
-                  borderBottom: '1px solid var(--border-base)',
-                  backgroundColor: 'var(--bg-surface)',
-                  borderTopLeftRadius: 'var(--radius-lg)',
-                  borderTopRightRadius: 'var(--radius-lg)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
+              <div className="pipeline-column-header">
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div className="pipeline-column-title-group">
                     <span
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: '50%',
-                        backgroundColor: stage.color,
-                      }}
+                      className="pipeline-stage-dot"
+                      style={{ backgroundColor: stage.color }}
                     />
-                    <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
+                    <span className="pipeline-stage-title">
                       {stage.name}
                     </span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        padding: '1px 7px',
-                        borderRadius: 'var(--radius-full)',
-                        backgroundColor: 'var(--bg-surface-hover)',
-                        fontWeight: 700,
-                        color: 'var(--text-secondary)',
-                      }}
-                    >
+                    <span className="pipeline-stage-count">
                       {stageDeals.length}
                     </span>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  <div className="pipeline-stage-total">
                     Total: <strong style={{ color: '#059669' }}>{formatCurrency(stageTotal)}</strong>
                   </div>
                 </div>
               </div>
 
               {/* Stage Cards Container */}
-              <div
-                style={{
-                  padding: 12,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                  overflowY: 'auto',
-                  flex: 1,
-                }}
-              >
+              <div className="pipeline-cards-container">
                 {stageDeals.length === 0 ? (
-                  <div
-                    style={{
-                      padding: '36px 12px',
-                      textAlign: 'center',
-                      color: 'var(--text-muted)',
-                      fontSize: 12,
-                      border: '1px dashed var(--border-strong)',
-                      borderRadius: 'var(--radius-md)',
-                    }}
-                  >
+                  <div className="pipeline-empty-column">
                     No deals in this stage
                   </div>
                 ) : (
@@ -263,65 +201,45 @@ export const PipelinePage: React.FC<PipelinePageProps> = ({ onOpenQuickCreate })
                     return (
                       <div
                         key={deal.id}
-                        className="card card-hover"
-                        style={{
-                          padding: 14,
-                          backgroundColor: 'var(--bg-surface)',
-                          boxShadow: 'var(--shadow-xs)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 10,
-                        }}
+                        className="card card-hover pipeline-deal-card"
                       >
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
+                          <div className="pipeline-deal-title">
                             {deal.title}
                           </div>
-                          <div style={{ fontSize: 12, color: 'var(--primary-600)', fontWeight: 600, marginTop: 2 }}>
+                          <div className="pipeline-deal-customer">
                             {deal.customerName}
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: 15, fontWeight: 800, color: '#059669' }}>
+                        <div className="pipeline-deal-value-row">
+                          <span className="pipeline-deal-amount">
                             {formatCurrency(deal.value)}
                           </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div className="pipeline-deal-meta-group">
                             <span
-                              style={{
-                                fontSize: 11,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 3,
-                                color: isStale ? '#d97706' : 'var(--text-muted)',
-                                fontWeight: isStale ? 700 : 500,
-                                backgroundColor: isStale ? 'rgba(245, 158, 11, 0.12)' : 'transparent',
-                                padding: isStale ? '1px 6px' : '0',
-                                borderRadius: 'var(--radius-sm)',
-                                border: isStale ? '1px solid rgba(245, 158, 11, 0.3)' : 'none',
-                              }}
+                              className={`pipeline-stale-tag ${isStale ? 'stale' : 'normal'}`}
                               title={isStale ? `Stale deal: In stage for ${daysInStage} days (>14 days)` : `In stage for ${daysInStage} days`}
                             >
                               <Clock size={11} color={isStale ? '#d97706' : 'currentColor'} />
                               {daysInStage}d
                             </span>
-                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            <span className="pipeline-deal-close-date">
                               📅 {deal.expectedCloseDate}
                             </span>
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                        <div className="pipeline-deal-footer">
+                          <span className="pipeline-deal-agent">
                             👤 {deal.assignedAgentName}
                           </span>
 
                           {/* Stage Mover and Action Buttons */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <div className="pipeline-deal-actions">
                             {!isWon && !isLost && sIdx > 0 && (
                               <button
-                                className="btn btn-ghost btn-icon btn-sm"
-                                style={{ width: 24, height: 24 }}
+                                className="btn btn-ghost btn-icon btn-sm pipeline-stage-mover-btn"
                                 title="Move to Previous Stage"
                                 onClick={() => handleMoveStage(deal, 'backward')}
                               >
@@ -330,8 +248,7 @@ export const PipelinePage: React.FC<PipelinePageProps> = ({ onOpenQuickCreate })
                             )}
                             {!isWon && !isLost && sIdx < stages.length - 1 && (
                               <button
-                                className="btn btn-primary btn-icon btn-sm"
-                                style={{ width: 24, height: 24 }}
+                                className="btn btn-primary btn-icon btn-sm pipeline-stage-mover-btn"
                                 title="Advance to Next Stage"
                                 onClick={() => handleMoveStage(deal, 'forward')}
                               >
@@ -342,8 +259,7 @@ export const PipelinePage: React.FC<PipelinePageProps> = ({ onOpenQuickCreate })
                               <>
                                 {!isWon && (
                                   <button
-                                    className="btn btn-ghost btn-icon btn-sm"
-                                    style={{ width: 24, height: 24, color: '#059669' }}
+                                    className="btn btn-ghost btn-icon btn-sm pipeline-mark-won-btn"
                                     title="Mark Won"
                                     onClick={() => handleMarkWon(deal)}
                                   >
@@ -352,8 +268,7 @@ export const PipelinePage: React.FC<PipelinePageProps> = ({ onOpenQuickCreate })
                                 )}
                                 {!isLost && !isWon && (
                                   <button
-                                    className="btn btn-ghost btn-icon btn-sm"
-                                    style={{ width: 24, height: 24, color: '#ef4444' }}
+                                    className="btn btn-ghost btn-icon btn-sm pipeline-mark-lost-btn"
                                     title="Mark Lost"
                                     onClick={() => setSelectedDealForLoss(deal)}
                                   >

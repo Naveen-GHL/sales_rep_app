@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Plus, MapPin, CheckCircle2, User, Phone, Clock } from 'lucide-react';
+import { Calendar, Plus, CheckCircle2, Phone } from 'lucide-react';
 import { SiteVisit } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
@@ -7,6 +7,7 @@ import { storageService } from '../../services/storageService';
 import { DataTable, Column, RowAction } from '../../components/common/DataTable';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Modal } from '../../components/common/Modal';
+import './SiteVisitsPage.css';
 
 export const SiteVisitsPage: React.FC = () => {
   const { tenant, user } = useAuth();
@@ -14,7 +15,6 @@ export const SiteVisitsPage: React.FC = () => {
 
   const [siteVisits, setSiteVisits] = useState<SiteVisit[]>([]);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-  const [selectedVisit, setSelectedVisit] = useState<SiteVisit | null>(null);
 
   // Form state
   const [customerName, setCustomerName] = useState('');
@@ -87,8 +87,8 @@ export const SiteVisitsPage: React.FC = () => {
       sortable: true,
       render: sv => (
         <div>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{sv.scheduledAt}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>ID: {sv.id}</div>
+          <div className="sitevisit-slot-title">{sv.scheduledAt}</div>
+          <div className="sitevisit-slot-id">ID: {sv.id}</div>
         </div>
       ),
     },
@@ -98,8 +98,8 @@ export const SiteVisitsPage: React.FC = () => {
       sortable: true,
       render: sv => (
         <div>
-          <div style={{ fontWeight: 600 }}>{sv.customerName}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{sv.customerPhone}</div>
+          <div className="sitevisit-client-name">{sv.customerName}</div>
+          <div className="sitevisit-client-phone">{sv.customerPhone}</div>
         </div>
       ),
     },
@@ -109,8 +109,8 @@ export const SiteVisitsPage: React.FC = () => {
       sortable: true,
       render: sv => (
         <div>
-          <div style={{ fontWeight: 600 }}>{sv.projectName}</div>
-          <div style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>
+          <div className="sitevisit-project-name">{sv.projectName}</div>
+          <div className="sitevisit-plot-target">
             {sv.plotNumber || 'General Project Tour'}
           </div>
         </div>
@@ -119,7 +119,7 @@ export const SiteVisitsPage: React.FC = () => {
     {
       key: 'assignedAgentName',
       header: 'Host Agent',
-      render: sv => <span style={{ fontSize: 12 }}>{sv.assignedAgentName}</span>,
+      render: sv => <span className="sitevisit-agent-name">{sv.assignedAgentName}</span>,
     },
     {
       key: 'status',
@@ -144,7 +144,7 @@ export const SiteVisitsPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="sitevisits-page-container">
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -175,7 +175,7 @@ export const SiteVisitsPage: React.FC = () => {
         title="Schedule Prospective Buyer Site Visit"
         subtitle="Book layout walkthrough and assign sales escort"
       >
-        <form onSubmit={handleScheduleVisit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form onSubmit={handleScheduleVisit} className="sitevisit-form">
           <div className="form-group">
             <label className="form-label">Client Name *</label>
             <input
@@ -188,7 +188,7 @@ export const SiteVisitsPage: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="sitevisit-form-grid-2">
             <div className="form-group">
               <label className="form-label">Client Phone *</label>
               <input
@@ -213,7 +213,7 @@ export const SiteVisitsPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="sitevisit-form-grid-2">
             <div className="form-group">
               <label className="form-label">Project</label>
               <select
@@ -249,7 +249,7 @@ export const SiteVisitsPage: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+          <div className="sitevisit-form-actions">
             <button type="button" className="btn btn-secondary" onClick={() => setIsScheduleModalOpen(false)}>
               Cancel
             </button>

@@ -3,10 +3,11 @@ import { Briefcase, Kanban } from 'lucide-react';
 import { Deal } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { storageService } from '../../services/storageService';
-import { DataTable, Column, RowAction } from '../../components/common/DataTable';
-import { StatusChip } from '../../components/common/StatusChip';
-import { FilterBar } from '../../components/common/FilterBar';
 import { PIPELINE_STAGES } from '../../constants/pipelineStages';
+import { DataTable, Column } from '../../components/common/DataTable';
+import { FilterBar } from '../../components/common/FilterBar';
+import { StatusChip } from '../../components/common/StatusChip';
+import './DealsPage.css';
 
 interface DealsPageProps {
   onNavigate: (route: string) => void;
@@ -19,7 +20,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({ onNavigate }) => {
   const [agentFilter, setAgentFilter] = useState('All');
 
   // Role-based scoping: Sales Executives see only their own deals.
-  // Managers / Admins / Super Admins see the full company deal list (no filter).
+  // Managers / Admins / Super Admins see every deal in the company (no filter).
   const roleCode = user?.role?.code;
   const isExec = roleCode === 'sales_executive';
   const scopedDeals = isExec
@@ -29,29 +30,33 @@ export const DealsPage: React.FC<DealsPageProps> = ({ onNavigate }) => {
       )
     : deals;
 
-  useEffect(() => {
+  // Agent filter options — derived from the already-scoped pool so execs never see this.
+  const agentOptions = Array.from(new Set(scopedDeals.map(d => d.assignedAgentName)))
+    .filter(Boolean)
+    .map(name => ({ value: name, label: name }));
+
+  const loadData = () => {
     setDeals(storageService.getDeals(tenant?.id));
-    const handleUpdate = () => setDeals(storageService.getDeals(tenant?.id));
+  };
+
+  useEffect(() => {
+    loadData();
+    const handleUpdate = () => loadData();
     window.addEventListener('nexus_storage_updated', handleUpdate);
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
+
+  const stages = tenant?.slug === 'jamin'
+    ? PIPELINE_STAGES.jamin
+    : tenant?.slug === 'ghl'
+    ? PIPELINE_STAGES.ghl
+    : PIPELINE_STAGES.default;
 
   const filteredDeals = scopedDeals.filter(d => {
     if (stageFilter !== 'All' && d.stage !== stageFilter) return false;
     if (agentFilter !== 'All' && d.assignedAgentName !== agentFilter) return false;
     return true;
   });
-
-  const agentOptions = Array.from(new Set(scopedDeals.map(d => d.assignedAgentName)))
-    .filter(Boolean)
-    .map(name => ({ value: name, label: name }));
-
-  const stages =
-    tenant?.slug === 'ghl'
-      ? PIPELINE_STAGES.ghl
-      : tenant?.slug === 'jamin'
-      ? PIPELINE_STAGES.jamin
-      : PIPELINE_STAGES.default;
 
   const formatCurrency = (val: number) => {
     if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
@@ -67,15 +72,9 @@ export const DealsPage: React.FC<DealsPageProps> = ({ onNavigate }) => {
       render: d => (
         <div>
           <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{d.title}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Created on {d.createdAt}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{d.customerName}</div>
         </div>
       ),
-    },
-    {
-      key: 'customerName',
-      header: 'Associated Contact',
-      sortable: true,
-      render: d => <span style={{ fontWeight: 600, color: 'var(--primary-600)' }}>{d.customerName}</span>,
     },
     {
       key: 'stage',
@@ -87,7 +86,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({ onNavigate }) => {
       key: 'value',
       header: 'Deal Value',
       sortable: true,
-      render: d => <span style={{ fontWeight: 800, color: '#059669' }}>{formatCurrency(d.value)}</span>,
+      render: d => <span className="deal-value-highlight">{formatCurrency(d.value)}</span>,
     },
     {
       key: 'expectedCloseDate',
@@ -97,12 +96,12 @@ export const DealsPage: React.FC<DealsPageProps> = ({ onNavigate }) => {
     {
       key: 'assignedAgentName',
       header: 'Owner',
-      render: d => <span style={{ fontSize: 12 }}>{d.assignedAgentName}</span>,
+      render: d => <span className="deal-owner-label">{d.assignedAgentName}</span>,
     },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="deals-page-container">
       <div className="page-header">
         <div>
           <h1 className="page-title">

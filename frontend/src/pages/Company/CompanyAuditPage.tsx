@@ -4,6 +4,7 @@ import { AuditLog } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { storageService } from '../../services/storageService';
 import { DataTable, Column } from '../../components/common/DataTable';
+import './CompanyAuditPage.css';
 
 export const CompanyAuditPage: React.FC = () => {
   const { tenant } = useAuth();
@@ -21,7 +22,7 @@ export const CompanyAuditPage: React.FC = () => {
       key: 'timestamp',
       header: 'Timestamp',
       sortable: true,
-      render: l => <span style={{ fontSize: 12, fontWeight: 500 }}>{l.timestamp}</span>,
+      render: l => <span className="company-audit-cell-timestamp">{l.timestamp}</span>,
     },
     {
       key: 'actorName',
@@ -29,8 +30,8 @@ export const CompanyAuditPage: React.FC = () => {
       sortable: true,
       render: l => (
         <div>
-          <div style={{ fontWeight: 700 }}>{l.actorName}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{l.actorEmail}</div>
+          <div className="company-audit-actor-name">{l.actorName}</div>
+          <div className="company-audit-actor-email">{l.actorEmail}</div>
         </div>
       ),
     },
@@ -39,16 +40,7 @@ export const CompanyAuditPage: React.FC = () => {
       header: 'Event Action',
       sortable: true,
       render: l => (
-        <span
-          style={{
-            fontFamily: 'monospace',
-            fontSize: 11,
-            fontWeight: 700,
-            padding: '2px 6px',
-            backgroundColor: 'var(--bg-surface-hover)',
-            borderRadius: 4,
-          }}
-        >
+        <span className="company-audit-action-tag">
           {l.action}
         </span>
       ),
@@ -57,7 +49,7 @@ export const CompanyAuditPage: React.FC = () => {
       key: 'entityType',
       header: 'Target Entity',
       render: l => (
-        <span style={{ fontSize: 12 }}>
+        <span className="company-audit-entity-text">
           {l.entityType} ({l.entityId})
         </span>
       ),
@@ -65,12 +57,12 @@ export const CompanyAuditPage: React.FC = () => {
     {
       key: 'details',
       header: 'Audit Trail Details',
-      render: l => <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{l.details}</span>,
+      render: l => <span className="company-audit-details-text">{l.details}</span>,
     },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="company-audit-page">
       <div className="page-header">
         <div>
           <h1 className="page-title">

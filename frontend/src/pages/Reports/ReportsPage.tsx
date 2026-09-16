@@ -5,6 +5,7 @@ import { storageService } from '../../services/storageService';
 import { PIPELINE_STAGES } from '../../constants/pipelineStages';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Lead, Deal, CallRecord } from '../../types';
+import './ReportsPage.css';
 
 export const ReportsPage: React.FC = () => {
   const { tenant } = useAuth();
@@ -241,7 +242,7 @@ export const ReportsPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div className="reports-page-container">
       {/* Header */}
       <div className="page-header">
         <div>
@@ -253,13 +254,12 @@ export const ReportsPage: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ display: 'flex', backgroundColor: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', padding: 3 }}>
+        <div className="reports-header-actions">
+          <div className="reports-period-toggle">
             {(['week', 'month', 'quarter'] as const).map(p => (
               <button
                 key={p}
-                className={`btn btn-sm ${period === p ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ textTransform: 'capitalize', fontSize: 12, padding: '4px 12px' }}
+                className={`btn btn-sm reports-period-btn ${period === p ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => setPeriod(p)}
               >
                 This {p}
@@ -274,7 +274,7 @@ export const ReportsPage: React.FC = () => {
       </div>
 
       {/* Top Aggregates */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+      <div className="reports-metrics-grid">
         {/* Total Inbound Leads */}
         {periodLeads.length === 0 ? (
           <EmptyState
@@ -284,11 +284,11 @@ export const ReportsPage: React.FC = () => {
           />
         ) : (
           <div className="card">
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>TOTAL INBOUND LEADS</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', marginTop: 8 }}>
+            <div className="reports-metric-label">TOTAL INBOUND LEADS</div>
+            <div className="reports-metric-value leads">
               {periodLeads.length}
             </div>
-            <div style={{ fontSize: 12, color: '#059669', marginTop: 4, fontWeight: 600 }}>
+            <div className="reports-metric-subtext positive">
               Recorded in this {period}
             </div>
           </div>
@@ -303,11 +303,11 @@ export const ReportsPage: React.FC = () => {
           />
         ) : (
           <div className="card">
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>OVERALL CONVERSION</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#2563eb', marginTop: 8 }}>
+            <div className="reports-metric-label">OVERALL CONVERSION</div>
+            <div className="reports-metric-value conversion">
               {overallConversionRate}%
             </div>
-            <div style={{ fontSize: 12, color: Number(overallConversionRate) >= 15 ? '#059669' : 'var(--text-secondary)', marginTop: 4, fontWeight: 600 }}>
+            <div className={`reports-metric-subtext ${Number(overallConversionRate) >= 15 ? 'positive' : ''}`}>
               {convertedPeriodLeads.length} of {periodLeads.length} converted
             </div>
           </div>
@@ -322,11 +322,11 @@ export const ReportsPage: React.FC = () => {
           />
         ) : (
           <div className="card">
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>TELEPHONE CONNECT RATE</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#059669', marginTop: 8 }}>
+            <div className="reports-metric-label">TELEPHONE CONNECT RATE</div>
+            <div className="reports-metric-value telephony">
               {connectRate}%
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+            <div className="reports-metric-subtext muted">
               Avg duration: {avgDuration} ({connectedCalls.length}/{totalCalls})
             </div>
           </div>
@@ -341,11 +341,11 @@ export const ReportsPage: React.FC = () => {
           />
         ) : (
           <div className="card">
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>CLOSED VALUE</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#7c3aed', marginTop: 8 }}>
+            <div className="reports-metric-label">CLOSED VALUE</div>
+            <div className="reports-metric-value revenue">
               {formatCurrency(closedValue)}
             </div>
-            <div style={{ fontSize: 12, color: '#059669', marginTop: 4, fontWeight: 600 }}>
+            <div className="reports-metric-subtext positive">
               {wonDeals.length} won {wonDeals.length === 1 ? 'deal' : 'deals'}
             </div>
           </div>
@@ -353,10 +353,10 @@ export const ReportsPage: React.FC = () => {
       </div>
 
       {/* Visual Funnel and Calling Breakdown */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 20 }}>
+      <div className="reports-charts-grid">
         {/* Conversion Funnel Card */}
-        <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
+        <div className="card reports-chart-card">
+          <h3 className="reports-chart-title">
             Lead-to-Close Conversion Funnel
           </h3>
 
@@ -367,10 +367,10 @@ export const ReportsPage: React.FC = () => {
               description="No deals currently in the pipeline to construct a conversion funnel."
             />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="reports-funnel-list">
               {funnelSteps.map((step, idx) => (
                 <div key={idx}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                  <div className="reports-funnel-header">
                     <span>{step.label}</span>
                     <span>{step.count} ({step.pct})</span>
                   </div>
@@ -392,8 +392,8 @@ export const ReportsPage: React.FC = () => {
         </div>
 
         {/* Call Outcomes Distribution Card */}
-        <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
+        <div className="card reports-chart-card">
+          <h3 className="reports-chart-title">
             Call Center Outcomes Distribution
           </h3>
 
@@ -404,15 +404,15 @@ export const ReportsPage: React.FC = () => {
               description="No logged calls available to compute disposition breakdown."
             />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="reports-outcomes-list">
               {callOutcomes.map((disp, idx) => (
-                <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: disp.color }} />
+                <div key={idx} className="reports-outcome-row">
+                  <div className="reports-outcome-item">
+                    <span className="reports-outcome-dot" style={{ backgroundColor: disp.color }} />
                     <span>{disp.disposition}</span>
                   </div>
-                  <span style={{ fontWeight: 700, fontSize: 13 }}>
-                    {disp.count} <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>({disp.pct}%)</span>
+                  <span className="reports-outcome-count">
+                    {disp.count} <span className="reports-outcome-pct">({disp.pct}%)</span>
                   </span>
                 </div>
               ))}
@@ -422,10 +422,10 @@ export const ReportsPage: React.FC = () => {
       </div>
 
       {/* Agent Performance Leaderboard (Manager/Admin View) */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-base)', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="card reports-leaderboard-card">
+        <div className="reports-leaderboard-header">
           <Award size={18} color="#f59e0b" />
-          <h3 style={{ fontSize: 15, fontWeight: 700 }}>Sales Agent Performance Leaderboard</h3>
+          <h3 className="reports-leaderboard-title">Sales Agent Performance Leaderboard</h3>
         </div>
 
         {leaderboard.length === 0 ? (
@@ -437,31 +437,31 @@ export const ReportsPage: React.FC = () => {
             />
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <table className="reports-leaderboard-table">
             <thead>
-              <tr style={{ background: 'var(--bg-surface-hover)', borderBottom: '1px solid var(--border-base)', color: 'var(--text-secondary)', fontSize: 11, textTransform: 'uppercase' }}>
-                <th style={{ padding: '10px 20px', textAlign: 'left' }}>Sales Agent</th>
-                <th style={{ padding: '10px 16px', textAlign: 'center' }}>Calls Made</th>
-                <th style={{ padding: '10px 16px', textAlign: 'center' }}>Avg Duration</th>
-                <th style={{ padding: '10px 16px', textAlign: 'center' }}>Leads Converted</th>
-                <th style={{ padding: '10px 20px', textAlign: 'right' }}>Total Revenue Value</th>
+              <tr className="reports-leaderboard-thead">
+                <th className="reports-leaderboard-th left">Sales Agent</th>
+                <th className="reports-leaderboard-th">Calls Made</th>
+                <th className="reports-leaderboard-th">Avg Duration</th>
+                <th className="reports-leaderboard-th">Leads Converted</th>
+                <th className="reports-leaderboard-th right">Total Revenue Value</th>
               </tr>
             </thead>
             <tbody>
               {leaderboard.map((agent, aIdx) => (
-                <tr key={agent.id || aIdx} style={{ borderBottom: '1px solid var(--border-base)' }}>
-                  <td style={{ padding: '14px 20px' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{agent.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{agent.role || 'Sales Representative'}</div>
+                <tr key={agent.id || aIdx} className="reports-leaderboard-tr">
+                  <td className="reports-leaderboard-td left">
+                    <div className="reports-agent-name">{agent.name}</div>
+                    <div className="reports-agent-role">{agent.role || 'Sales Representative'}</div>
                   </td>
-                  <td style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 600 }}>{agent.calls}</td>
-                  <td style={{ padding: '14px 16px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  <td className="reports-leaderboard-td" style={{ fontWeight: 600 }}>{agent.calls}</td>
+                  <td className="reports-leaderboard-td" style={{ color: 'var(--text-secondary)' }}>
                     {agent.calls > 0 ? formatDuration(Math.round(agent.totalDuration / agent.calls)) : '0s'}
                   </td>
-                  <td style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700, color: '#059669' }}>
+                  <td className="reports-leaderboard-td" style={{ fontWeight: 700, color: '#059669' }}>
                     {agent.convertedLeads}
                   </td>
-                  <td style={{ padding: '14px 20px', textAlign: 'right', fontWeight: 800, color: '#2563eb' }}>
+                  <td className="reports-leaderboard-td right">
                     {formatCurrency(agent.revenue)}
                   </td>
                 </tr>
@@ -473,4 +473,3 @@ export const ReportsPage: React.FC = () => {
     </div>
   );
 };
-

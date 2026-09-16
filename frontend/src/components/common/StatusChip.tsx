@@ -1,5 +1,6 @@
 import React from 'react';
 import { getStatusStyle } from '../../constants/statusColors';
+import './StatusChip.css';
 
 interface StatusChipProps {
   status: string;

@@ -1,5 +1,6 @@
 import React from 'react';
-import { PhoneCall, Calendar, FileText, CheckCircle2, MessageSquare, Tag } from 'lucide-react';
+import { PhoneCall, Calendar, MessageSquare, CheckCircle2, Tag } from 'lucide-react';
+import './Timeline.css';
 
 export interface TimelineEvent {
   id: string;
@@ -36,79 +37,41 @@ export const Timeline: React.FC<TimelineProps> = ({ events }) => {
 
   if (events.length === 0) {
     return (
-      <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
+      <div className="timeline-empty">
         No activity history recorded yet.
       </div>
     );
   }
 
   return (
-    <div style={{ position: 'relative', paddingLeft: 28 }}>
+    <div className="timeline-container">
       {/* Vertical Connecting Line */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 11,
-          top: 8,
-          bottom: 12,
-          width: 2,
-          backgroundColor: 'var(--border-base)',
-        }}
-      />
+      <div className="timeline-vertical-line" />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div className="timeline-event-list">
         {events.map(ev => (
-          <div key={ev.id} style={{ position: 'relative' }}>
+          <div key={ev.id} className="timeline-event-item">
             {/* Dot / Icon */}
-            <div
-              style={{
-                position: 'absolute',
-                left: -28,
-                top: 0,
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-strong)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: 'var(--shadow-xs)',
-              }}
-            >
+            <div className="timeline-icon-dot">
               {getIcon(ev.type)}
             </div>
 
             {/* Event Content */}
-            <div
-              style={{
-                backgroundColor: 'var(--bg-surface-hover)',
-                border: '1px solid var(--border-base)',
-                borderRadius: 'var(--radius-md)',
-                padding: '12px 16px',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 4,
-                }}
-              >
-                <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>
+            <div className="timeline-event-card">
+              <div className="timeline-event-header">
+                <span className="timeline-event-title">
                   {ev.title}
                 </span>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{ev.timestamp}</span>
+                <span className="timeline-event-time">{ev.timestamp}</span>
               </div>
               {ev.description && (
-                <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '4px 0' }}>
+                <p className="timeline-event-desc">
                   {ev.description}
                 </p>
               )}
               {ev.actorName && (
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                  by <span style={{ fontWeight: 500 }}>{ev.actorName}</span>
+                <div className="timeline-event-actor">
+                  by <span className="timeline-event-actor-name">{ev.actorName}</span>
                 </div>
               )}
             </div>

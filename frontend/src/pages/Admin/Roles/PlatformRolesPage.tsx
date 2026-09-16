@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Shield, Check, Save } from 'lucide-react';
 import { PERMISSIONS } from '../../../constants/permissions';
 import { SYSTEM_ROLES } from '../../../constants/roles';
+import './PlatformRolesPage.css';
 
 export const PlatformRolesPage: React.FC = () => {
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -86,20 +87,19 @@ export const PlatformRolesPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="platform-roles-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title" style={{ color: '#ffffff' }}>
+          <h1 className="page-title">
             <Shield size={24} color="#8b5cf6" /> Master Role-Permission Matrix
           </h1>
-          <p className="page-subtitle" style={{ color: '#94a3b8' }}>
+          <p className="page-subtitle">
             Canonical RBAC privilege grid defining system behaviors for tenant roles.
           </p>
         </div>
 
         <button
-          className="btn btn-primary"
-          style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}
+          className="btn btn-primary platform-roles-save-btn"
           onClick={() => {
             setSavedSuccess(true);
             setTimeout(() => setSavedSuccess(false), 2500);
@@ -110,20 +110,20 @@ export const PlatformRolesPage: React.FC = () => {
       </div>
 
       {savedSuccess && (
-        <div style={{ padding: '12px 16px', backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#34d399', borderRadius: 8, border: '1px solid #10b981' }}>
+        <div className="platform-roles-alert-success">
           ✓ Role permission matrix updated across all active tenant nodes.
         </div>
       )}
 
-      <div className="card" style={{ padding: 0, backgroundColor: '#0f172a', borderColor: '#334155', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, color: '#cbd5e1' }}>
+      <div className="card platform-roles-matrix-card">
+        <table className="platform-roles-table">
           <thead>
-            <tr style={{ background: '#1e293b', borderBottom: '1px solid #334155', color: '#94a3b8', fontSize: 11, textTransform: 'uppercase' }}>
-              <th style={{ padding: '14px 20px', textAlign: 'left', width: '40%' }}>Action / Permission Key</th>
+            <tr className="platform-roles-thead-tr">
+              <th className="platform-roles-th-action">Action / Permission Key</th>
               {roles.map(r => (
-                <th key={r.code} style={{ padding: '14px 16px', textAlign: 'center' }}>
-                  <div style={{ color: '#ffffff', fontWeight: 700 }}>{r.name}</div>
-                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'none' }}>{r.desc}</div>
+                <th key={r.code} className="platform-roles-th-role">
+                  <div className="platform-roles-role-name">{r.name}</div>
+                  <div className="platform-roles-role-desc">{r.desc}</div>
                 </th>
               ))}
             </tr>
@@ -131,22 +131,22 @@ export const PlatformRolesPage: React.FC = () => {
           <tbody>
             {permissionGroups.map(group => (
               <React.Fragment key={group.group}>
-                <tr style={{ background: '#141e33', borderBottom: '1px solid #334155' }}>
-                  <td colSpan={4} style={{ padding: '8px 20px', fontWeight: 800, color: '#8b5cf6', fontSize: 12 }}>
+                <tr className="platform-roles-group-tr">
+                  <td colSpan={4} className="platform-roles-group-td">
                     ● {group.group.toUpperCase()}
                   </td>
                 </tr>
                 {group.keys.map(key => (
-                  <tr key={key} style={{ borderBottom: '1px solid #1e293b' }}>
-                    <td style={{ padding: '10px 20px', fontFamily: 'monospace', fontSize: 12 }}>
+                  <tr key={key} className="platform-roles-row">
+                    <td className="platform-roles-key-td">
                       {key}
                     </td>
                     {roles.map(r => (
-                      <td key={r.code} style={{ padding: '10px 16px', textAlign: 'center' }}>
+                      <td key={r.code} className="platform-roles-cell">
                         {hasPermission(r.code, key) ? (
-                          <span style={{ color: '#34d399', fontWeight: 800 }}>✓ Granted</span>
+                          <span className="platform-roles-granted">✓ Granted</span>
                         ) : (
-                          <span style={{ color: '#64748b' }}>—</span>
+                          <span className="platform-roles-denied">—</span>
                         )}
                       </td>
                     ))}

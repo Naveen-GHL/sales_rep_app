@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Plus, FileText, DollarSign, UserCheck, ShieldCheck } from 'lucide-react';
+import { CheckCircle, Plus } from 'lucide-react';
 import { Booking } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { storageService } from '../../services/storageService';
-import { DataTable, Column, RowAction } from '../../components/common/DataTable';
+import { DataTable, Column } from '../../components/common/DataTable';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Modal } from '../../components/common/Modal';
 import { Drawer } from '../../components/common/Drawer';
 import { DocumentUploader } from '../../components/common/DocumentUploader';
 import { DocumentList } from '../../components/common/DocumentList';
+import './BookingsPage.css';
 
 export const BookingsPage: React.FC = () => {
   const { tenant, user } = useAuth();
@@ -100,8 +101,8 @@ export const BookingsPage: React.FC = () => {
       sortable: true,
       render: b => (
         <div>
-          <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{b.plotNumber}</div>
-          <div style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>{b.projectName}</div>
+          <div className="booking-plot-number">{b.plotNumber}</div>
+          <div className="booking-project-name">{b.projectName}</div>
         </div>
       ),
     },
@@ -111,8 +112,8 @@ export const BookingsPage: React.FC = () => {
       sortable: true,
       render: b => (
         <div>
-          <div style={{ fontWeight: 700 }}>{b.customerName}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{b.customerPhone}</div>
+          <div className="booking-customer-name">{b.customerName}</div>
+          <div className="booking-customer-phone">{b.customerPhone}</div>
         </div>
       ),
     },
@@ -120,13 +121,13 @@ export const BookingsPage: React.FC = () => {
       key: 'bookingAmount',
       header: 'Token Paid',
       sortable: true,
-      render: b => <span style={{ fontWeight: 800, color: '#059669' }}>{formatCurrency(b.bookingAmount)}</span>,
+      render: b => <span className="booking-token-amount">{formatCurrency(b.bookingAmount)}</span>,
     },
     {
       key: 'totalAmount',
       header: 'Total Sale Value',
       sortable: true,
-      render: b => <span style={{ fontWeight: 700 }}>{formatCurrency(b.totalAmount)}</span>,
+      render: b => <span className="booking-total-amount">{formatCurrency(b.totalAmount)}</span>,
     },
     {
       key: 'bookingDate',
@@ -142,7 +143,7 @@ export const BookingsPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="bookings-page-container">
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -175,9 +176,9 @@ export const BookingsPage: React.FC = () => {
         width={520}
       >
         {selectedBooking && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="card" style={{ padding: 18 }}>
-              <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>
+          <div className="booking-drawer-content">
+            <div className="card booking-drawer-card">
+              <h4 className="booking-drawer-section-title">
                 Booking Documents
               </h4>
               <DocumentUploader
@@ -202,7 +203,7 @@ export const BookingsPage: React.FC = () => {
         title="Formalize Plot Booking Agreement"
         subtitle="Confirm token payment and bind plot inventory"
       >
-        <form onSubmit={handleCreateBooking} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form onSubmit={handleCreateBooking} className="booking-form">
           <div className="form-group">
             <label className="form-label">Buyer Full Name *</label>
             <input
@@ -215,7 +216,7 @@ export const BookingsPage: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="booking-form-grid-2">
             <div className="form-group">
               <label className="form-label">Buyer Phone *</label>
               <input
@@ -240,7 +241,7 @@ export const BookingsPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="booking-form-grid-2">
             <div className="form-group">
               <label className="form-label">Token Advance (₹) *</label>
               <input
@@ -273,7 +274,7 @@ export const BookingsPage: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+          <div className="booking-form-actions">
             <button type="button" className="btn btn-secondary" onClick={() => setIsNewBookingModalOpen(false)}>
               Cancel
             </button>

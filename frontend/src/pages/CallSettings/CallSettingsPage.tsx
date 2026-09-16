@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { storageService, PopupPosition } from '../../services/storageService';
 import { useCall } from '../../context/CallContext';
+import './CallSettingsPage.css';
 
 export const CallSettingsPage: React.FC = () => {
   const [position, setPosition] = useState<PopupPosition>(() => storageService.getPopupPosition());
@@ -65,7 +66,7 @@ export const CallSettingsPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="callsettings-page-container">
       {/* Page Header */}
       <div className="page-header">
         <div>
@@ -78,23 +79,22 @@ export const CallSettingsPage: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ maxWidth: 760, display: 'flex', flexDirection: 'column', gap: 20, position: 'relative' }}>
+      <div className="callsettings-content-wrapper">
         {/* Incoming Call Popup Settings Card */}
-        <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+        <div className="card callsettings-card">
+          <div className="callsettings-card-header">
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+              <h3 className="callsettings-card-title">
                 Incoming Call Popup
               </h3>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, marginBottom: 0 }}>
+              <p className="callsettings-card-subtitle">
                 Select the screen corner where incoming call notifications appear.
               </p>
             </div>
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-secondary btn-sm callsettings-test-btn"
               onClick={() => simulateIncomingCall('Rahul Sharma (VIP Lead)', '+91 98765 43210')}
-              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
               title="Test the popup at the currently selected position"
             >
               <Volume2 size={14} color="var(--primary-600)" /> Simulate Incoming Call
@@ -102,93 +102,42 @@ export const CallSettingsPage: React.FC = () => {
           </div>
 
           {/* Radio Options List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="callsettings-options-list">
             {options.map(opt => {
               const isSelected = position === opt.value;
               return (
                 <div
                   key={opt.value}
                   onClick={() => handleSelectPosition(opt.value)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '14px 18px',
-                    borderRadius: 'var(--radius-lg)',
-                    border: '1px solid',
-                    borderColor: isSelected ? 'var(--primary-500)' : 'var(--border-base)',
-                    boxShadow: isSelected ? '0 0 0 1px var(--primary-500)' : 'none',
-                    backgroundColor: isSelected
-                      ? 'var(--primary-50)'
-                      : 'var(--bg-card)',
-                    cursor: 'pointer',
-                    boxSizing: 'border-box',
-                  }}
+                  className={`callsettings-option-item ${isSelected ? 'selected' : ''}`}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    {/* Native Radio Input & Custom Indicator */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <input
-                        type="radio"
-                        id={`pos-${opt.value}`}
-                        name="popup-position"
-                        value={opt.value}
-                        checked={isSelected}
-                        onChange={() => handleSelectPosition(opt.value)}
-                        style={{
-                          width: 18,
-                          height: 18,
-                          cursor: 'pointer',
-                          accentColor: 'var(--primary-600)',
-                        }}
-                      />
-                    </div>
+                  <div className="callsettings-option-left">
+                    <input
+                      type="radio"
+                      id={`pos-${opt.value}`}
+                      name="popup-position"
+                      value={opt.value}
+                      checked={isSelected}
+                      onChange={() => handleSelectPosition(opt.value)}
+                      className="callsettings-radio-input"
+                    />
 
                     <div>
-                      <div
-                        style={{
-                          fontSize: 14,
-                          fontWeight: isSelected ? 700 : 600,
-                          color: isSelected ? 'var(--primary-700)' : 'var(--text-primary)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                        }}
-                      >
+                      <div className={`callsettings-option-label ${isSelected ? 'selected' : ''}`}>
                         {opt.label}
                         {opt.value === 'top-right' && (
-                          <span
-                            style={{
-                              fontSize: 10,
-                              fontWeight: 600,
-                              padding: '2px 6px',
-                              borderRadius: 4,
-                              backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                              color: 'var(--primary-600)',
-                            }}
-                          >
+                          <span className="callsettings-default-badge">
                             Default
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                      <div className="callsettings-option-desc">
                         {opt.description}
                       </div>
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: '50%',
-                      backgroundColor: isSelected ? 'var(--primary-100)' : 'var(--bg-surface-hover)',
-                      color: isSelected ? 'var(--primary-600)' : 'var(--text-muted)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
+                  <div className={`callsettings-option-icon-box ${isSelected ? 'selected' : ''}`}>
                     {opt.icon}
                   </div>
                 </div>
@@ -197,84 +146,36 @@ export const CallSettingsPage: React.FC = () => {
           </div>
 
           {/* Interactive Viewport Preview Box */}
-          <div
-            style={{
-              marginTop: 10,
-              padding: 16,
-              borderRadius: 'var(--radius-lg)',
-              backgroundColor: 'var(--bg-surface-hover)',
-              border: '1px solid var(--border-base)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
+          <div className="callsettings-preview-box">
+            <div className="callsettings-preview-header">
+              <span className="callsettings-preview-title">
                 Screen Viewport Preview
               </span>
-              <span style={{ fontSize: 11, color: 'var(--primary-600)', fontWeight: 600 }}>
+              <span className="callsettings-preview-active-label">
                 Active Position: {options.find(o => o.value === position)?.label}
               </span>
             </div>
 
             {/* Screen representation */}
-            <div
-              style={{
-                position: 'relative',
-                height: 140,
-                backgroundColor: '#1e293b',
-                borderRadius: 8,
-                border: '1px solid #334155',
-                overflow: 'hidden',
-              }}
-            >
+            <div className="callsettings-preview-screen">
               {/* Mini mock topbar */}
-              <div
-                style={{
-                  height: 16,
-                  backgroundColor: '#000000',
-                  borderBottom: '1px solid #334155',
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '0 8px',
-                  gap: 4,
-                }}
-              >
-                <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#ef4444' }} />
-                <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#f59e0b' }} />
-                <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10b981' }} />
+              <div className="callsettings-preview-topbar">
+                <div className="callsettings-preview-dot red" />
+                <div className="callsettings-preview-dot amber" />
+                <div className="callsettings-preview-dot green" />
               </div>
 
               {/* Mini mock sidebar */}
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 16,
-                  bottom: 0,
-                  width: 32,
-                  backgroundColor: '#0f172a',
-                  borderRight: '1px solid #334155',
-                }}
-              />
+              <div className="callsettings-preview-sidebar" />
 
               {/* Mini incoming call popup representation */}
               <div
+                className="callsettings-preview-popup-mock"
                 style={{
-                  position: 'absolute',
                   top: position.startsWith('top') ? 22 : 'auto',
                   bottom: position.startsWith('bottom') ? 8 : 'auto',
                   left: position.endsWith('left') ? 40 : 'auto',
                   right: position.endsWith('right') ? 8 : 'auto',
-                  backgroundColor: '#2563eb',
-                  color: '#ffffff',
-                  padding: '4px 8px',
-                  borderRadius: 4,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  boxShadow: '0 4px 10px rgba(37, 99, 235, 0.5)',
-                  zIndex: 5,
                 }}
               >
                 <Phone size={10} /> Incoming Call

@@ -7,6 +7,7 @@ import { DataTable, Column, RowAction } from '../../components/common/DataTable'
 import { StatusChip } from '../../components/common/StatusChip';
 import { Drawer } from '../../components/common/Drawer';
 import { FilterBar } from '../../components/common/FilterBar';
+import './CallHistoryPage.css';
 
 export const CallHistoryPage: React.FC = () => {
   const { tenant } = useAuth();
@@ -44,7 +45,7 @@ export const CallHistoryPage: React.FC = () => {
       key: 'timestamp',
       header: 'Date & Time',
       sortable: true,
-      render: c => <span style={{ fontSize: 12, fontWeight: 500 }}>{c.timestamp}</span>,
+      render: c => <span className="call-cell-timestamp">{c.timestamp}</span>,
     },
     {
       key: 'contactName',
@@ -52,8 +53,8 @@ export const CallHistoryPage: React.FC = () => {
       sortable: true,
       render: c => (
         <div>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{c.contactName}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.contactPhone}</div>
+          <div className="call-contact-primary">{c.contactName}</div>
+          <div className="call-contact-sub">{c.contactPhone}</div>
         </div>
       ),
     },
@@ -67,13 +68,13 @@ export const CallHistoryPage: React.FC = () => {
       key: 'duration',
       header: 'Duration',
       sortable: true,
-      render: c => <span style={{ fontSize: 12 }}>{formatDuration(c.duration)}</span>,
+      render: c => <span className="call-cell-text">{formatDuration(c.duration)}</span>,
     },
     {
       key: 'agentName',
       header: 'Agent',
       sortable: true,
-      render: c => <span style={{ fontSize: 12 }}>{c.agentName}</span>,
+      render: c => <span className="call-cell-text">{c.agentName}</span>,
     },
     {
       key: 'disposition',
@@ -86,8 +87,7 @@ export const CallHistoryPage: React.FC = () => {
       header: 'Recording',
       render: c => (
         <button
-          className="btn btn-ghost btn-sm"
-          style={{ color: 'var(--primary-600)' }}
+          className="btn btn-ghost btn-sm call-listen-btn"
           onClick={e => {
             e.stopPropagation();
             setSelectedCall(c);
@@ -103,7 +103,7 @@ export const CallHistoryPage: React.FC = () => {
   const rowActions: RowAction<CallRecord>[] = [
     {
       label: 'View Call Log & Transcript',
-      icon: <FileText size={14} style={{ marginRight: 6 }} />,
+      icon: <FileText size={14} className="call-action-icon" />,
       onClick: c => {
         setSelectedCall(c);
         setIsPlayingAudio(false);
@@ -112,7 +112,7 @@ export const CallHistoryPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="call-history-page">
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -183,25 +183,15 @@ export const CallHistoryPage: React.FC = () => {
         width={560}
       >
         {selectedCall && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div className="call-drawer-stack">
             {/* Outcome Overview */}
-            <div
-              style={{
-                padding: 16,
-                borderRadius: 'var(--radius-lg)',
-                backgroundColor: 'var(--bg-surface-hover)',
-                border: '1px solid var(--border-base)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
+            <div className="call-drawer-overview-banner">
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="call-drawer-chips-row">
                   <StatusChip status={selectedCall.direction} />
                   <StatusChip status={selectedCall.disposition} />
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
+                <div className="call-drawer-meta-note">
                   Agent: <strong>{selectedCall.agentName}</strong> • Duration:{' '}
                   <strong>{formatDuration(selectedCall.duration)}</strong>
                 </div>
@@ -209,42 +199,27 @@ export const CallHistoryPage: React.FC = () => {
             </div>
 
             {/* Audio Player Card */}
-            <div className="card" style={{ padding: 18, border: '1px solid var(--border-strong)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 700 }}>Call Voice Recording</span>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Quality: 64kbps Opus</span>
+            <div className="card call-drawer-player-card">
+              <div className="call-drawer-player-header">
+                <span className="call-drawer-player-title">Call Voice Recording</span>
+                <span className="call-drawer-player-quality">Quality: 64kbps Opus</span>
               </div>
 
-              <div
-                style={{
-                  backgroundColor: 'var(--bg-surface-hover)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: 14,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                }}
-              >
+              <div className="call-drawer-player-box">
                 <button
-                  className="btn btn-primary btn-icon btn-sm"
-                  style={{ width: 34, height: 34, borderRadius: '50%' }}
+                  className="btn btn-primary btn-icon btn-sm call-player-btn"
                   onClick={() => setIsPlayingAudio(!isPlayingAudio)}
                 >
                   <Play size={14} />
                 </button>
-                <div style={{ flex: 1 }}>
-                  <div style={{ height: 4, backgroundColor: 'var(--border-strong)', borderRadius: 2, position: 'relative' }}>
+                <div className="call-player-track">
+                  <div className="call-player-bar">
                     <div
-                      style={{
-                        width: isPlayingAudio ? '65%' : '0%',
-                        height: '100%',
-                        backgroundColor: 'var(--primary-600)',
-                        borderRadius: 2,
-                        transition: 'width 2s ease',
-                      }}
+                      className="call-player-progress"
+                      style={{ width: isPlayingAudio ? '65%' : '0%' }}
                     />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                  <div className="call-player-times">
                     <span>{isPlayingAudio ? '01:24' : '00:00'}</span>
                     <span>{formatDuration(selectedCall.duration)}</span>
                   </div>
@@ -253,21 +228,21 @@ export const CallHistoryPage: React.FC = () => {
             </div>
 
             {/* Transcription Box */}
-            <div className="card" style={{ padding: 18 }}>
-              <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10 }}>
+            <div className="card call-drawer-card">
+              <h4 className="call-drawer-heading">
                 Automated Call Transcript
               </h4>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, fontStyle: 'italic' }}>
+              <p className="call-drawer-transcript">
                 {selectedCall.transcription || 'Transcription processing completed.'}
               </p>
             </div>
 
             {/* Agent Discussion Notes */}
-            <div className="card" style={{ padding: 18 }}>
-              <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10 }}>
+            <div className="card call-drawer-card">
+              <h4 className="call-drawer-heading">
                 Agent Post-Call Notes
               </h4>
-              <p style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+              <p className="call-drawer-notes">
                 {selectedCall.notes || 'No custom agent notes entered during disposition.'}
               </p>
             </div>

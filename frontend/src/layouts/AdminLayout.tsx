@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
 import { TopBar } from '../components/layout/TopBar';
+import './AdminLayout.css';
 
 interface AdminLayoutProps {
   currentRoute: string;
@@ -19,25 +20,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       <Sidebar currentRoute={currentRoute} onNavigate={onNavigate} />
 
       {/* Main Content Area */}
-      <div className="main-content-area" style={{ backgroundColor: '#090d16' }}>
+      <div className="main-content-area admin-layout-main">
         <TopBar onNavigate={onNavigate} onOpenQuickCreate={() => {}} />
 
         {/* Global Environment Banner */}
-        <div
-          style={{
-            backgroundColor: 'rgba(139, 92, 246, 0.1)',
-            borderBottom: '1px solid rgba(139, 92, 246, 0.25)',
-            padding: '6px 24px',
-            fontSize: 11,
-            color: '#c084fc',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
+        <div className="admin-platform-banner">
           <span>⚡ PLATFORM OPERATOR CONSOLE — SYSTEM-WIDE GOVERNANCE & MULTI-TENANT PROVISIONING</span>
-          <span style={{ color: '#94a3b8' }}>API v2.4 • System Health: 99.98%</span>
+          <span className="admin-platform-status">API v2.4 • System Health: 99.98%</span>
         </div>
 
         <main className="page-scrollable">{children}</main>

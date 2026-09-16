@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Check, Phone, Users, Calendar, AlertCircle } from 'lucide-react';
+import { Bell, Check, Phone, Users, Calendar } from 'lucide-react';
 import { NotificationItem } from '../../types';
 import { storageService } from '../../services/storageService';
+import './NotificationsPage.css';
 
 interface NotificationsPageProps {
   onNavigate: (route: string) => void;
@@ -26,7 +27,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ onNavigate
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="notifications-page-container">
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -42,37 +43,18 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ onNavigate
         </button>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card notifications-card-wrapper">
         {notifications.map(n => (
           <div
             key={n.id}
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border-base)',
-              backgroundColor: n.read ? 'var(--bg-surface)' : 'rgba(59, 130, 246, 0.05)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-            }}
+            className={`notification-item-row ${!n.read ? 'unread' : ''}`}
             onClick={() => {
               storageService.markNotificationRead(n.id);
               if (n.link) onNavigate(n.link.replace('/', ''));
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: '50%',
-                  backgroundColor: n.read ? 'var(--bg-surface-hover)' : 'var(--primary-50)',
-                  color: n.read ? 'var(--text-muted)' : 'var(--primary-600)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+            <div className="notification-item-left">
+              <div className={`notification-icon-circle ${!n.read ? 'unread' : ''}`}>
                 {n.type === 'call' ? (
                   <Phone size={18} />
                 ) : n.type === 'followup' ? (
@@ -83,28 +65,21 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ onNavigate
               </div>
 
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
+                <div className="notification-title-row">
+                  <span className="notification-title">
                     {n.title}
                   </span>
                   {!n.read && (
-                    <span
-                      style={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--primary-600)',
-                      }}
-                    />
+                    <span className="notification-unread-dot" />
                   )}
                 </div>
-                <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                <p className="notification-message">
                   {n.message}
                 </p>
               </div>
             </div>
 
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{n.timestamp}</div>
+            <div className="notification-time">{n.timestamp}</div>
           </div>
         ))}
       </div>

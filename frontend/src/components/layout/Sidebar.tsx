@@ -25,6 +25,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { FEATURES } from '../../constants/features';
 import { PERMISSIONS } from '../../constants/permissions';
+import './Sidebar.css';
 
 interface SidebarProps {
   currentRoute: string;

@@ -46,6 +46,7 @@ import { PlatformAuditPage } from './pages/Admin/Audit/PlatformAuditPage';
 import { ProtectedRoute } from './components/common/Guards';
 import { Modal } from './components/common/Modal';
 import { storageService } from './services/storageService';
+import './App.css';
 
 export const App: React.FC = () => {
   const { isAuthenticated, isSuperAdmin, tenant, user } = useAuth();
@@ -307,7 +308,7 @@ export const App: React.FC = () => {
         title={`Quick Create: ${quickCreateType?.toUpperCase()}`}
         subtitle={`Instant creation into ${tenant?.name}`}
       >
-        <form onSubmit={handleSaveQuickCreate} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form onSubmit={handleSaveQuickCreate} className="app-quickcreate-form">
 
           {/* ── Deal Title (deals only) or Contact Name (everything else) ── */}
           <div className="form-group">
@@ -333,13 +334,12 @@ export const App: React.FC = () => {
                 <label className="form-label">Link to Customer</label>
 
                 {/* Segmented toggle — same style as Reports page period toggle */}
-                <div style={{ display: 'flex', backgroundColor: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', padding: 3, gap: 2, marginBottom: 10 }}>
+                <div className="app-segmented-toggle">
                   {(['existing', 'new'] as const).map(mode => (
                     <button
                       key={mode}
                       type="button"
-                      className={`btn btn-sm ${dealCustomerMode === mode ? 'btn-primary' : 'btn-ghost'}`}
-                      style={{ fontSize: 12, padding: '4px 14px', opacity: mode === 'existing' && !hasCustomers ? 0.4 : 1 }}
+                      className={`btn btn-sm app-segmented-btn ${dealCustomerMode === mode ? 'btn-primary' : 'btn-ghost'} ${mode === 'existing' && !hasCustomers ? 'disabled' : ''}`}
                       disabled={mode === 'existing' && !hasCustomers}
                       onClick={() => setDealCustomerMode(mode)}
                     >
@@ -349,7 +349,7 @@ export const App: React.FC = () => {
                 </div>
 
                 {!hasCustomers && (
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>
+                  <p className="app-no-customers-msg">
                     No customers in this workspace yet — deal will create a new customer record.
                   </p>
                 )}
@@ -369,7 +369,7 @@ export const App: React.FC = () => {
                   </select>
                 ) : (
                   <div>
-                    <label className="form-label" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                    <label className="form-label app-new-customer-label">
                       New Customer Name * — a new Customer record will be created
                     </label>
                     <input
@@ -401,7 +401,7 @@ export const App: React.FC = () => {
 
           {/* ── Scheduled Date + Time (followup, consultation, visit) ── */}
           {(quickCreateType === 'followup' || quickCreateType === 'consultation' || quickCreateType === 'visit') && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="app-schedule-grid">
               <div className="form-group">
                 <label className="form-label">Scheduled Date *</label>
                 <input
@@ -444,7 +444,7 @@ export const App: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+          <div className="app-modal-actions">
             <button type="button" className="btn btn-secondary" onClick={() => setQuickCreateType(null)}>
               Cancel
             </button>

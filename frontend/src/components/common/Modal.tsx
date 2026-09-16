@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import './Modal.css';
 
 interface ModalProps {
   isOpen: boolean;
@@ -33,50 +34,20 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-        backgroundColor: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(4px)',
-      }}
-      onClick={onClose}
-    >
+    <div className="modal-backdrop" onClick={onClose}>
       <div
-        className="card animate-slide-down"
+        className="card animate-slide-down modal-card"
         style={{
-          width: '100%',
           maxWidth: typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth,
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: 0,
-          boxShadow: 'var(--shadow-xl)',
-          overflow: 'hidden',
-          backgroundColor: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-xl)',
         }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div
-          style={{
-            padding: '20px 24px',
-            borderBottom: '1px solid var(--border-base)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
+        <div className="modal-header">
           <div>
-            <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{title}</h3>
+            <h3 className="modal-title">{title}</h3>
             {subtitle && (
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
+              <p className="modal-subtitle">
                 {subtitle}
               </p>
             )}
@@ -87,29 +58,13 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* Content */}
-        <div
-          style={{
-            padding: '24px',
-            overflowY: 'auto',
-            flex: 1,
-          }}
-        >
+        <div className="modal-body">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div
-            style={{
-              padding: '16px 24px',
-              borderTop: '1px solid var(--border-base)',
-              backgroundColor: 'var(--bg-surface-hover)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              gap: 12,
-            }}
-          >
+          <div className="modal-footer">
             {footer}
           </div>
         )}

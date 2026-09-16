@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
 import { storageService } from '../../services/storageService';
 import { AgentAvailabilityToggle } from '../../components/calling/CallCenterComponents';
+import './CallCenterPage.css';
 
 export const CallCenterPage: React.FC = () => {
   const { tenant, user } = useAuth();
@@ -39,7 +40,7 @@ export const CallCenterPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="call-center-page">
       {/* Header */}
       <div className="page-header">
         <div>
@@ -51,69 +52,68 @@ export const CallCenterPage: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="call-center-header-actions">
           <AgentAvailabilityToggle />
         </div>
       </div>
 
       {/* Real-Time Telemetry Bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+      <div className="call-center-telemetry-grid">
         <div className="card">
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>QUEUE STATUS</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#10b981', marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }} />
+          <div className="call-center-telemetry-label">QUEUE STATUS</div>
+          <div className="call-center-telemetry-val call-center-telemetry-val-green">
+            <span className="call-center-pulse-dot" />
             0 Calls Waiting
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+          <div className="call-center-telemetry-sub">
             Average hold time: 0s
           </div>
         </div>
 
         <div className="card">
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>AGENTS ONLINE</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', marginTop: 6 }}>
+          <div className="call-center-telemetry-label">AGENTS ONLINE</div>
+          <div className="call-center-telemetry-val">
             4 Ready
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+          <div className="call-center-telemetry-sub">
             Tenant queue: {tenant?.slug.toUpperCase()}
           </div>
         </div>
 
         <div className="card">
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>TODAY'S OUTBOUND</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--primary-600)', marginTop: 6 }}>
+          <div className="call-center-telemetry-label">TODAY'S OUTBOUND</div>
+          <div className="call-center-telemetry-val call-center-telemetry-val-primary">
             18 Calls
           </div>
-          <div style={{ fontSize: 11, color: '#059669', marginTop: 4, fontWeight: 600 }}>
+          <div className="call-center-telemetry-sub-green">
             Connect rate: 83.3%
           </div>
         </div>
 
         <div className="card">
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>AVG TALK TIME</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', marginTop: 6 }}>
+          <div className="call-center-telemetry-label">AVG TALK TIME</div>
+          <div className="call-center-telemetry-val">
             4m 12s
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+          <div className="call-center-telemetry-sub">
             Target: 3m - 6m
           </div>
         </div>
       </div>
 
       {/* Main Cockpit: Softphone Dialer on Left, Callback Queue on Right */}
-      <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 24, alignItems: 'flex-start' }}>
+      <div className="call-center-cockpit-layout">
         {/* Softphone Dialer */}
-        <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700 }}>Outbound Softphone</h3>
-            <span style={{ fontSize: 11, color: '#10b981', fontWeight: 600 }}>● SIP Connected</span>
+        <div className="card call-center-softphone-card">
+          <div className="call-center-softphone-header">
+            <h3 className="call-center-softphone-title">Outbound Softphone</h3>
+            <span className="call-center-sip-badge">● SIP Connected</span>
           </div>
 
           <div className="form-group">
             <input
               type="text"
-              className="form-input"
-              style={{ height: 42, fontSize: 16, fontWeight: 700, textAlign: 'center', letterSpacing: '0.05em' }}
+              className="form-input call-center-dial-input"
               value={dialNumber}
               onChange={e => setDialNumber(e.target.value)}
               placeholder="+91 Phone number"
@@ -123,8 +123,7 @@ export const CallCenterPage: React.FC = () => {
           <div className="form-group">
             <input
               type="text"
-              className="form-input"
-              style={{ fontSize: 12 }}
+              className="form-input call-center-contact-input"
               value={contactName}
               onChange={e => setContactName(e.target.value)}
               placeholder="Contact Name (optional)"
@@ -132,13 +131,12 @@ export const CallCenterPage: React.FC = () => {
           </div>
 
           {/* Keypad Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          <div className="call-center-keypad-grid">
             {['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map(digit => (
               <button
                 key={digit}
                 type="button"
-                className="btn btn-secondary"
-                style={{ height: 48, fontSize: 18, fontWeight: 700 }}
+                className="btn btn-secondary call-center-keypad-btn"
                 onClick={() => handleDial(digit)}
               >
                 {digit}
@@ -146,11 +144,10 @@ export const CallCenterPage: React.FC = () => {
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+          <div className="call-center-softphone-footer">
             <button
               type="button"
-              className="btn btn-secondary btn-icon"
-              style={{ width: 48, height: 48 }}
+              className="btn btn-secondary btn-icon call-center-backspace-btn"
               onClick={handleBackspace}
               title="Backspace"
             >
@@ -158,8 +155,7 @@ export const CallCenterPage: React.FC = () => {
             </button>
             <button
               type="button"
-              className="btn btn-primary"
-              style={{ flex: 1, height: 48, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', fontSize: 15 }}
+              className="btn btn-primary call-center-call-btn"
               onClick={handleStartCall}
             >
               <Phone size={18} /> Call Now
@@ -168,25 +164,24 @@ export const CallCenterPage: React.FC = () => {
         </div>
 
         {/* Callback Queue & Quick Dial Prospects */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="card" style={{ padding: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div className="call-center-queue-stack">
+          <div className="card call-center-queue-card">
+            <div className="call-center-queue-header">
               <div>
-                <h3 style={{ fontSize: 15, fontWeight: 700 }}>Priority Callback Pipeline</h3>
-                <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                <h3 className="call-center-queue-title">Priority Callback Pipeline</h3>
+                <p className="call-center-queue-sub">
                   Inbound inquiries awaiting instant telephone outreach
                 </p>
               </div>
               <button
-                className="btn btn-ghost btn-sm"
-                style={{ color: 'var(--primary-600)' }}
+                className="btn btn-ghost btn-sm call-center-simulate-btn"
                 onClick={() => simulateIncomingCall('Pravin Godbole', '+91 97410 88223')}
               >
                 Simulate Call Event
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="call-center-prospects-list">
               {[
                 { name: 'Dr. Rajesh Nambiar', phone: '+91 98451 12233', meta: 'High Net-Worth Investor • Commercial Office', priority: 'Urgent' },
                 { name: 'Deepak & Sneha Kulkarni', phone: '+91 97312 88990', meta: 'Villa Plot Inquiry • Sarjapur East', priority: 'High' },
@@ -194,26 +189,17 @@ export const CallCenterPage: React.FC = () => {
               ].map((item, idx) => (
                 <div
                   key={idx}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'var(--bg-surface-hover)',
-                    border: '1px solid var(--border-base)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
+                  className="call-center-prospect-item"
                 >
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 13 }}>{item.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    <div className="call-center-prospect-name">{item.name}</div>
+                    <div className="call-center-prospect-meta">
                       {item.phone} • {item.meta}
                     </div>
                   </div>
 
                   <button
-                    className="btn btn-primary btn-sm"
-                    style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                    className="btn btn-primary btn-sm call-center-dial-item-btn"
                     onClick={() => initiateCall(item.name, item.phone)}
                   >
                     <Phone size={13} /> Dial Contact

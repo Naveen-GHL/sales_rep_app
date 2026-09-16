@@ -3,6 +3,7 @@ import { Upload, CheckCircle2, AlertCircle } from 'lucide-react';
 import { DocumentItem } from '../../types';
 import { storageService } from '../../services/storageService';
 import { useAuth } from '../../context/AuthContext';
+import './DocumentUploader.css';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -86,26 +87,16 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="document-uploader-container">
       {/* Category selector */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+      <div className="document-uploader-category-row">
+        <label className="document-uploader-label">
           Category:
         </label>
         <select
-          className="form-select"
+          className="form-select document-uploader-select"
           value={selectedCategory}
           onChange={e => setSelectedCategory(e.target.value)}
-          style={{
-            height: 30,
-            fontSize: 12,
-            paddingTop: 0,
-            paddingBottom: 0,
-            paddingLeft: 10,
-            paddingRight: 24,
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-base)',
-          }}
         >
           {allowedCategories.map(cat => (
             <option key={cat} value={cat}>{cat}</option>
@@ -119,38 +110,29 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
         onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
-        style={{
-          border: `2px dashed ${isDragging ? 'var(--primary-500)' : 'var(--border-strong)'}`,
-          borderRadius: 'var(--radius-md)',
-          padding: '24px 16px',
-          textAlign: 'center',
-          backgroundColor: isDragging ? 'var(--primary-50)' : 'var(--bg-surface-hover)',
-          cursor: 'pointer',
-          transition: 'all 0.15s ease',
-        }}
+        className={`document-dropzone ${isDragging ? 'dragging' : ''}`}
       >
         <Upload
           size={28}
           color={isDragging ? 'var(--primary-500)' : 'var(--primary-600)'}
-          style={{ margin: '0 auto 10px' }}
+          className="document-dropzone-icon"
         />
-        <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>
+        <div className="document-dropzone-title">
           {isDragging ? 'Drop file here' : 'Choose File or Drag & Drop'}
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+        <div className="document-dropzone-subtitle">
           PDF, JPG, PNG, DOCX up to 25 MB
         </div>
         <button
           type="button"
-          className="btn btn-secondary btn-sm"
-          style={{ marginTop: 10, pointerEvents: 'none' }}
+          className="btn btn-secondary btn-sm document-dropzone-btn"
         >
           Browse Files
         </button>
       </div>
 
       {/* Metadata-only disclaimer */}
-      <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+      <p className="document-disclaimer">
         ℹ️ <em>This logs document metadata (name, size, date) — file contents are not uploaded to a server yet. The log persists in your browser and will be ready to link to real storage once a backend is connected.</em>
       </p>
 
@@ -165,21 +147,7 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
 
       {/* Inline toast */}
       {toast && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 14px',
-            borderRadius: 'var(--radius-md)',
-            border: `1px solid ${toast.type === 'success' ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)'}`,
-            backgroundColor: toast.type === 'success' ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
-            fontSize: 12,
-            color: toast.type === 'success' ? '#047857' : '#b91c1c',
-            fontWeight: 500,
-            animation: 'slideDown 0.2s ease',
-          }}
-        >
+        <div className={`document-toast ${toast.type}`}>
           {toast.type === 'success'
             ? <CheckCircle2 size={15} />
             : <AlertCircle size={15} />}

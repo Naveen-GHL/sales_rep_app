@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   Users,
+  Clock,
   PhoneCall,
-  Calendar,
-  Briefcase,
   TrendingUp,
   MapPin,
-  Clock,
+  Calendar,
+  AlertCircle,
   ArrowUpRight,
   Phone,
-  CheckCircle2,
-  AlertCircle,
   Plus,
   PhoneMissed,
 } from 'lucide-react';
@@ -19,6 +17,7 @@ import { useCall } from '../../context/CallContext';
 import { storageService } from '../../services/storageService';
 import { StatusChip } from '../../components/common/StatusChip';
 import { FEATURES } from '../../constants/features';
+import './DashboardPage.css';
 
 interface DashboardPageProps {
   onNavigate: (route: string) => void;
@@ -26,7 +25,7 @@ interface DashboardPageProps {
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpenQuickCreate }) => {
-  const { user, tenant, isSuperAdmin, enabledFeatures } = useAuth();
+  const { user, tenant, enabledFeatures } = useAuth();
   const { initiateCall } = useCall();
 
   const [leads, setLeads] = useState(storageService.getLeads(tenant?.id));
@@ -34,7 +33,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
   const [calls, setCalls] = useState(storageService.getCalls(tenant?.id));
   const [followups, setFollowups] = useState(storageService.getFollowups(tenant?.id));
   const [plots, setPlots] = useState(storageService.getPlots());
-  const [siteVisits, setSiteVisits] = useState(storageService.getSiteVisits(tenant?.id));
   const [consultations, setConsultations] = useState(storageService.getConsultations(tenant?.id));
 
   // Sync with storage updates
@@ -45,7 +43,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
       setCalls(storageService.getCalls(tenant?.id));
       setFollowups(storageService.getFollowups(tenant?.id));
       setPlots(storageService.getPlots());
-      setSiteVisits(storageService.getSiteVisits(tenant?.id));
       setConsultations(storageService.getConsultations(tenant?.id));
     };
     window.addEventListener('nexus_storage_updated', handleUpdate);
@@ -58,34 +55,34 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
 
   const scopedLeads = isExec
     ? leads.filter(l =>
-        (l.assignedAgentId && l.assignedAgentId === user?.id) ||
-        (l.assignedAgentName && l.assignedAgentName === user?.name)
-      )
+      (l.assignedAgentId && l.assignedAgentId === user?.id) ||
+      (l.assignedAgentName && l.assignedAgentName === user?.name)
+    )
     : leads;
 
   const scopedDeals = isExec
     ? deals.filter(d =>
-        (d.assignedAgentId && d.assignedAgentId === user?.id) ||
-        (d.assignedAgentName && d.assignedAgentName === user?.name)
-      )
+      (d.assignedAgentId && d.assignedAgentId === user?.id) ||
+      (d.assignedAgentName && d.assignedAgentName === user?.name)
+    )
     : deals;
 
   const scopedCalls = isExec
     ? calls.filter(c =>
-        (c.agentId && c.agentId === user?.id) ||
-        (c.agentName && c.agentName === user?.name)
-      )
+      (c.agentId && c.agentId === user?.id) ||
+      (c.agentName && c.agentName === user?.name)
+    )
     : calls;
 
   const scopedFollowups = isExec
     ? followups.filter(f =>
-        (f.assignedAgentId && f.assignedAgentId === user?.id) ||
-        (f.assignedAgentName && f.assignedAgentName === user?.name)
-      )
+      (f.assignedAgentId && f.assignedAgentId === user?.id) ||
+      (f.assignedAgentName && f.assignedAgentName === user?.name)
+    )
     : followups;
 
   // ── Derived metrics ──────────────────────────────────────────────────────
-  const totalPipelineValue = scopedDeals.reduce((acc, d) => acc + d.value, 0);
+  const totalPipelineValue = scopedDeals.reduce((sum, d) => sum + (d.value || 0), 0);
   const overdueFollowups = scopedFollowups.filter(
     f => f.status === 'Pending' && f.scheduledAt.toLowerCase().includes('yesterday')
   );
@@ -128,50 +125,36 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
 
   // ── Task 3 — label helpers ───────────────────────────────────────────────
   const label = {
-    activeleads:     isExec ? 'MY ACTIVE LEADS'       : 'ACTIVE LEADS',
+    activeleads: isExec ? 'MY ACTIVE LEADS' : 'ACTIVE LEADS',
     pendingfollowups: isExec ? 'MY PENDING FOLLOW-UPS' : 'PENDING FOLLOW-UPS',
-    callslogged:     isExec ? 'MY CALLS LOGGED'       : 'CALLS LOGGED',
-    pipelinevalue:   isExec ? 'MY PIPELINE VALUE'     : 'PIPELINE VALUE',
-    bannerSubtitle:  isExec
+    callslogged: isExec ? 'MY CALLS LOGGED' : 'CALLS LOGGED',
+    pipelinevalue: isExec ? 'MY PIPELINE VALUE' : 'PIPELINE VALUE',
+    bannerSubtitle: isExec
       ? "Here's your personal pipeline, assigned leads, and today's action items."
       : 'Here is your daily pipeline, incoming inquiries, and pending action items for today.',
-    recentLeads:     isExec ? 'My Recent Leads'                   : 'Recent Inbound Leads',
-    followupsTable:  isExec ? 'My Follow-ups & Reminders'         : 'Scheduled Reminders & Follow-ups',
+    recentLeads: isExec ? 'My Recent Leads' : 'Recent Inbound Leads',
+    followupsTable: isExec ? 'My Follow-ups & Reminders' : 'Scheduled Reminders & Follow-ups',
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div className="dashboard-page-container">
       {/* Header Banner */}
-      <div
-        className="card"
-        style={{
-          background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-          color: '#ffffff',
-          padding: '24px 28px',
-          border: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 16,
-        }}
-      >
+      <div className="card dashboard-banner">
         <div>
-          <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8', fontWeight: 700 }}>
+          <div className="dashboard-banner-tag">
             {tenant?.name} • OPERATIONAL SNAPSHOT
           </div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#ffffff', marginTop: 4 }}>
+          <h1 className="dashboard-banner-title">
             Welcome back, {user?.name.split(' ')[0]} 👋
           </h1>
-          <p style={{ fontSize: 13, color: '#cbd5e1', marginTop: 4 }}>
+          <p className="dashboard-banner-subtitle">
             {label.bannerSubtitle}
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div className="dashboard-banner-actions">
           <button
-            className="btn btn-secondary btn-sm"
-            style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.2)' }}
+            className="btn btn-secondary btn-sm dashboard-banner-btn-secondary"
             onClick={() => onOpenQuickCreate('lead')}
           >
             <Plus size={14} /> Quick Lead
@@ -186,35 +169,35 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
       </div>
 
       {/* KPI Cards Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+      <div className="dashboard-kpi-grid">
         {/* Card 1: Active Leads */}
-        <div className="card card-hover" style={{ cursor: 'pointer' }} onClick={() => onNavigate('leads')}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{label.activeleads}</span>
-            <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="card card-hover dashboard-kpi-card" onClick={() => onNavigate('leads')}>
+          <div className="dashboard-kpi-header">
+            <span className="dashboard-kpi-label">{label.activeleads}</span>
+            <div className="dashboard-kpi-icon-box leads">
               <Users size={18} />
             </div>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 12, color: 'var(--text-primary)' }}>
+          <div className="dashboard-kpi-value">
             {scopedLeads.length}
           </div>
-          <div style={{ fontSize: 12, color: '#059669', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, fontWeight: 600 }}>
+          <div className="dashboard-kpi-delta-positive">
             <ArrowUpRight size={14} /> +{leadsThisWeek} this week
           </div>
         </div>
 
         {/* Card 2: Follow-ups */}
-        <div className="card card-hover" style={{ cursor: 'pointer' }} onClick={() => onNavigate('followups')}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{label.pendingfollowups}</span>
-            <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="card card-hover dashboard-kpi-card" onClick={() => onNavigate('followups')}>
+          <div className="dashboard-kpi-header">
+            <span className="dashboard-kpi-label">{label.pendingfollowups}</span>
+            <div className="dashboard-kpi-icon-box followups">
               <Clock size={18} />
             </div>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 12, color: 'var(--text-primary)' }}>
+          <div className="dashboard-kpi-value">
             {pendingFollowups.length}
           </div>
-          <div style={{ fontSize: 12, color: overdueFollowups.length > 0 ? '#dc2626' : '#64748b', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, fontWeight: 600 }}>
+          <div className={`dashboard-kpi-followup-status ${overdueFollowups.length > 0 ? 'overdue' : 'on-time'}`}>
             {overdueFollowups.length > 0 ? (
               <>
                 <AlertCircle size={14} /> {overdueFollowups.length} overdue item!
@@ -226,94 +209,81 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
         </div>
 
         {/* Card 3: Calls Logged */}
-        <div className="card card-hover" style={{ cursor: 'pointer' }} onClick={() => onNavigate('call-history')}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{label.callslogged}</span>
-            <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="card card-hover dashboard-kpi-card" onClick={() => onNavigate('call-history')}>
+          <div className="dashboard-kpi-header">
+            <span className="dashboard-kpi-label">{label.callslogged}</span>
+            <div className="dashboard-kpi-icon-box calls">
               <PhoneCall size={18} />
             </div>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 12, color: 'var(--text-primary)' }}>
+          <div className="dashboard-kpi-value">
             {scopedCalls.length}
           </div>
           {/* Task 4 — Missed Calls inline stat for Sales Executive */}
           {isExec ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            <div className="dashboard-kpi-exec-row">
+              <span className="dashboard-kpi-subtext">
                 Avg duration: {avgDuration}
               </span>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: missedCalls > 0 ? '#dc2626' : '#64748b',
-                  backgroundColor: missedCalls > 0 ? 'rgba(220,38,38,0.08)' : 'var(--bg-surface-hover)',
-                  border: `1px solid ${missedCalls > 0 ? 'rgba(220,38,38,0.2)' : 'var(--border-base)'}`,
-                  borderRadius: 6,
-                  padding: '2px 7px',
-                }}
-              >
+              <span className={`dashboard-missed-pill ${missedCalls > 0 ? 'has-missed' : 'none'}`}>
                 <PhoneMissed size={11} />
                 {missedCalls} missed
               </span>
             </div>
           ) : (
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+            <div className="dashboard-kpi-subtext">
               Avg duration: {avgDuration}
             </div>
           )}
         </div>
 
         {/* Card 4: Pipeline Value */}
-        <div className="card card-hover" style={{ cursor: 'pointer' }} onClick={() => onNavigate('pipeline')}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{label.pipelinevalue}</span>
-            <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'rgba(139, 92, 246, 0.1)', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="card card-hover dashboard-kpi-card" onClick={() => onNavigate('pipeline')}>
+          <div className="dashboard-kpi-header">
+            <span className="dashboard-kpi-label">{label.pipelinevalue}</span>
+            <div className="dashboard-kpi-icon-box deals">
               <TrendingUp size={18} />
             </div>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 12, color: 'var(--text-primary)' }}>
+          <div className="dashboard-kpi-value">
             {formatCurrency(totalPipelineValue)}
           </div>
-          <div style={{ fontSize: 12, color: '#2563eb', marginTop: 4, fontWeight: 600 }}>
+          <div className="dashboard-kpi-deals-stat">
             {scopedDeals.length} active deals
           </div>
         </div>
 
         {/* Tenant Specific 5th Card — plots (not scoped per-agent per spec) */}
         {enabledFeatures.includes(FEATURES.PROPERTIES) && (
-          <div className="card card-hover" style={{ cursor: 'pointer' }} onClick={() => onNavigate('plots')}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>PLOT INVENTORY</span>
-              <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'rgba(5, 150, 105, 0.1)', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="card card-hover dashboard-kpi-card" onClick={() => onNavigate('plots')}>
+            <div className="dashboard-kpi-header">
+              <span className="dashboard-kpi-label">PLOT INVENTORY</span>
+              <div className="dashboard-kpi-icon-box plots">
                 <MapPin size={18} />
               </div>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 800, marginTop: 12, color: 'var(--text-primary)' }}>
+            <div className="dashboard-kpi-value">
               {plots.filter(p => p.status === 'Available').length}{' '}
-              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-muted)' }}>/ {plots.length}</span>
+              <span className="dashboard-kpi-plots-total">/ {plots.length}</span>
             </div>
-            <div style={{ fontSize: 12, color: '#d97706', marginTop: 4, fontWeight: 600 }}>
+            <div className="dashboard-kpi-plots-stat">
               {plots.filter(p => p.status === 'Hold').length} currently on Hold
             </div>
           </div>
         )}
 
         {enabledFeatures.includes(FEATURES.INVESTORS) && (
-          <div className="card card-hover" style={{ cursor: 'pointer' }} onClick={() => onNavigate('consultations')}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>CONSULTATIONS</span>
-              <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'rgba(2, 132, 199, 0.1)', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="card card-hover dashboard-kpi-card" onClick={() => onNavigate('consultations')}>
+            <div className="dashboard-kpi-header">
+              <span className="dashboard-kpi-label">CONSULTATIONS</span>
+              <div className="dashboard-kpi-icon-box consultations">
                 <Calendar size={18} />
               </div>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 800, marginTop: 12, color: 'var(--text-primary)' }}>
+            <div className="dashboard-kpi-value">
               {consultations.length}
             </div>
-            <div style={{ fontSize: 12, color: '#059669', marginTop: 4, fontWeight: 600 }}>
+            <div className="dashboard-kpi-consultations-stat">
               {consultations.filter(c => c.status === 'Scheduled').length} upcoming this week
             </div>
           </div>
@@ -321,54 +291,45 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
       </div>
 
       {/* Main Split Row: Recent Inquiries & Actionable Followups */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 20 }}>
+      <div className="dashboard-split-grid">
         {/* Recent Leads Table */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border-base)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
+        <div className="card dashboard-split-card">
+          <div className="dashboard-split-header">
             <div>
-              <h3 style={{ fontSize: 15, fontWeight: 700 }}>{label.recentLeads}</h3>
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Click phone icon to dial immediately</p>
+              <h3 className="dashboard-split-title">{label.recentLeads}</h3>
+              <p className="dashboard-split-subtitle">Click phone icon to dial immediately</p>
             </div>
             <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('leads')}>
               View All Leads &rarr;
             </button>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <div className="dashboard-table-container">
+            <table className="dashboard-table">
               <thead>
-                <tr style={{ background: 'var(--bg-surface-hover)', borderBottom: '1px solid var(--border-base)', color: 'var(--text-secondary)', fontSize: 11, textTransform: 'uppercase' }}>
-                  <th style={{ padding: '10px 16px', textAlign: 'left' }}>Contact</th>
-                  <th style={{ padding: '10px 16px', textAlign: 'left' }}>Status</th>
-                  <th style={{ padding: '10px 16px', textAlign: 'left' }}>Priority</th>
-                  <th style={{ padding: '10px 16px', textAlign: 'right' }}>Quick Call</th>
+                <tr className="dashboard-table-thead-tr">
+                  <th className="dashboard-table-th">Contact</th>
+                  <th className="dashboard-table-th">Status</th>
+                  <th className="dashboard-table-th">Priority</th>
+                  <th className="dashboard-table-th right">Quick Call</th>
                 </tr>
               </thead>
               <tbody>
                 {scopedLeads.slice(0, 4).map(l => (
-                  <tr key={l.id} style={{ borderBottom: '1px solid var(--border-base)' }}>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{l.name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{l.phone} • {l.location}</div>
+                  <tr key={l.id} className="dashboard-table-tbody-tr">
+                    <td className="dashboard-table-td">
+                      <div className="dashboard-contact-name">{l.name}</div>
+                      <div className="dashboard-contact-meta">{l.phone} • {l.location}</div>
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
+                    <td className="dashboard-table-td">
                       <StatusChip status={l.status} size="sm" />
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
+                    <td className="dashboard-table-td">
                       <StatusChip status={l.priority} size="sm" />
                     </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                    <td className="dashboard-table-td right">
                       <button
-                        className="btn btn-call btn-sm btn-icon"
-                        style={{ width: 30, height: 30, borderRadius: 8 }}
+                        className="btn btn-call btn-sm btn-icon dashboard-call-btn"
                         title={`Call ${l.name}`}
                         onClick={() => initiateCall(l.name, l.phone, 'lead', l.id)}
                       >
@@ -383,48 +344,29 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
         </div>
 
         {/* Due Follow-ups & Reminders */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border-base)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
+        <div className="card dashboard-split-card">
+          <div className="dashboard-split-header">
             <div>
-              <h3 style={{ fontSize: 15, fontWeight: 700 }}>{label.followupsTable}</h3>
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Critical agent engagement tasks</p>
+              <h3 className="dashboard-split-title">{label.followupsTable}</h3>
+              <p className="dashboard-split-subtitle">Critical agent engagement tasks</p>
             </div>
             <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('followups')}>
               View All &rarr;
             </button>
           </div>
 
-          <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="dashboard-followups-list">
             {scopedFollowups.slice(0, 4).map(f => (
-              <div
-                key={f.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'var(--bg-surface-hover)',
-                  border: '1px solid var(--border-base)',
-                }}
-              >
+              <div key={f.id} className="dashboard-followup-item">
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontWeight: 600, fontSize: 13 }}>{f.contactName}</span>
+                  <div className="dashboard-followup-contact">
+                    <span className="dashboard-followup-name">{f.contactName}</span>
                     <StatusChip status={f.priority} size="sm" />
                   </div>
-                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+                  <p className="dashboard-followup-notes">
                     {f.notes}
                   </p>
-                  <div style={{ fontSize: 11, color: '#d97706', marginTop: 4, fontWeight: 600 }}>
+                  <div className="dashboard-followup-schedule">
                     ⏰ {f.scheduledAt} • Assignee: {f.assignedAgentName}
                   </div>
                 </div>
