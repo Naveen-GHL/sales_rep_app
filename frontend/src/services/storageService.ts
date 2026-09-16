@@ -551,6 +551,31 @@ class StorageService {
     }
   }
 
+  // Call Preferences (sound, desktop notifs, auto-busy, default followup time)
+  getCallPreferences(): {
+    soundEnabled: boolean;
+    desktopNotifEnabled: boolean;
+    autoBusyEnabled: boolean;
+    defaultFollowupTime: string;
+  } {
+    return this.get('call_preferences', {
+      soundEnabled: true,
+      desktopNotifEnabled: false,
+      autoBusyEnabled: true,
+      defaultFollowupTime: '11:00',
+    });
+  }
+
+  setCallPreferences(prefs: Partial<{
+    soundEnabled: boolean;
+    desktopNotifEnabled: boolean;
+    autoBusyEnabled: boolean;
+    defaultFollowupTime: string;
+  }>): void {
+    const existing = this.getCallPreferences();
+    this.set('call_preferences', { ...existing, ...prefs });
+  }
+
   // Reset to clean real-time empty slate
   resetData(): void {
     localStorage.clear();

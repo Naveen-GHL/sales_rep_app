@@ -39,12 +39,23 @@ export const CallHistoryPage: React.FC = () => {
     return `${mins}m ${secs}s`;
   };
 
+  // Parses an ISO timestamp and returns a readable local string.
+  // Falls back to the raw value for legacy non-ISO strings (e.g. old "Just now" entries).
+  const formatTimestamp = (iso: string): string => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso; // graceful fallback
+    const date = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); // "16 Sep"
+    const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }); // "10:23 AM"
+    return `${date}, ${time}`;
+  };
+
   const columns: Column<CallRecord>[] = [
     {
       key: 'timestamp',
       header: 'Date & Time',
       sortable: true,
-      render: c => <span style={{ fontSize: 12, fontWeight: 500 }}>{c.timestamp}</span>,
+      render: c => <span style={{ fontSize: 12, fontWeight: 500 }}>{formatTimestamp(c.timestamp)}</span>,
     },
     {
       key: 'contactName',
@@ -179,7 +190,7 @@ export const CallHistoryPage: React.FC = () => {
           setIsPlayingAudio(false);
         }}
         title="Call Detail & Transcription"
-        subtitle={`${selectedCall?.contactName} (${selectedCall?.contactPhone}) • ${selectedCall?.timestamp}`}
+        subtitle={`${selectedCall?.contactName} (${selectedCall?.contactPhone}) • ${selectedCall ? formatTimestamp(selectedCall.timestamp) : ''}`}
         width={560}
       >
         {selectedCall && (

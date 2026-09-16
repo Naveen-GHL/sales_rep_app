@@ -965,8 +965,26 @@ export const DispositionModal: React.FC = () => {
   const [disposition, setDisposition] = useState<CallDisposition>('Interested');
   const [notes, setNotes] = useState('');
   const [scheduleFollowup, setScheduleFollowup] = useState(false);
-  const [followupDate, setFollowupDate] = useState('Tomorrow, 11:00 AM');
+  const [followupDate, setFollowupDate] = useState('');
+  const [followupTime, setFollowupTime] = useState('');
   const [followupPriority, setFollowupPriority] = useState<'Low' | 'Medium' | 'High'>('High');
+
+  // Reset all form state fresh for every new call — keyed on lastCallRecord.id so
+  // it fires once per finished call, before the modal renders to the agent.
+  // tomorrowDate and defaultFollowupTime are recomputed here (not at module scope)
+  // so midnight rollovers and mid-session Call Settings changes both take effect.
+  useEffect(() => {
+    if (!lastCallRecord) return;
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    const freshTomorrow = d.toISOString().slice(0, 10);
+    setDisposition('Interested');
+    setNotes('');
+    setScheduleFollowup(false);
+    setFollowupDate(freshTomorrow);
+    setFollowupTime(storageService.getCallPreferences().defaultFollowupTime);
+    setFollowupPriority('High');
+  }, [lastCallRecord?.id]);
 
   if (!showDispositionModal || !lastCallRecord) return null;
 
@@ -981,12 +999,17 @@ export const DispositionModal: React.FC = () => {
   ];
 
   const handleSave = () => {
+    // Combine date + time into a proper ISO string so scheduledAt is parseable
+    const combinedDateTime = scheduleFollowup && followupDate
+      ? new Date(`${followupDate}T${followupTime || '11:00'}:00`).toISOString()
+      : '';
+
     saveDisposition(
       disposition,
       notes,
-      scheduleFollowup
+      scheduleFollowup && combinedDateTime
         ? {
-            scheduledAt: followupDate,
+            scheduledAt: combinedDateTime,
             priority: followupPriority,
             notes: `Follow-up required from call with ${lastCallRecord.contactName}: ${notes}`,
           }
@@ -1090,13 +1113,21 @@ export const DispositionModal: React.FC = () => {
           {scheduleFollowup && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 10 }}>
               <div className="form-group">
-                <label className="form-label">Follow-up Date / Time</label>
+                <label className="form-label">Follow-up Date</label>
                 <input
-                  type="text"
+                  type="date"
                   className="form-input"
                   value={followupDate}
                   onChange={e => setFollowupDate(e.target.value)}
-                  placeholder="e.g. Tomorrow, 11:00 AM"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Follow-up Time</label>
+                <input
+                  type="time"
+                  className="form-input"
+                  value={followupTime}
+                  onChange={e => setFollowupTime(e.target.value)}
                 />
               </div>
               <div className="form-group">

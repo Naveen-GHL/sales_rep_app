@@ -80,7 +80,7 @@ export const App: React.FC = () => {
     setQuickPhone('+91 ');
     setQuickNotes('');
     setScheduledDate(new Date(Date.now() + 86400000).toISOString().split('T')[0]);
-    setScheduledTime('11:00');
+    setScheduledTime(storageService.getCallPreferences().defaultFollowupTime);
     // Reset deal-specific state; pre-select first available customer
     setDealCustomerMode('existing');
     setNewCustomerName('');

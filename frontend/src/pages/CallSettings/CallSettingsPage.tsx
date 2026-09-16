@@ -7,17 +7,91 @@ import {
   ArrowDownLeft,
   Phone,
   Volume2,
+  Bell,
+  BellOff,
+  Clock,
+  Activity,
 } from 'lucide-react';
 import { storageService, PopupPosition } from '../../services/storageService';
 import { useCall } from '../../context/CallContext';
+
+// ── Shared inline toggle component matching this file's visual language ──────
+const SettingToggle: React.FC<{
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  id: string;
+}> = ({ checked, onChange, id }) => (
+  <label
+    htmlFor={id}
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      cursor: 'pointer',
+      userSelect: 'none',
+    }}
+  >
+    <div
+      style={{
+        position: 'relative',
+        width: 44,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: checked ? 'var(--primary-600)' : 'var(--border-strong)',
+        transition: 'background-color 0.2s',
+        flexShrink: 0,
+      }}
+    >
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        onChange={e => onChange(e.target.checked)}
+        style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          top: 3,
+          left: checked ? 23 : 3,
+          width: 18,
+          height: 18,
+          borderRadius: '50%',
+          backgroundColor: '#ffffff',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+          transition: 'left 0.2s',
+        }}
+      />
+    </div>
+  </label>
+);
+
+// ── Helper: play the Web Audio beep used for ringtone ────────────────────────
+const playTestBeep = () => {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    osc.frequency.value = 880;
+    osc.type = 'sine';
+    osc.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.3);
+  } catch { /* audio not available */ }
+};
 
 export const CallSettingsPage: React.FC = () => {
   const [position, setPosition] = useState<PopupPosition>(() => storageService.getPopupPosition());
   const { simulateIncomingCall } = useCall();
 
+  // ── Call preferences state ────────────────────────────────────────────────
+  const [prefs, setPrefs] = useState(() => storageService.getCallPreferences());
+
+  // Keep prefs in sync with other tabs / external writes
   useEffect(() => {
     const handleUpdate = () => {
       setPosition(storageService.getPopupPosition());
+      setPrefs(storageService.getCallPreferences());
     };
     window.addEventListener('nexus_storage_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
@@ -27,9 +101,31 @@ export const CallSettingsPage: React.FC = () => {
     };
   }, []);
 
+  // Notification permission state (live)
+  const notifSupported = typeof Notification !== 'undefined';
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>(
+    notifSupported ? Notification.permission : 'denied'
+  );
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const handleSelectPosition = (newPos: PopupPosition) => {
     setPosition(newPos);
     storageService.setPopupPosition(newPos);
+  };
+
+  const updatePref = <K extends keyof typeof prefs>(key: K, value: typeof prefs[K]) => {
+    const next = { ...prefs, [key]: value };
+    setPrefs(next);
+    storageService.setCallPreferences({ [key]: value });
+  };
+
+  const handleToggleDesktopNotif = async (enabled: boolean) => {
+    if (enabled && notifSupported && Notification.permission !== 'granted') {
+      const result = await Notification.requestPermission();
+      setNotifPermission(result);
+      if (result !== 'granted') return; // don't enable if permission wasn't granted
+    }
+    updatePref('desktopNotifEnabled', enabled);
   };
 
   const options: {
@@ -64,6 +160,22 @@ export const CallSettingsPage: React.FC = () => {
     },
   ];
 
+  // Notification permission status label
+  const notifPermissionLabel = () => {
+    if (!notifSupported) return null;
+    if (notifPermission === 'granted') {
+      return <span style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>✓ Granted</span>;
+    }
+    if (notifPermission === 'denied') {
+      return (
+        <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 600 }}>
+          Blocked — enable in browser settings
+        </span>
+      );
+    }
+    return <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Not yet requested</span>;
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Page Header */}
@@ -79,7 +191,8 @@ export const CallSettingsPage: React.FC = () => {
       </div>
 
       <div style={{ maxWidth: 760, display: 'flex', flexDirection: 'column', gap: 20, position: 'relative' }}>
-        {/* Incoming Call Popup Settings Card */}
+
+        {/* ── EXISTING CARD (UNCHANGED): Incoming Call Popup Position ── */}
         <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
             <div>
@@ -118,15 +231,12 @@ export const CallSettingsPage: React.FC = () => {
                     border: '1px solid',
                     borderColor: isSelected ? 'var(--primary-500)' : 'var(--border-base)',
                     boxShadow: isSelected ? '0 0 0 1px var(--primary-500)' : 'none',
-                    backgroundColor: isSelected
-                      ? 'var(--primary-50)'
-                      : 'var(--bg-card)',
+                    backgroundColor: isSelected ? 'var(--primary-50)' : 'var(--bg-card)',
                     cursor: 'pointer',
                     boxSizing: 'border-box',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    {/* Native Radio Input & Custom Indicator */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <input
                         type="radio"
@@ -278,6 +388,194 @@ export const CallSettingsPage: React.FC = () => {
                 }}
               >
                 <Phone size={10} /> Incoming Call
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── NEW CARD 1: Incoming Call Sound ── */}
+        <div className="card" style={{ padding: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flex: 1 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: prefs.soundEnabled ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-surface-hover)',
+                  color: prefs.soundEnabled ? '#059669' : 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Volume2 size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Incoming Call Sound
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>
+                  Play a short beep when a call starts ringing.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={playTestBeep}
+                style={{ fontSize: 12 }}
+                title="Preview the sound now"
+              >
+                Test Sound
+              </button>
+              <SettingToggle
+                id="toggle-sound"
+                checked={prefs.soundEnabled}
+                onChange={v => updatePref('soundEnabled', v)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ── NEW CARD 2: Desktop Notification ── */}
+        {notifSupported ? (
+          <div className="card" style={{ padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flex: 1 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: prefs.desktopNotifEnabled ? 'rgba(37, 99, 235, 0.1)' : 'var(--bg-surface-hover)',
+                    color: prefs.desktopNotifEnabled ? 'var(--primary-600)' : 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Bell size={18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+                    Browser Desktop Notification
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>
+                    Show a system notification when an incoming call rings.
+                  </div>
+                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Permission:</span>
+                    {notifPermissionLabel()}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ flexShrink: 0 }}>
+                <SettingToggle
+                  id="toggle-notif"
+                  checked={prefs.desktopNotifEnabled}
+                  onChange={handleToggleDesktopNotif}
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="card" style={{ padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <BellOff size={18} color="var(--text-muted)" />
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)' }}>
+                  Browser Desktop Notification
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>
+                  Not supported in this browser.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── NEW CARD 3: Auto-Busy Toggle ── */}
+        <div className="card" style={{ padding: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flex: 1 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: prefs.autoBusyEnabled ? 'rgba(245, 158, 11, 0.1)' : 'var(--bg-surface-hover)',
+                  color: prefs.autoBusyEnabled ? '#d97706' : 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Activity size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Auto-Busy During Calls
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>
+                  Automatically set your status to <strong>Busy</strong> when a call starts.
+                  Your status always reverts to Available after the call ends.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ flexShrink: 0 }}>
+              <SettingToggle
+                id="toggle-autobusy"
+                checked={prefs.autoBusyEnabled}
+                onChange={v => updatePref('autoBusyEnabled', v)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ── NEW CARD 4: Default Follow-up Time ── */}
+        <div className="card" style={{ padding: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                color: '#7c3aed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Clock size={18} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+                Default Follow-up Time
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, marginBottom: 12 }}>
+                Pre-fills the time field in Quick Create follow-ups and the post-call Disposition Modal.
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <input
+                  type="time"
+                  className="form-input"
+                  style={{ width: 140 }}
+                  value={prefs.defaultFollowupTime}
+                  onChange={e => updatePref('defaultFollowupTime', e.target.value)}
+                />
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  Saved instantly — takes effect the next time you open either form.
+                </span>
               </div>
             </div>
           </div>
