@@ -1,23 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Download, TrendingUp, PhoneCall, Users, Award } from 'lucide-react';
+import { BarChart3, Download, TrendingUp, PhoneCall, Users, Award, MapPin, Calendar, Clock, DollarSign, Building } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { storageService } from '../../services/storageService';
 import { PIPELINE_STAGES } from '../../constants/pipelineStages';
+import { FEATURES } from '../../constants/features';
 import { EmptyState } from '../../components/common/EmptyState';
-import { Lead, Deal, CallRecord } from '../../types';
+import { Lead, Deal, CallRecord, SiteVisit, Booking, Consultation, InvestmentOpportunity } from '../../types';
 
 export const ReportsPage: React.FC = () => {
-  const { tenant } = useAuth();
+  const { tenant, user, enabledFeatures } = useAuth();
   const [period, setPeriod] = useState<'week' | 'month' | 'quarter'>('month');
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [calls, setCalls] = useState<CallRecord[]>([]);
+  const [siteVisits, setSiteVisits] = useState<SiteVisit[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [opportunities, setOpportunities] = useState<InvestmentOpportunity[]>([]);
 
   const loadData = () => {
     setLeads(storageService.getLeads(tenant?.id));
     setDeals(storageService.getDeals(tenant?.id));
     setCalls(storageService.getCalls(tenant?.id));
+    setSiteVisits(storageService.getSiteVisits(tenant?.id));
+    setBookings(storageService.getBookings(tenant?.id));
+    setConsultations(storageService.getConsultations(tenant?.id));
+    setOpportunities(storageService.getOpportunities(tenant?.id));
   };
 
   useEffect(() => {
@@ -71,15 +80,29 @@ export const ReportsPage: React.FC = () => {
     return true;
   };
 
-  const periodLeads = leads.filter(l => isWithinPeriod(l.createdAt, period));
+  const isExec = user?.role?.code === 'sales_executive';
+
+  const scopedLeads = isExec
+    ? leads.filter(l => (l.assignedAgentId && l.assignedAgentId === user?.id) || (l.assignedAgentName && l.assignedAgentName === user?.name))
+    : leads;
+
+  const scopedDeals = isExec
+    ? deals.filter(d => (d.assignedAgentId && d.assignedAgentId === user?.id) || (d.assignedAgentName && d.assignedAgentName === user?.name))
+    : deals;
+
+  const scopedCalls = isExec
+    ? calls.filter(c => (c.agentId && c.agentId === user?.id) || (c.agentName && c.agentName === user?.name))
+    : calls;
+
+  const periodLeads = scopedLeads.filter(l => isWithinPeriod(l.createdAt, period));
   const convertedPeriodLeads = periodLeads.filter(l => l.status === 'Converted');
   const overallConversionRate = periodLeads.length > 0
     ? ((convertedPeriodLeads.length / periodLeads.length) * 100).toFixed(1)
     : null;
 
   // Telephone connect rate
-  const totalCalls = calls.length;
-  const connectedCalls = calls.filter(c => c.duration > 0);
+  const totalCalls = scopedCalls.length;
+  const connectedCalls = scopedCalls.filter(c => c.duration > 0);
   const connectRate = totalCalls > 0
     ? ((connectedCalls.length / totalCalls) * 100).toFixed(1)
     : null;
@@ -100,13 +123,13 @@ export const ReportsPage: React.FC = () => {
 
   const wonStageId = wonStage?.id || 'won';
 
-  const wonDeals = deals.filter(d => d.stage === wonStageId || d.stage === 'won' || d.stage === 'converted');
+  const wonDeals = scopedDeals.filter(d => d.stage === wonStageId || d.stage === 'won' || d.stage === 'converted');
   const closedValue = wonDeals.reduce((sum, d) => sum + (d.value || 0), 0);
 
   // Conversion Funnel steps
   const funnelSteps = stages.map((stage, idx) => {
-    const count = deals.filter(d => d.stage === stage.id).length;
-    const pct = deals.length > 0 ? `${((count / deals.length) * 100).toFixed(1)}%` : '0%';
+    const count = scopedDeals.filter(d => d.stage === stage.id).length;
+    const pct = scopedDeals.length > 0 ? `${((count / scopedDeals.length) * 100).toFixed(1)}%` : '0%';
     return {
       label: `${idx + 1}. ${stage.name}`,
       count,
@@ -284,7 +307,7 @@ export const ReportsPage: React.FC = () => {
           />
         ) : (
           <div className="card">
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>TOTAL INBOUND LEADS</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{isExec ? 'MY INBOUND LEADS' : 'TOTAL INBOUND LEADS'}</div>
             <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', marginTop: 8 }}>
               {periodLeads.length}
             </div>
@@ -303,7 +326,7 @@ export const ReportsPage: React.FC = () => {
           />
         ) : (
           <div className="card">
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>OVERALL CONVERSION</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{isExec ? 'MY CONVERSION RATE' : 'OVERALL CONVERSION'}</div>
             <div style={{ fontSize: 28, fontWeight: 800, color: '#2563eb', marginTop: 8 }}>
               {overallConversionRate}%
             </div>
@@ -322,7 +345,7 @@ export const ReportsPage: React.FC = () => {
           />
         ) : (
           <div className="card">
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>TELEPHONE CONNECT RATE</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{isExec ? 'MY CONNECT RATE' : 'TELEPHONE CONNECT RATE'}</div>
             <div style={{ fontSize: 28, fontWeight: 800, color: '#059669', marginTop: 8 }}>
               {connectRate}%
             </div>
@@ -341,7 +364,7 @@ export const ReportsPage: React.FC = () => {
           />
         ) : (
           <div className="card">
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>CLOSED VALUE</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{isExec ? 'MY CLOSED VALUE' : 'CLOSED VALUE'}</div>
             <div style={{ fontSize: 28, fontWeight: 800, color: '#7c3aed', marginTop: 8 }}>
               {formatCurrency(closedValue)}
             </div>
@@ -357,7 +380,7 @@ export const ReportsPage: React.FC = () => {
         {/* Conversion Funnel Card */}
         <div className="card" style={{ padding: 24 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
-            Lead-to-Close Conversion Funnel
+            {isExec ? 'My Conversion Funnel' : 'Lead-to-Close Conversion Funnel'}
           </h3>
 
           {deals.length === 0 ? (
@@ -448,8 +471,14 @@ export const ReportsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {leaderboard.map((agent, aIdx) => (
-                <tr key={agent.id || aIdx} style={{ borderBottom: '1px solid var(--border-base)' }}>
+              {leaderboard.map((agent, aIdx) => {
+                const isCurrentUser = user?.id ? agent.id === user.id : agent.name === user?.name;
+                return (
+                <tr key={agent.id || aIdx} style={{
+                  borderBottom: '1px solid var(--border-base)',
+                  backgroundColor: isCurrentUser ? 'rgba(37, 99, 235, 0.05)' : 'transparent',
+                  fontWeight: isCurrentUser ? 700 : 'normal'
+                }}>
                   <td style={{ padding: '14px 20px' }}>
                     <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{agent.name}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{agent.role || 'Sales Representative'}</div>
@@ -465,11 +494,167 @@ export const ReportsPage: React.FC = () => {
                     {formatCurrency(agent.revenue)}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
       </div>
+
+      {/* Tenant Specific Analytics Cards (Task 2) */}
+      {enabledFeatures?.includes(FEATURES.SITE_VISITS) && (() => {
+        const scopedVisits = isExec
+          ? siteVisits.filter(v => (v.assignedAgentId && v.assignedAgentId === user?.id) || (v.assignedAgentName && v.assignedAgentName === user?.name))
+          : siteVisits;
+        const scopedBookings = isExec
+          ? bookings.filter(b => (b.agentId && b.agentId === user?.id) || (b.agentName && b.agentName === user?.name))
+          : bookings;
+
+        const periodVisits = scopedVisits.filter(v => isWithinPeriod(v.scheduledAt, period));
+        const completedVisits = periodVisits.filter(v => v.status === 'Completed').length;
+        const noShowVisits = periodVisits.filter(v => v.status === 'No-show').length;
+
+        const periodBookings = scopedBookings.filter(b => isWithinPeriod(b.bookingDate, period));
+        const bookingRate = periodVisits.length > 0 ? ((periodBookings.length / periodVisits.length) * 100).toFixed(1) : null;
+        const totalBookingValue = periodBookings.reduce((acc, b) => acc + (b.totalAmount || 0), 0);
+
+        return (
+          <div className="card" style={{ padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+              <MapPin size={20} color="var(--primary-600)" />
+              <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Site Visits & Bookings Performance</h3>
+            </div>
+            
+            {periodVisits.length === 0 ? (
+              <EmptyState
+                icon={<MapPin size={24} />}
+                title="No Site Visits"
+                description={`No site visits scheduled in this ${period}.`}
+              />
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Visits Scheduled</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4 }}>{periodVisits.length}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                    {completedVisits} completed • {noShowVisits} no-shows
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Visit-to-Booking Rate</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, color: '#2563eb' }}>
+                    {bookingRate !== null ? `${bookingRate}%` : '—'}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                    {periodBookings.length} bookings generated
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Booking Value</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, color: '#059669' }}>
+                    {formatCurrency(totalBookingValue)}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                    Total amount for this {period}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {enabledFeatures?.includes(FEATURES.INVESTORS) && (() => {
+        const scopedConsultations = isExec
+          ? consultations.filter(c => (c.consultantId && c.consultantId === user?.id) || (c.consultantName && c.consultantName === user?.name))
+          : consultations;
+        const scopedOpps = isExec
+          ? opportunities.filter(o => (o.assignedAgentId && o.assignedAgentId === user?.id) || (o.assignedAgentName && o.assignedAgentName === user?.name))
+          : opportunities;
+
+        const periodConsultations = scopedConsultations.filter(c => isWithinPeriod(c.scheduledAt, period));
+        const completedConsultations = periodConsultations.filter(c => c.status === 'Completed').length;
+        const cancelledConsultations = periodConsultations.filter(c => c.status === 'Cancelled' || c.status === 'No-show').length;
+
+        // Opps stage breakdown - scoped by expectedCloseDate
+        const periodOpps = scopedOpps.filter(o => isWithinPeriod(o.expectedCloseDate, period));
+        
+        // Group by stage (reuse pipeline stages for GHL)
+        const oppStages = PIPELINE_STAGES.ghl;
+        const oppFunnelSteps = oppStages.map((stage, idx) => {
+          const count = periodOpps.filter(o => o.stage === stage.name || o.stage === stage.id).length;
+          const pct = periodOpps.length > 0 ? `${((count / periodOpps.length) * 100).toFixed(1)}%` : '0%';
+          return {
+            label: `${idx + 1}. ${stage.name}`,
+            count,
+            pct,
+            color: stage.color || '#3b82f6',
+          };
+        });
+
+        const closedWonAmount = periodOpps.filter(o => o.stage === 'Closed Won').reduce((acc, o) => acc + (o.committedAmount || 0), 0);
+
+        return (
+          <div className="card" style={{ padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+              <Building size={20} color="var(--primary-600)" />
+              <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Investor & Consultation Pipeline</h3>
+            </div>
+
+            {periodConsultations.length === 0 && periodOpps.length === 0 ? (
+              <EmptyState
+                icon={<Building size={24} />}
+                title="No Investor Pipeline"
+                description={`No consultations or opportunities found for this ${period}.`}
+              />
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Consultations Scheduled</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4 }}>{periodConsultations.length}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                      {completedConsultations} completed • {cancelledConsultations} cancelled/no-shows
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Closed Won Value</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, color: '#059669' }}>{formatCurrency(closedWonAmount)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                      Committed amount in this {period}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ flex: 2 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 12 }}>Opportunities by Stage</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {oppFunnelSteps.map((step, idx) => (
+                      <div key={idx}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                          <span>{step.label}</span>
+                          <span>{step.count} ({step.pct})</span>
+                        </div>
+                        <div style={{ height: 8, backgroundColor: 'var(--bg-surface-hover)', borderRadius: 4, overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              height: '100%',
+                              width: step.pct,
+                              backgroundColor: step.color,
+                              borderRadius: 4,
+                              transition: 'width 0.8s ease-in-out',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 };
