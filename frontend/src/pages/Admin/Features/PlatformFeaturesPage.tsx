@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles, CheckCircle2, Shield } from 'lucide-react';
 import { FEATURES } from '../../../constants/features';
+import './PlatformFeaturesPage.css';
 
 export const PlatformFeaturesPage: React.FC = () => {
   const catalog = [
@@ -21,43 +22,35 @@ export const PlatformFeaturesPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="platform-features-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title" style={{ color: '#ffffff' }}>
+          <h1 className="page-title">
             <Sparkles size={24} color="#8b5cf6" /> Master Feature Catalogue
           </h1>
-          <p className="page-subtitle" style={{ color: '#94a3b8' }}>
+          <p className="page-subtitle">
             Platform entitlement building blocks available for packaging into tenant subscription tiers.
           </p>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+      <div className="platform-features-grid">
         {catalog.map(item => (
           <div
             key={item.key}
-            className="card"
-            style={{
-              padding: 18,
-              backgroundColor: '#0f172a',
-              borderColor: '#334155',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-            }}
+            className="card platform-feature-card"
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#c084fc', textTransform: 'uppercase' }}>
+            <div className="platform-feature-card-header">
+              <span className="platform-feature-category">
                 {item.cat}
               </span>
-              <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#64748b' }}>
+              <span className="platform-feature-key">
                 {item.key}
               </span>
             </div>
 
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#ffffff' }}>{item.name}</h3>
-            <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>{item.desc}</p>
+            <h3 className="platform-feature-title">{item.name}</h3>
+            <p className="platform-feature-desc">{item.desc}</p>
           </div>
         ))}
       </div>

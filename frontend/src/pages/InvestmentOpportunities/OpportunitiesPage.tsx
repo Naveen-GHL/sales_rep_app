@@ -15,6 +15,7 @@ import { DataTable, Column, RowAction } from '../../components/common/DataTable'
 import { StatusChip } from '../../components/common/StatusChip';
 import { FilterBar } from '../../components/common/FilterBar';
 import { Modal } from '../../components/common/Modal';
+import './OpportunitiesPage.css';
 
 // ─── Stage enum (full ordered list) ─────────────────────────────────────────
 const STAGES: InvestmentOpportunity['stage'][] = [
@@ -100,10 +101,10 @@ export const OpportunitiesPage: React.FC = () => {
   // ── Role-based scoping ────────────────────────────────────────────────────
   const scopedOpps = isExec
     ? opps.filter(
-        o =>
-          (o.assignedAgentId && o.assignedAgentId === user?.id) ||
-          (o.assignedAgentName && o.assignedAgentName === user?.name),
-      )
+      o =>
+        (o.assignedAgentId && o.assignedAgentId === user?.id) ||
+        (o.assignedAgentName && o.assignedAgentName === user?.name),
+    )
     : opps;
 
   // ── Filter options ────────────────────────────────────────────────────────
@@ -222,8 +223,8 @@ export const OpportunitiesPage: React.FC = () => {
       sortable: true,
       render: o => (
         <div>
-          <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{o.title}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{o.notes}</div>
+          <div className="opp-title-primary">{o.title}</div>
+          <div className="opp-notes-sub">{o.notes}</div>
         </div>
       ),
     },
@@ -231,25 +232,19 @@ export const OpportunitiesPage: React.FC = () => {
       key: 'investorName',
       header: 'Lead Institutional Backer',
       sortable: true,
-      render: o => (
-        <span style={{ fontWeight: 600, color: 'var(--primary-600)' }}>{o.investorName}</span>
-      ),
+      render: o => <span className="opp-investor-text">{o.investorName}</span>,
     },
     {
       key: 'targetAmount',
       header: 'Target Tranche',
       sortable: true,
-      render: o => <span style={{ fontWeight: 700 }}>{formatCurrency(o.targetAmount)}</span>,
+      render: o => <span className="opp-target-text">{formatCurrency(o.targetAmount)}</span>,
     },
     {
       key: 'committedAmount',
       header: 'Committed Capital',
       sortable: true,
-      render: o => (
-        <span style={{ fontWeight: 800, color: '#059669' }}>
-          {formatCurrency(o.committedAmount)}
-        </span>
-      ),
+      render: o => <span className="opp-committed-text">{formatCurrency(o.committedAmount)}</span>,
     },
     {
       key: 'stage',
@@ -298,8 +293,7 @@ export const OpportunitiesPage: React.FC = () => {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* ── Page header ─────────────────────────────────────────────────── */}
+    <div className="opportunities-page">
       <div className="page-header">
         <div>
           <h1 className="page-title">

@@ -3,6 +3,7 @@ import { FileCheck, Shield } from 'lucide-react';
 import { AuditLog } from '../../../types';
 import { storageService } from '../../../services/storageService';
 import { DataTable, Column } from '../../../components/common/DataTable';
+import './PlatformAuditPage.css';
 
 export const PlatformAuditPage: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -19,14 +20,14 @@ export const PlatformAuditPage: React.FC = () => {
       key: 'timestamp',
       header: 'Timestamp',
       sortable: true,
-      render: l => <span style={{ fontSize: 12, color: '#94a3b8' }}>{l.timestamp}</span>,
+      render: l => <span className="platform-audit-timestamp">{l.timestamp}</span>,
     },
     {
       key: 'companyName',
       header: 'Tenant Namespace',
       sortable: true,
       render: l => (
-        <span style={{ fontWeight: 700, color: '#38bdf8' }}>
+        <span className="platform-audit-tenant-name">
           {l.companyName || 'GLOBAL PLATFORM'}
         </span>
       ),
@@ -37,8 +38,8 @@ export const PlatformAuditPage: React.FC = () => {
       sortable: true,
       render: l => (
         <div>
-          <div style={{ fontWeight: 700, color: '#ffffff' }}>{l.actorName}</div>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>{l.actorEmail}</div>
+          <div className="platform-audit-actor-name">{l.actorName}</div>
+          <div className="platform-audit-actor-email">{l.actorEmail}</div>
         </div>
       ),
     },
@@ -47,17 +48,7 @@ export const PlatformAuditPage: React.FC = () => {
       header: 'Action Key',
       sortable: true,
       render: l => (
-        <span
-          style={{
-            fontFamily: 'monospace',
-            fontSize: 11,
-            fontWeight: 700,
-            padding: '2px 6px',
-            backgroundColor: '#1e293b',
-            color: '#c084fc',
-            borderRadius: 4,
-          }}
-        >
+        <span className="platform-audit-action-tag">
           {l.action}
         </span>
       ),
@@ -65,18 +56,18 @@ export const PlatformAuditPage: React.FC = () => {
     {
       key: 'details',
       header: 'Event Description',
-      render: l => <span style={{ fontSize: 12, color: '#cbd5e1' }}>{l.details}</span>,
+      render: l => <span className="platform-audit-desc">{l.details}</span>,
     },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="platform-audit-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title" style={{ color: '#ffffff' }}>
+          <h1 className="page-title">
             <FileCheck size={24} color="#8b5cf6" /> System-Wide Security Audit Logs
           </h1>
-          <p className="page-subtitle" style={{ color: '#94a3b8' }}>
+          <p className="page-subtitle">
             Cross-tenant immutable audit trail across tenant activations, calling dispositions, and plot reservations.
           </p>
         </div>

@@ -1,17 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-  TrendingUp,
-  Plus,
-  Phone,
-  FileText,
-  ExternalLink,
-  Edit2,
-  Trash2,
-  Download,
-  Play,
-} from 'lucide-react';
-import Papa from 'papaparse';
+import { TrendingUp, Phone, ExternalLink, Edit2, Trash2, Download, Plus } from 'lucide-react';
 import { Investor, CallRecord, Consultation, InvestmentOpportunity, Followup } from '../../types';
+import Papa from 'papaparse';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
 import { storageService } from '../../services/storageService';
@@ -22,6 +12,7 @@ import { FilterBar } from '../../components/common/FilterBar';
 import { Modal } from '../../components/common/Modal';
 import { DocumentUploader } from '../../components/common/DocumentUploader';
 import { DocumentList } from '../../components/common/DocumentList';
+import './InvestorsPage.css';
 
 // ─── Form state shape ────────────────────────────────────────────────────────
 interface InvestorForm {
@@ -114,10 +105,10 @@ export const InvestorsPage: React.FC = () => {
   // sales_executive sees only their own investors; managers/admins see all
   const scopedInvestors = isExec
     ? investors.filter(
-        inv =>
-          (inv.assignedAgentId && inv.assignedAgentId === user?.id) ||
-          (inv.assignedAgentName && inv.assignedAgentName === user?.name),
-      )
+      inv =>
+        (inv.assignedAgentId && inv.assignedAgentId === user?.id) ||
+        (inv.assignedAgentName && inv.assignedAgentName === user?.name),
+    )
     : investors;
 
   // ── Filter options ────────────────────────────────────────────────────────
@@ -286,8 +277,8 @@ export const InvestorsPage: React.FC = () => {
       sortable: true,
       render: inv => (
         <div>
-          <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{inv.name}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+          <div className="investor-name-cell">{inv.name}</div>
+          <div className="investor-meta-cell">
             {inv.phone} {inv.email && `• ${inv.email}`}
           </div>
         </div>
@@ -298,7 +289,7 @@ export const InvestorsPage: React.FC = () => {
       header: 'Capital Capacity',
       sortable: true,
       render: inv => (
-        <span style={{ fontWeight: 800, color: '#0284c7' }}>{inv.investmentCapacity}</span>
+        <span className="investor-capacity-badge">{inv.investmentCapacity}</span>
       ),
     },
     {
@@ -360,8 +351,7 @@ export const InvestorsPage: React.FC = () => {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* ── Page header ─────────────────────────────────────────────────── */}
+    <div className="investors-page-container">
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -455,388 +445,51 @@ export const InvestorsPage: React.FC = () => {
         width={720}
       >
         {selectedInvestor && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-            {/* Quick-action bar */}
-            <div
-              style={{
-                backgroundColor: 'var(--bg-surface-hover)',
-                borderRadius: 'var(--radius-lg)',
-                padding: 14,
-                border: '1px solid var(--border-base)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 16,
-              }}
-            >
+          <div className="investor-drawer-body">
+            <div className="investor-quick-card">
               <div>
                 <StatusChip status={selectedInvestor.status} />
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
-                  Lead Wealth Partner:{' '}
-                  <strong>{selectedInvestor.assignedAgentName}</strong>
+                <div className="investor-partner-label">
+                  Lead Wealth Partner: <strong>{selectedInvestor.assignedAgentName}</strong>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: 5 }}
-                  onClick={() => openEditModal(selectedInvestor)}
-                >
-                  <Edit2 size={13} /> Edit
-                </button>
-                <button
-                  className="btn btn-primary btn-sm"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 5,
-                  }}
-                  onClick={() =>
-                    initiateCall(
-                      selectedInvestor.name,
-                      selectedInvestor.phone,
-                      'customer',
-                      selectedInvestor.id,
-                    )
-                  }
-                >
-                  <Phone size={13} /> Call Investor
-                </button>
+
+              <button
+                className="btn btn-primary btn-sm investor-call-btn-blue"
+                onClick={() => initiateCall(selectedInvestor.name, selectedInvestor.phone, 'customer', selectedInvestor.id)}
+              >
+                <Phone size={13} /> Call Investor
+              </button>
+            </div>
+
+            <div className="card investor-info-card">
+              <h4 className="investor-info-title">
+                Investment Allocation & Capacity
+              </h4>
+              <div className="investor-details-grid">
+                <div>
+                  <span style={{ color: 'var(--text-secondary)' }}>Capital Ticket:</span>
+                  <div className="investor-ticket-val">
+                    {selectedInvestor.investmentCapacity}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Tab strip */}
-            <div
-              style={{
-                display: 'flex',
-                borderBottom: '1px solid var(--border-base)',
-                backgroundColor: 'var(--bg-surface)',
-                overflowX: 'auto',
-                marginBottom: 20,
-              }}
-            >
-              {(
-                [
-                  { id: 'overview', label: 'Overview' },
-                  { id: 'calls', label: `Calls (${investorCalls.length})` },
-                  {
-                    id: 'consultations',
-                    label: `Consultations (${investorConsultations.length})`,
-                  },
-                  {
-                    id: 'opportunities',
-                    label: `Opportunities (${investorOpportunities.length})`,
-                  },
-                  { id: 'followups', label: `Follow-ups (${investorFollowups.length})` },
-                  { id: 'documents', label: 'Documents' },
-                ] as const
-              ).map(tab => (
-                <button
-                  key={tab.id}
-                  className="btn btn-ghost"
-                  style={tabBtnStyle(drawerTab === tab.id)}
-                  onClick={() => setDrawerTab(tab.id)}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            <div className="card investor-info-card">
+              <h4 className="investor-info-title">
+                Advisory Portfolio Notes
+              </h4>
+              <p className="investor-notes-text">
+                {selectedInvestor.notes || 'Institutional investor evaluation completed.'}
+              </p>
             </div>
 
-            {/* ── Tab: Overview ─────────────────────────────────────────── */}
-            {drawerTab === 'overview' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div className="card" style={{ padding: 18 }}>
-                  <h4
-                    style={{
-                      fontSize: 13,
-                      textTransform: 'uppercase',
-                      color: 'var(--text-muted)',
-                      marginBottom: 12,
-                    }}
-                  >
-                    Investment Allocation &amp; Capacity
-                  </h4>
-                  <div
-                    style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, fontSize: 13 }}
-                  >
-                    <div>
-                      <span style={{ color: 'var(--text-secondary)' }}>Capital Ticket:</span>
-                      <div style={{ fontWeight: 800, color: '#0284c7', fontSize: 16 }}>
-                        {selectedInvestor.investmentCapacity || '—'}
-                      </div>
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--text-secondary)' }}>Target Assets:</span>
-                      <div style={{ fontWeight: 700 }}>
-                        {selectedInvestor.preferredAssetClass || '—'}
-                      </div>
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--text-secondary)' }}>Syndicate / Referral:</span>
-                      <div style={{ fontWeight: 600 }}>
-                        {selectedInvestor.referralSource || 'Private Network'}
-                      </div>
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--text-secondary)' }}>Onboarded:</span>
-                      <div style={{ fontWeight: 600 }}>{selectedInvestor.createdAt}</div>
-                    </div>
-                    {selectedInvestor.committedAUM && (
-                      <div>
-                        <span style={{ color: 'var(--text-secondary)' }}>Committed AUM:</span>
-                        <div style={{ fontWeight: 700, color: '#059669' }}>
-                          {selectedInvestor.committedAUM}
-                        </div>
-                      </div>
-                    )}
-                    {selectedInvestor.investmentMandate && (
-                      <div>
-                        <span style={{ color: 'var(--text-secondary)' }}>Mandate:</span>
-                        <div style={{ fontWeight: 600 }}>{selectedInvestor.investmentMandate}</div>
-                      </div>
-                    )}
-                    {selectedInvestor.riskTolerance && (
-                      <div>
-                        <span style={{ color: 'var(--text-secondary)' }}>Risk Tolerance:</span>
-                        <div style={{ fontWeight: 600 }}>{selectedInvestor.riskTolerance}</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="card" style={{ padding: 18 }}>
-                  <h4
-                    style={{
-                      fontSize: 13,
-                      textTransform: 'uppercase',
-                      color: 'var(--text-muted)',
-                      marginBottom: 10,
-                    }}
-                  >
-                    Advisory Portfolio Notes
-                  </h4>
-                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                    {selectedInvestor.notes || 'Institutional investor evaluation completed.'}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* ── Tab: Calls ────────────────────────────────────────────── */}
-            {drawerTab === 'calls' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {investorCalls.length === 0 ? (
-                  <div
-                    style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}
-                  >
-                    No calls logged yet with this investor.
-                  </div>
-                ) : (
-                  investorCalls.map(c => (
-                    <div
-                      key={c.id}
-                      className="card"
-                      style={{
-                        padding: 16,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        border: '1px solid var(--border-base)',
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <StatusChip status={c.direction} size="sm" />
-                          <StatusChip status={c.disposition} size="sm" />
-                          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                            {Math.floor(c.duration / 60)}m {c.duration % 60}s • {c.timestamp}
-                          </span>
-                        </div>
-                        {c.transcription && (
-                          <p
-                            style={{
-                              fontSize: 12,
-                              color: 'var(--text-secondary)',
-                              marginTop: 6,
-                              fontStyle: 'italic',
-                            }}
-                          >
-                            "{c.transcription}"
-                          </p>
-                        )}
-                      </div>
-                      {c.recordingUrl && (
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() =>
-                            alert(
-                              `Simulated Playback: Playing audio for call with ${c.contactName}`,
-                            )
-                          }
-                        >
-                          <Play size={13} color="var(--primary-600)" /> Play Recording
-                        </button>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* ── Tab: Consultations ────────────────────────────────────── */}
-            {drawerTab === 'consultations' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {investorConsultations.length === 0 ? (
-                  <div
-                    style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}
-                  >
-                    No consultations scheduled for this investor.
-                  </div>
-                ) : (
-                  investorConsultations.map(c => (
-                    <div
-                      key={c.id}
-                      className="card"
-                      style={{
-                        padding: 16,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        border: '1px solid var(--border-base)',
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <StatusChip status={c.status} size="sm" />
-                          <span style={{ fontWeight: 600, fontSize: 13 }}>
-                            {c.agenda || 'Consultation'}
-                          </span>
-                        </div>
-                        <div
-                          style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 5 }}
-                        >
-                          📅 {c.scheduledAt} • Consultant:{' '}
-                          <strong>{c.consultantName}</strong>
-                        </div>
-                        {c.outcomeNotes && (
-                          <p
-                            style={{
-                              fontSize: 12,
-                              color: 'var(--text-muted)',
-                              fontStyle: 'italic',
-                              marginTop: 4,
-                            }}
-                          >
-                            {c.outcomeNotes}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* ── Tab: Opportunities ───────────────────────────────────── */}
-            {drawerTab === 'opportunities' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {investorOpportunities.length === 0 ? (
-                  <div
-                    style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}
-                  >
-                    No investment opportunities linked yet.
-                  </div>
-                ) : (
-                  investorOpportunities.map(o => (
-                    <div
-                      key={o.id}
-                      className="card"
-                      style={{
-                        padding: 16,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        border: '1px solid var(--border-base)',
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 14 }}>{o.title}</div>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            marginTop: 6,
-                          }}
-                        >
-                          <StatusChip status={o.stage} size="sm" />
-                          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                            Close: {o.expectedCloseDate}
-                          </span>
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: '#059669' }}>
-                          ₹{(o.committedAmount ?? 0).toLocaleString('en-IN')}
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                          of ₹{(o.targetAmount ?? 0).toLocaleString('en-IN')} target
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* ── Tab: Follow-ups ──────────────────────────────────────── */}
-            {drawerTab === 'followups' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {investorFollowups.length === 0 ? (
-                  <div
-                    style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}
-                  >
-                    No open follow-ups for this investor.
-                  </div>
-                ) : (
-                  investorFollowups.map(f => (
-                    <div
-                      key={f.id}
-                      style={{
-                        padding: 14,
-                        borderRadius: 'var(--radius-md)',
-                        backgroundColor: 'var(--bg-surface-hover)',
-                        border: '1px solid var(--border-base)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontWeight: 600, fontSize: 13 }}>{f.notes}</span>
-                          <StatusChip status={f.priority} size="sm" />
-                        </div>
-                        <div
-                          style={{ fontSize: 12, color: 'var(--primary-600)', marginTop: 4 }}
-                        >
-                          ⏰ Due: {f.scheduledAt} • {f.assignedAgentName}
-                        </div>
-                      </div>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => storageService.saveFollowup({ ...f, status: 'Completed' })}
-                      >
-                        Mark Done
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* ── Tab: Documents ──────────────────────────────────────── */}
-            {drawerTab === 'documents' && (
+            {/* Documents */}
+            <div className="card investor-info-card">
+              <h4 className="investor-info-title">
+                Documents
+              </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <DocumentUploader
                   entityType="investor"
@@ -855,7 +508,7 @@ export const InvestorsPage: React.FC = () => {
                   canDelete
                 />
               </div>
-            )}
+            </div>
           </div>
         )}
       </Drawer>

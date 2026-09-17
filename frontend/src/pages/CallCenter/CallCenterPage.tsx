@@ -1,21 +1,40 @@
-import React, { useState } from 'react';
-import {
-  PhoneCall,
-  Phone,
-  PhoneForwarded,
-  User,
-  Users,
-  Clock,
-  Radio,
-  CheckCircle2,
-  AlertCircle,
-  Delete,
-  Volume2,
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { PhoneCall, Phone, Delete } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
 import { storageService } from '../../services/storageService';
 import { AgentAvailabilityToggle } from '../../components/calling/CallCenterComponents';
+import { EmptyState } from '../../components/common/EmptyState';
+import { Followup } from '../../types';
+import './CallCenterPage.css';
+// ── Calendar-day comparison helper (same pattern as elsewhere in the app) ──────
+const isSameCalendarDay = (dateStr: string, ref: Date): boolean => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return false;
+  return (
+    d.getFullYear() === ref.getFullYear() &&
+    d.getMonth() === ref.getMonth() &&
+    d.getDate() === ref.getDate()
+  );
+};
+
+// ── Duration formatter (same as DashboardPage / ReportsPage) ─────────────────
+const formatDuration = (seconds: number): string => {
+  if (!seconds || seconds <= 0) return '0s';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.round(seconds % 60);
+  if (mins === 0) return `${secs}s`;
+  return `${mins}m ${secs < 10 ? '0' : ''}${secs}s`;
+};
+
+// ── Priority sort order ────────────────────────────────────────────────────────
+const PRIORITY_ORDER: Record<string, number> = {
+  Urgent: 0,
+  High: 1,
+  Medium: 2,
+  Low: 3,
+};
 
 export const CallCenterPage: React.FC = () => {
   const { tenant, user } = useAuth();
@@ -24,6 +43,121 @@ export const CallCenterPage: React.FC = () => {
   const [dialNumber, setDialNumber] = useState('+91 ');
   const [contactName, setContactName] = useState('');
 
+  // ── Real data ────────────────────────────────────────────────────────────────
+  const [calls, setCalls] = useState(storageService.getCalls(tenant?.id));
+  const [followups, setFollowups] = useState(storageService.getFollowups(tenant?.id));
+  const [leads, setLeads] = useState(storageService.getLeads(tenant?.id));
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setCalls(storageService.getCalls(tenant?.id));
+      setFollowups(storageService.getFollowups(tenant?.id));
+      setLeads(storageService.getLeads(tenant?.id));
+    };
+    window.addEventListener('nexus_storage_updated', handleUpdate);
+    return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
+  }, [tenant?.id]);
+
+  // ── Task 1: Today's outbound calls + connect rate ────────────────────────────
+  const today = new Date();
+  const todayOutbound = calls.filter(
+    c => c.direction === 'outbound' && isSameCalendarDay(c.timestamp, today)
+  );
+  const outboundConnected = todayOutbound.filter(c => c.duration > 0);
+  const outboundConnectRate =
+    todayOutbound.length > 0
+      ? ((outboundConnected.length / todayOutbound.length) * 100).toFixed(1)
+      : null;
+
+  // ── Task 2: Avg talk time from today's outbound connected calls ───────────────
+  const totalConnectedDuration = outboundConnected.reduce(
+    (sum, c) => sum + (c.duration || 0),
+    0
+  );
+  const avgTalkTime =
+    outboundConnected.length > 0
+      ? formatDuration(Math.round(totalConnectedDuration / outboundConnected.length))
+      : null;
+
+  // ── Task 3a: Pending followups due today ──────────────────────────────────────
+  const needsOutreachToday = followups.filter(
+    f => f.status === 'Pending' && isSameCalendarDay(f.scheduledAt, today)
+  );
+
+  // ── Task 5: Priority callback pipeline ────────────────────────────────────────
+  // Combine: pending followups due today or overdue + Urgent/High leads with no
+  // scheduled followup and not converted.
+  const isOverdueOrToday = (f: Followup): boolean => {
+    if (!f.scheduledAt) return false;
+    const d = new Date(f.scheduledAt);
+    if (isNaN(d.getTime())) return false;
+    // Due today or in the past (overdue)
+    return d <= new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  };
+
+  type PipelineItem = {
+    id: string;
+    name: string;
+    phone: string;
+    meta: string;
+    priority: string;
+    source: 'followup' | 'lead';
+  };
+
+  const pipelineFromFollowups: PipelineItem[] = followups
+    .filter(f => f.status === 'Pending' && isOverdueOrToday(f))
+    .map(f => ({
+      id: f.id,
+      name: f.contactName,
+      phone: f.contactPhone,
+      meta: f.notes || 'Pending follow-up',
+      priority: f.priority,
+      source: 'followup' as const,
+    }));
+
+  // Leads that are Urgent or High priority, not Converted, with no pending followup
+  const followupContactIds = new Set(
+    followups.filter(f => f.status === 'Pending').map(f => f.contactId)
+  );
+  const pipelineFromLeads: PipelineItem[] = leads
+    .filter(
+      l =>
+        (l.priority === 'Urgent' || l.priority === 'High') &&
+        l.status !== 'Converted' &&
+        !followupContactIds.has(l.id)
+    )
+    .map(l => ({
+      id: l.id,
+      name: l.name,
+      phone: l.phone,
+      meta: `${l.priority} priority lead • ${l.location || l.source}`,
+      priority: l.priority,
+      source: 'lead' as const,
+    }));
+
+  // Merge, deduplicate by name+phone, sort by priority, cap at 5
+  const seen = new Set<string>();
+  const pipelineItems = [...pipelineFromFollowups, ...pipelineFromLeads]
+    .filter(item => {
+      const key = `${item.name}|${item.phone}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort(
+      (a, b) =>
+        (PRIORITY_ORDER[a.priority] ?? 99) - (PRIORITY_ORDER[b.priority] ?? 99)
+    )
+    .slice(0, 5);
+
+  // ── Availability colour helper ────────────────────────────────────────────────
+  const availabilityColor = {
+    Available: '#10b981',
+    Busy: '#f59e0b',
+    Offline: '#64748b',
+  }[availability] ?? '#64748b';
+
+  // ── Dial pad handlers ─────────────────────────────────────────────────────────
   const handleDial = (digit: string) => {
     setDialNumber(prev => prev + digit);
   };
@@ -47,7 +181,7 @@ export const CallCenterPage: React.FC = () => {
             <PhoneCall size={24} color="var(--primary-600)" /> Call Center Cockpit
           </h1>
           <p className="page-subtitle">
-            Live agent routing, queue telemetry, and automated outbound dialer for {tenant?.name}.
+            Outbound dialer, callback pipeline, and your daily outreach dashboard for {tenant?.name}.
           </p>
         </div>
 
@@ -56,43 +190,100 @@ export const CallCenterPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Real-Time Telemetry Bar */}
+      {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+
+        {/* Card 1 — Needs Outreach Today (was "Queue Status") */}
         <div className="card">
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>QUEUE STATUS</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#10b981', marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }} />
-            0 Calls Waiting
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>
+            NEEDS OUTREACH TODAY
+          </div>
+          <div
+            style={{
+              fontSize: 24,
+              fontWeight: 800,
+              color: needsOutreachToday.length > 0 ? '#f59e0b' : 'var(--text-primary)',
+              marginTop: 6,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            {needsOutreachToday.length > 0 && (
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: '#f59e0b',
+                  boxShadow: '0 0 6px #f59e0b',
+                  animation: 'pulse-ring 1.5s infinite',
+                  flexShrink: 0,
+                }}
+              />
+            )}
+            {needsOutreachToday.length} Pending
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-            Average hold time: 0s
+            Follow-ups scheduled for today
           </div>
         </div>
 
+        {/* Card 2 — Your Status (was "Agents Online") */}
         <div className="card">
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>AGENTS ONLINE</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', marginTop: 6 }}>
-            4 Ready
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>
+            YOUR STATUS
+          </div>
+          <div
+            style={{
+              fontSize: 24,
+              fontWeight: 800,
+              color: availabilityColor,
+              marginTop: 6,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: availabilityColor,
+                boxShadow: `0 0 6px ${availabilityColor}`,
+                flexShrink: 0,
+              }}
+            />
+            {availability}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-            Tenant queue: {tenant?.slug.toUpperCase()}
+            Toggle from the header above
           </div>
         </div>
 
+        {/* Card 3 — Today's Outbound (real data) */}
         <div className="card">
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>TODAY'S OUTBOUND</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>
+            TODAY'S OUTBOUND
+          </div>
           <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--primary-600)', marginTop: 6 }}>
-            18 Calls
+            {todayOutbound.length} {todayOutbound.length === 1 ? 'Call' : 'Calls'}
           </div>
-          <div style={{ fontSize: 11, color: '#059669', marginTop: 4, fontWeight: 600 }}>
-            Connect rate: 83.3%
+          <div style={{ fontSize: 11, color: outboundConnectRate !== null ? '#059669' : 'var(--text-muted)', marginTop: 4, fontWeight: 600 }}>
+            {outboundConnectRate !== null
+              ? `Connect rate: ${outboundConnectRate}%`
+              : 'Connect rate: —'}
           </div>
         </div>
 
+        {/* Card 4 — Avg Talk Time (real data) */}
         <div className="card">
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>AVG TALK TIME</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>
+            AVG TALK TIME
+          </div>
           <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', marginTop: 6 }}>
-            4m 12s
+            {avgTalkTime ?? '—'}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
             Target: 3m - 6m
@@ -106,7 +297,16 @@ export const CallCenterPage: React.FC = () => {
         <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h3 style={{ fontSize: 15, fontWeight: 700 }}>Outbound Softphone</h3>
-            <span style={{ fontSize: 11, color: '#10b981', fontWeight: 600 }}>● SIP Connected</span>
+            {/* Task 4 — honest badge, no false SIP claim */}
+            <span
+              style={{
+                fontSize: 11,
+                color: '#64748b',
+                fontStyle: 'italic',
+              }}
+            >
+              ● Simulated Line
+            </span>
           </div>
 
           <div className="form-group">
@@ -167,14 +367,14 @@ export const CallCenterPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Callback Queue & Quick Dial Prospects */}
+        {/* Priority Callback Pipeline — real data */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="card" style={{ padding: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <div>
                 <h3 style={{ fontSize: 15, fontWeight: 700 }}>Priority Callback Pipeline</h3>
                 <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                  Inbound inquiries awaiting instant telephone outreach
+                  Today's pending follow-ups and high-priority leads awaiting outreach
                 </p>
               </div>
               <button
@@ -186,41 +386,69 @@ export const CallCenterPage: React.FC = () => {
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[
-                { name: 'Dr. Rajesh Nambiar', phone: '+91 98451 12233', meta: 'High Net-Worth Investor • Commercial Office', priority: 'Urgent' },
-                { name: 'Deepak & Sneha Kulkarni', phone: '+91 97312 88990', meta: 'Villa Plot Inquiry • Sarjapur East', priority: 'High' },
-                { name: 'Manjunath Swamy', phone: '+91 98801 44556', meta: 'Weekend Site Visit Follow-up', priority: 'Medium' },
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'var(--bg-surface-hover)',
-                    border: '1px solid var(--border-base)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 13 }}>{item.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
-                      {item.phone} • {item.meta}
-                    </div>
-                  </div>
+            {pipelineItems.length === 0 ? (
+              <EmptyState
+                icon={<PhoneCall size={24} />}
+                title="All caught up!"
+                description="No priority callbacks right now — you're all caught up."
+              />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {pipelineItems.map(item => {
+                  const priorityColor =
+                    item.priority === 'Urgent'
+                      ? '#dc2626'
+                      : item.priority === 'High'
+                        ? '#f59e0b'
+                        : 'var(--text-muted)';
 
-                  <button
-                    className="btn btn-primary btn-sm"
-                    style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
-                    onClick={() => initiateCall(item.name, item.phone)}
-                  >
-                    <Phone size={13} /> Dial Contact
-                  </button>
-                </div>
-              ))}
-            </div>
+                  return (
+                    <div
+                      key={item.id}
+                      style={{
+                        padding: '12px 16px',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: 'var(--bg-surface-hover)',
+                        border: '1px solid var(--border-base)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {item.name}
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: priorityColor,
+                              border: `1px solid ${priorityColor}`,
+                              borderRadius: 4,
+                              padding: '1px 5px',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            {item.priority}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                          {item.phone} • {item.meta}
+                        </div>
+                      </div>
+
+                      <button
+                        className="btn btn-primary btn-sm"
+                        style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', flexShrink: 0 }}
+                        onClick={() => initiateCall(item.name, item.phone)}
+                      >
+                        <Phone size={13} /> Dial Contact
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

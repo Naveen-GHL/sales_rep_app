@@ -3,6 +3,7 @@ import { FileText, FileImage, FileSpreadsheet, Trash2, File } from 'lucide-react
 import { DocumentItem } from '../../types';
 import { storageService } from '../../services/storageService';
 import { EmptyState } from './EmptyState';
+import './DocumentList.css';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,79 +68,24 @@ export const DocumentList: React.FC<DocumentListProps> = ({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          color: 'var(--text-muted)',
-          marginBottom: 2,
-        }}
-      >
+    <div className="document-list-container">
+      <div className="document-list-count">
         {docs.length} Document{docs.length !== 1 ? 's' : ''} Logged
       </div>
 
       {docs.map(doc => (
-        <div
-          key={doc.id}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '10px 14px',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-base)',
-            backgroundColor: 'var(--bg-surface)',
-            transition: 'background-color var(--transition-fast)',
-          }}
-          onMouseEnter={e =>
-            (e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)')
-          }
-          onMouseLeave={e =>
-            (e.currentTarget.style.backgroundColor = 'var(--bg-surface)')
-          }
-        >
+        <div key={doc.id} className="document-item-row">
           {/* Type icon */}
-          <div style={{ flexShrink: 0 }}>{getFileIcon(doc.type)}</div>
+          <div className="document-item-icon">{getFileIcon(doc.type)}</div>
 
           {/* File info */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                fontWeight: 600,
-                fontSize: 13,
-                color: 'var(--text-primary)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
+          <div className="document-item-details">
+            <div className="document-item-name">
               {doc.name}
             </div>
-            <div
-              style={{
-                fontSize: 11,
-                color: 'var(--text-muted)',
-                marginTop: 2,
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '4px 12px',
-              }}
-            >
+            <div className="document-item-meta">
               <span>{doc.size}</span>
-              <span
-                style={{
-                  padding: '1px 6px',
-                  borderRadius: 4,
-                  backgroundColor: 'var(--bg-surface-hover)',
-                  border: '1px solid var(--border-base)',
-                  fontWeight: 600,
-                  fontSize: 10,
-                  color: 'var(--text-secondary)',
-                }}
-              >
+              <span className="document-item-category">
                 {doc.category}
               </span>
               <span>by {doc.uploadedBy}</span>
@@ -150,16 +96,9 @@ export const DocumentList: React.FC<DocumentListProps> = ({
           {/* Delete */}
           {canDelete && (
             <button
-              className="btn btn-ghost btn-sm btn-icon"
+              className="btn btn-ghost btn-sm btn-icon document-item-delete-btn"
               title="Remove document record"
               onClick={() => handleDelete(doc.id)}
-              style={{
-                flexShrink: 0,
-                color: 'var(--danger)',
-                width: 30,
-                height: 30,
-                borderRadius: 'var(--radius-md)',
-              }}
             >
               <Trash2 size={14} />
             </button>

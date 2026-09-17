@@ -1,5 +1,6 @@
 import React from 'react';
 import { Inbox } from 'lucide-react';
+import './EmptyState.css';
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -19,51 +20,20 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   className = '',
 }) => {
   return (
-    <div
-      className={`card text-center ${className}`}
-      style={{
-        padding: '48px 24px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--bg-card)',
-        border: '1px dashed var(--border-strong)',
-      }}
-    >
-      <div
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: '50%',
-          backgroundColor: 'var(--bg-surface-hover)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-muted)',
-          marginBottom: 16,
-        }}
-      >
+    <div className={`card text-center empty-state-card ${className}`}>
+      <div className="empty-state-icon-circle">
         {icon || <Inbox size={28} />}
       </div>
-      <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+      <h3 className="empty-state-title">
         {title}
       </h3>
       {description && (
-        <p
-          style={{
-            fontSize: 13,
-            color: 'var(--text-secondary)',
-            maxWidth: 420,
-            marginBottom: actionLabel ? 20 : 0,
-            lineHeight: 1.5,
-          }}
-        >
+        <p className={`empty-state-description ${actionLabel ? 'with-action' : ''}`}>
           {description}
         </p>
       )}
       {actionLabel && onAction && (
-        <button className="btn btn-primary btn-sm" onClick={onAction}>
+        <button className="btn btn-primary" onClick={onAction}>
           {actionLabel}
         </button>
       )}

@@ -6,6 +6,7 @@ import { Tenant, User } from '../../../types';
 import { StatusChip } from '../../../components/common/StatusChip';
 import { Modal } from '../../../components/common/Modal';
 import { FEATURES } from '../../../constants/features';
+import './CompaniesPage.css';
 
 export const CompaniesPage: React.FC = () => {
   const { switchPersona } = useAuth();
@@ -112,48 +113,22 @@ export const CompaniesPage: React.FC = () => {
   const renderCompanyLogo = (c: Tenant) => {
     if (c.slug === 'ghl' || c.logo?.includes('ghl') || c.logo?.includes('Ventures')) {
       return (
-        <div
-          style={{
-            height: 44,
-            padding: '4px 8px',
-            borderRadius: 8,
-            backgroundColor: '#1e293b',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid #334155',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-            flexShrink: 0,
-          }}
-        >
+        <div className="company-logo-ghl">
           <img
             src="/og-image -GHL Ventures.png"
             alt={c.name}
-            style={{ height: 32, maxWidth: 120, objectFit: 'contain', display: 'block' }}
+            className="company-logo-img-ghl"
           />
         </div>
       );
     }
     if (c.slug === 'jamin' || c.logo?.includes('jamin')) {
       return (
-        <div
-          style={{
-            height: 44,
-            padding: '4px 8px',
-            borderRadius: 8,
-            backgroundColor: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid #334155',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-            flexShrink: 0,
-          }}
-        >
+        <div className="company-logo-jamin">
           <img
             src="/jamin-logo.png"
             alt={c.name}
-            style={{ height: 32, maxWidth: 110, objectFit: 'contain', display: 'block' }}
+            className="company-logo-img-jamin"
           />
         </div>
       );
@@ -163,25 +138,15 @@ export const CompaniesPage: React.FC = () => {
         <img
           src={c.logo}
           alt={c.name}
-          style={{ height: 44, maxWidth: 120, objectFit: 'contain', borderRadius: 8, flexShrink: 0 }}
+          className="company-logo-img-custom"
         />
       );
     }
     return (
       <div
+        className="company-logo-fallback"
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 8,
           background: `linear-gradient(135deg, ${c.brandColor || '#8b5cf6'} 0%, #1e1b4b 100%)`,
-          color: '#ffffff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 900,
-          fontSize: 16,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-          flexShrink: 0,
         }}
       >
         {c.name.charAt(0).toUpperCase()}
@@ -196,20 +161,19 @@ export const CompaniesPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="companies-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title" style={{ color: '#ffffff' }}>
+          <h1 className="page-title">
             <Building2 size={24} color="#8b5cf6" /> Tenant Companies & Organizations
           </h1>
-          <p className="page-subtitle" style={{ color: '#94a3b8' }}>
+          <p className="page-subtitle">
             Onboard new enterprises, provision feature entitlement packages, and manage cross-tenant accounts.
           </p>
         </div>
 
         <button
-          className="btn btn-primary"
-          style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}
+          className="btn btn-primary companies-btn-onboard"
           onClick={() => {
             setWizardStep(1);
             setIsOnboardingModalOpen(true);
@@ -220,45 +184,38 @@ export const CompaniesPage: React.FC = () => {
       </div>
 
       {/* Companies List Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 20 }}>
+      <div className="companies-grid">
         {companies.map(c => (
-          <div key={c.id} className="card card-hover" style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 16, backgroundColor: '#0f172a', borderColor: '#334155' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div key={c.id} className="card card-hover company-card">
+            <div className="company-card-top">
+              <div className="company-card-title-group">
                 {renderCompanyLogo(c)}
                 <div>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, color: '#ffffff' }}>{c.name}</h3>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>ID: {c.id}</div>
+                  <h3 className="company-card-name">{c.name}</h3>
+                  <div className="company-card-id">ID: {c.id}</div>
                 </div>
               </div>
 
               <StatusChip status={c.status || 'Active'} size="sm" />
             </div>
 
-            <p style={{ fontSize: 12, color: '#cbd5e1' }}>{c.tagline}</p>
+            <p className="company-card-tagline">{c.tagline}</p>
 
-            <div style={{ backgroundColor: '#1e293b', padding: '12px 14px', borderRadius: 'var(--radius-md)', fontSize: 12 }}>
-              <div style={{ fontWeight: 600, color: '#ffffff', marginBottom: 6 }}>
+            <div className="company-entitlements-box">
+              <div className="company-entitlements-title">
                 Active Entitlement Package ({c.enabledFeatures.length} features):
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              <div className="company-features-tags">
                 {c.enabledFeatures.slice(0, 6).map((f: string) => (
                   <span
                     key={f}
-                    style={{
-                      fontSize: 10,
-                      padding: '2px 6px',
-                      borderRadius: 4,
-                      backgroundColor: 'rgba(139, 92, 246, 0.2)',
-                      color: '#c084fc',
-                      fontWeight: 600,
-                    }}
+                    className="company-feature-tag"
                   >
                     {f}
                   </span>
                 ))}
                 {c.enabledFeatures.length > 6 && (
-                  <span style={{ fontSize: 10, color: '#94a3b8' }}>
+                  <span className="company-features-more">
                     +{c.enabledFeatures.length - 6} more
                   </span>
                 )}
@@ -266,14 +223,13 @@ export const CompaniesPage: React.FC = () => {
             </div>
 
             {/* Drill-in "View as Company" action (Blueprint Section 7.16) */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #334155', paddingTop: 14, marginTop: 'auto' }}>
-              <span style={{ fontSize: 11, color: '#94a3b8' }}>
+            <div className="company-card-bottom">
+              <span className="company-hours-text">
                 {c.businessHours}
               </span>
 
               <button
-                className="btn btn-secondary btn-sm"
-                style={{ backgroundColor: '#1e293b', color: '#ffffff', borderColor: '#475569' }}
+                className="btn btn-secondary btn-sm company-view-btn"
                 title="Impersonate / Drill into tenant workspace"
                 onClick={() => switchPersona('company_admin', c.slug)}
               >
@@ -304,12 +260,7 @@ export const CompaniesPage: React.FC = () => {
 
             {wizardStep < 6 ? (
               <button
-                className="btn btn-primary"
-                style={{
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
-                  opacity: isStepValid() ? 1 : 0.5,
-                  cursor: isStepValid() ? 'pointer' : 'not-allowed',
-                }}
+                className="btn btn-primary companies-wizard-btn-purple"
                 disabled={!isStepValid()}
                 onClick={() => isStepValid() && setWizardStep(s => s + 1)}
               >
@@ -317,12 +268,7 @@ export const CompaniesPage: React.FC = () => {
               </button>
             ) : (
               <button
-                className="btn btn-primary"
-                style={{
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  opacity: isStepValid() ? 1 : 0.5,
-                  cursor: isStepValid() ? 'pointer' : 'not-allowed',
-                }}
+                className="btn btn-primary companies-wizard-btn-green"
                 disabled={!isStepValid()}
                 onClick={handleCompleteOnboarding}
               >
@@ -332,11 +278,11 @@ export const CompaniesPage: React.FC = () => {
           </>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="companies-modal-stack">
           {/* Step 1: Details */}
           {wizardStep === 1 && (
             <>
-              <h4 style={{ fontSize: 14, fontWeight: 700 }}>Step 1: Organization Details</h4>
+              <h4 className="companies-step-heading">Step 1: Organization Details</h4>
               <div className="form-group">
                 <label className="form-label">Legal Company Name *</label>
                 <input
@@ -347,7 +293,7 @@ export const CompaniesPage: React.FC = () => {
                   onChange={e => setNewCompanyName(e.target.value)}
                   placeholder="e.g. Prestige Plotted Ventures"
                 />
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                <div className="companies-step-help">
                   Required to generate tenant namespace and isolated storage.
                 </div>
               </div>
@@ -370,54 +316,41 @@ export const CompaniesPage: React.FC = () => {
           {/* Step 2: Feature Package Checklist */}
           {wizardStep === 2 && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h4 style={{ fontSize: 14, fontWeight: 700 }}>Step 2: Feature Package Selection</h4>
-                <div style={{ display: 'flex', gap: 6 }}>
+              <div className="companies-features-header">
+                <h4 className="companies-step-heading">Step 2: Feature Package Selection</h4>
+                <div className="companies-features-actions">
                   <button
                     type="button"
-                    className="btn btn-secondary btn-sm"
-                    style={{ fontSize: 11, padding: '2px 8px' }}
+                    className="btn btn-secondary btn-sm companies-features-mini-btn"
                     onClick={() => setSelectedFeatures(Object.values(FEATURES))}
                   >
                     Select All
                   </button>
                   <button
                     type="button"
-                    className="btn btn-ghost btn-sm"
-                    style={{ fontSize: 11, padding: '2px 8px' }}
+                    className="btn btn-ghost btn-sm companies-features-mini-btn"
                     onClick={() => setSelectedFeatures([])}
                   >
                     Clear All
                   </button>
                 </div>
               </div>
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              <p className="companies-features-desc">
                 Select entitlement flags to be activated for this company ({selectedFeatures.length} of {Object.values(FEATURES).length} active):
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div className="companies-features-grid">
                 {Object.values(FEATURES).map((val: string) => (
                   <label
                     key={val}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      fontSize: 12,
-                      padding: '8px 10px',
-                      borderRadius: 'var(--radius-sm)',
-                      backgroundColor: selectedFeatures.includes(val)
-                        ? 'rgba(139, 92, 246, 0.1)'
-                        : 'var(--bg-surface-hover)',
-                      cursor: 'pointer',
-                    }}
+                    className={`company-feature-checkbox-label ${selectedFeatures.includes(val) ? 'is-selected' : ''}`}
                   >
                     <input
                       type="checkbox"
                       checked={selectedFeatures.includes(val)}
                       onChange={() => toggleFeature(val)}
-                      style={{ width: 15, height: 15 }}
+                      className="company-feature-checkbox"
                     />
-                    <span style={{ fontWeight: selectedFeatures.includes(val) ? 700 : 400 }}>
+                    <span className={selectedFeatures.includes(val) ? 'is-selected-feature' : ''}>
                       {val}
                     </span>
                   </label>
@@ -429,13 +362,13 @@ export const CompaniesPage: React.FC = () => {
           {/* Step 3: Default Roles */}
           {wizardStep === 3 && (
             <>
-              <h4 style={{ fontSize: 14, fontWeight: 700 }}>Step 3: Default Role Templates</h4>
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              <h4 className="companies-step-heading">Step 3: Default Role Templates</h4>
+              <p className="companies-features-desc">
                 The following standard RBAC role definitions will be provisioned in the tenant's namespace:
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="companies-modal-stack">
                 {['Company Admin (Full tenant privileges)', 'Sales Manager (Team management, reports, reassignment)', 'Sales Executive (Own leads, calling dialer, status updates)'].map((r, i) => (
-                  <div key={i} style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--bg-surface-hover)', fontSize: 12 }}>
+                  <div key={i} className="company-role-item">
                     ✓ <strong>{r}</strong>
                   </div>
                 ))}
@@ -446,7 +379,7 @@ export const CompaniesPage: React.FC = () => {
           {/* Step 4: Admin Account */}
           {wizardStep === 4 && (
             <>
-              <h4 style={{ fontSize: 14, fontWeight: 700 }}>Step 4: Initial Company Admin Account</h4>
+              <h4 className="companies-step-heading">Step 4: Initial Company Admin Account</h4>
               <div className="form-group">
                 <label className="form-label">Admin Full Name *</label>
                 <input
@@ -475,7 +408,7 @@ export const CompaniesPage: React.FC = () => {
           {/* Step 5: Call Configuration */}
           {wizardStep === 5 && (
             <>
-              <h4 style={{ fontSize: 14, fontWeight: 700 }}>Step 5: Telephony & Call Routing Configuration</h4>
+              <h4 className="companies-step-heading">Step 5: Telephony & Call Routing Configuration</h4>
               <div className="form-group">
                 <label className="form-label">Virtual Inbound DID Phone Number</label>
                 <input
@@ -503,10 +436,10 @@ export const CompaniesPage: React.FC = () => {
           {/* Step 6: Review & Activate */}
           {wizardStep === 6 && (
             <>
-              <h4 style={{ fontSize: 14, fontWeight: 700, color: '#10b981' }}>
+              <h4 className="companies-step-heading-green">
                 Step 6: Review Configuration & Activate
               </h4>
-              <div style={{ padding: 16, backgroundColor: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
+              <div className="company-review-box">
                 <div><strong>Company:</strong> {newCompanyName || 'New Venture'} ({newIndustry})</div>
                 <div><strong>Admin:</strong> {adminName || 'Admin'} ({adminEmail || 'admin@company.com'})</div>
                 <div><strong>DID Number:</strong> {didNumber} ({routingStrategy})</div>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Grid, Plus, CheckCircle, Clock } from 'lucide-react';
+import { MapPin, Grid } from 'lucide-react';
 import { PropertyProject } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { storageService } from '../../services/storageService';
 import { StatusChip } from '../../components/common/StatusChip';
+import './ProjectsPage.css';
 
 interface ProjectsPageProps {
   onNavigate: (route: string) => void;
@@ -21,7 +22,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigate }) => {
   }, []);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="projects-page-container">
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -33,40 +34,40 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
+      <div className="projects-grid">
         {projects.map(proj => (
-          <div key={proj.id} className="card card-hover" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div key={proj.id} className="card card-hover project-card">
+            <div className="project-header-row">
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700 }}>{proj.name}</h3>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                <h3 className="project-name">{proj.name}</h3>
+                <div className="project-location">
                   📍 {proj.location}
                 </div>
               </div>
               <StatusChip status={proj.status} size="sm" />
             </div>
 
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            <p className="project-desc">
               {proj.description}
             </p>
 
-            <div style={{ backgroundColor: 'var(--bg-surface-hover)', padding: '12px 14px', borderRadius: 'var(--radius-md)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', textAlign: 'center', gap: 8 }}>
+            <div className="project-stats-box">
               <div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Available</div>
-                <div style={{ fontWeight: 800, fontSize: 15, color: '#059669' }}>{proj.availablePlots}</div>
+                <div className="project-stat-label">Available</div>
+                <div className="project-stat-val-avail">{proj.availablePlots}</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>On Hold</div>
-                <div style={{ fontWeight: 800, fontSize: 15, color: '#d97706' }}>{proj.holdPlots}</div>
+                <div className="project-stat-label">On Hold</div>
+                <div className="project-stat-val-hold">{proj.holdPlots}</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Sold</div>
-                <div style={{ fontWeight: 800, fontSize: 15, color: '#dc2626' }}>{proj.soldPlots}</div>
+                <div className="project-stat-label">Sold</div>
+                <div className="project-stat-val-sold">{proj.soldPlots}</div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-base)', paddingTop: 12, marginTop: 'auto' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div className="project-footer-row">
+              <span className="project-price-range">
                 {proj.priceRange}
               </span>
               <button

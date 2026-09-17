@@ -29,7 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('nexus_current_user');
     if (saved) {
-      try { return JSON.parse(saved); } catch {}
+      try { return JSON.parse(saved); } catch { }
     }
     // Default to active session if previously saved, else null (shows Login)
     return null;
@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [tenant, setTenant] = useState<Tenant | null>(() => {
     const saved = localStorage.getItem('nexus_current_tenant');
     if (saved) {
-      try { return JSON.parse(saved); } catch {}
+      try { return JSON.parse(saved); } catch { }
     }
     return DEFAULT_TENANTS.ghl;
   });
@@ -108,13 +108,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ? slug === 'ghl'
             ? 'Vikram Malhotra'
             : slug === 'jamin'
-            ? 'Kavita Rao'
-            : `${targetTenant.name} Admin`
+              ? 'Kavita Rao'
+              : `${targetTenant.name} Admin`
           : slug === 'ghl'
-          ? 'Ananya Iyer'
-          : slug === 'jamin'
-          ? 'Pooja Hegde'
-          : `${targetTenant.name} Agent`,
+            ? 'Ananya Iyer'
+            : slug === 'jamin'
+              ? 'Pooja Hegde'
+              : `${targetTenant.name} Agent`,
       email: `${roleCode}@${slug}.com`,
       phone: '+91 98450 00000',
       role: SYSTEM_ROLES[roleCode] || SYSTEM_ROLES.company_admin,

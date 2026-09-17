@@ -1,5 +1,6 @@
 import React from 'react';
 import { Filter, X } from 'lucide-react';
+import './FilterBar.css';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -51,70 +52,27 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     (dateRange ? dateRange.from !== '' || dateRange.to !== '' : false);
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: 10,
-      }}
-    >
+    <div className="filterbar-container">
       {/* Label */}
-      <span
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 5,
-          fontSize: 12,
-          fontWeight: 600,
-          color: 'var(--text-secondary)',
-          whiteSpace: 'nowrap',
-          userSelect: 'none',
-        }}
-      >
+      <span className="filterbar-label">
         <Filter size={13} />
         Filters:
       </span>
 
       {/* Select Dropdowns */}
       {filters.map(filter => (
-        <div
-          key={filter.key}
-          style={{ display: 'flex', alignItems: 'center', gap: 5 }}
-        >
+        <div key={filter.key} className="filterbar-item">
           <label
             htmlFor={`filter-${filter.key}`}
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: 'var(--text-secondary)',
-              whiteSpace: 'nowrap',
-            }}
+            className="filterbar-item-label"
           >
             {filter.label}:
           </label>
           <select
             id={`filter-${filter.key}`}
-            className="form-select"
+            className={`form-select filterbar-select ${filter.value !== 'All' && filter.value !== '' ? 'active' : ''}`}
             value={filter.value}
             onChange={e => filter.onChange(e.target.value)}
-            style={{
-              height: 32,
-              fontSize: 12,
-              paddingTop: 0,
-              paddingBottom: 0,
-              paddingLeft: 10,
-              paddingRight: 28,
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-base)',
-              backgroundColor:
-                filter.value !== 'All' && filter.value !== ''
-                  ? 'var(--primary-50)'
-                  : 'var(--bg-surface)',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              minWidth: 110,
-            }}
           >
             <option value="All">All</option>
             {filter.options.map(opt => (
@@ -128,64 +86,24 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
       {/* Optional Date Range Picker */}
       {dateRange && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <label
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: 'var(--text-secondary)',
-              whiteSpace: 'nowrap',
-            }}
-          >
+        <div className="filterbar-date-group">
+          <label className="filterbar-item-label">
             From:
           </label>
           <input
             type="date"
-            className="form-input"
+            className={`form-input filterbar-date-input ${dateRange.from !== '' ? 'active' : ''}`}
             value={dateRange.from}
             onChange={e => dateRange.onChange(e.target.value, dateRange.to)}
-            style={{
-              height: 32,
-              fontSize: 12,
-              paddingTop: 0,
-              paddingBottom: 0,
-              paddingLeft: 10,
-              paddingRight: 10,
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-base)',
-              backgroundColor:
-                dateRange.from !== '' ? 'var(--primary-50)' : 'var(--bg-surface)',
-              minWidth: 130,
-            }}
           />
-          <label
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: 'var(--text-secondary)',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <label className="filterbar-item-label">
             To:
           </label>
           <input
             type="date"
-            className="form-input"
+            className={`form-input filterbar-date-input ${dateRange.to !== '' ? 'active' : ''}`}
             value={dateRange.to}
             onChange={e => dateRange.onChange(dateRange.from, e.target.value)}
-            style={{
-              height: 32,
-              fontSize: 12,
-              paddingTop: 0,
-              paddingBottom: 0,
-              paddingLeft: 10,
-              paddingRight: 10,
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-base)',
-              backgroundColor:
-                dateRange.to !== '' ? 'var(--primary-50)' : 'var(--bg-surface)',
-              minWidth: 130,
-            }}
           />
         </div>
       )}
@@ -193,20 +111,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       {/* Clear All — only visible when something is active */}
       {hasActiveFilter && onClearAll && (
         <button
-          className="btn btn-ghost btn-sm"
+          className="btn btn-ghost btn-sm filterbar-clear-btn"
           onClick={onClearAll}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            fontSize: 11,
-            color: 'var(--text-secondary)',
-            padding: '4px 8px',
-            height: 32,
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-base)',
-            whiteSpace: 'nowrap',
-          }}
         >
           <X size={12} />
           Clear

@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ChevronDown,
   ChevronUp,
@@ -9,6 +10,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { EmptyState } from './EmptyState';
+import './DataTable.css';
 
 export interface Column<T> {
   key: string;
@@ -66,6 +68,37 @@ export function DataTable<T>({
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [activeMenuKey, setActiveMenuKey] = useState<string | null>(null);
+
+  // Portal-based dropdown positioning
+  interface MenuPosition { top?: number; bottom?: number; right: number; }
+  const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
+  const triggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  // Close menu on scroll so it doesn't drift from its anchor
+  useEffect(() => {
+    if (!activeMenuKey) return;
+    const close = () => setActiveMenuKey(null);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [activeMenuKey]);
+
+  const openMenu = (key: string) => {
+    const btn = triggerRefs.current[key];
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    if (spaceBelow < 200) {
+      // Flip above the button
+      setMenuPos({ bottom: window.innerHeight - rect.top + 4, right: window.innerWidth - rect.right });
+    } else {
+      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    }
+    setActiveMenuKey(key);
+  };
 
   // Filter
   const filteredData = useMemo(() => {
@@ -363,63 +396,15 @@ export function DataTable<T>({
                         onClick={e => e.stopPropagation()}
                       >
                         <button
+                          ref={el => { triggerRefs.current[rowKey] = el; }}
                           className="btn btn-ghost btn-icon btn-sm"
                           style={{ width: 30, height: 30 }}
                           onClick={() =>
-                            setActiveMenuKey(activeMenuKey === rowKey ? null : rowKey)
+                            activeMenuKey === rowKey ? setActiveMenuKey(null) : openMenu(rowKey)
                           }
                         >
                           <MoreVertical size={16} />
                         </button>
-
-                        {/* Dropdown Menu */}
-                        {activeMenuKey === rowKey && (
-                          <>
-                            <div
-                              style={{
-                                position: 'fixed',
-                                inset: 0,
-                                zIndex: 50,
-                              }}
-                              onClick={() => setActiveMenuKey(null)}
-                            />
-                            <div
-                              className="card animate-slide-down"
-                              style={{
-                                position: 'absolute',
-                                right: 16,
-                                top: 40,
-                                zIndex: 60,
-                                minWidth: 160,
-                                padding: '6px',
-                                boxShadow: 'var(--shadow-lg)',
-                              }}
-                            >
-                              {rowActions
-                                .filter(action => !action.hidden || !action.hidden(item))
-                                .map((action, aIdx) => (
-                                  <button
-                                    key={aIdx}
-                                    className="btn btn-ghost btn-sm"
-                                    style={{
-                                      width: '100%',
-                                      justifyContent: 'flex-start',
-                                      color: action.danger
-                                        ? 'var(--danger)'
-                                        : 'var(--text-primary)',
-                                    }}
-                                    onClick={() => {
-                                      setActiveMenuKey(null);
-                                      action.onClick(item);
-                                    }}
-                                  >
-                                    {action.icon}
-                                    {action.label}
-                                  </button>
-                                ))}
-                            </div>
-                          </>
-                        )}
                       </td>
                     )}
                   </tr>
@@ -428,6 +413,56 @@ export function DataTable<T>({
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Portaled dropdown — renders into document.body, escapes all overflow clipping */}
+      {activeMenuKey && menuPos && createPortal(
+        <>
+          {/* Click-outside backdrop */}
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+            onClick={() => setActiveMenuKey(null)}
+          />
+          <div
+            className="card animate-slide-down"
+            style={{
+              position: 'fixed',
+              top: menuPos.top,
+              bottom: menuPos.bottom,
+              right: menuPos.right,
+              zIndex: 9999,
+              minWidth: 168,
+              padding: '6px',
+              boxShadow: 'var(--shadow-lg)',
+            }}
+          >
+            {(() => {
+              const item = paginatedData.find(i => keyExtractor(i) === activeMenuKey);
+              if (!item) return null;
+              return rowActions!
+                .filter(action => !action.hidden || !action.hidden(item))
+                .map((action, aIdx) => (
+                  <button
+                    key={aIdx}
+                    className="btn btn-ghost btn-sm"
+                    style={{
+                      width: '100%',
+                      justifyContent: 'flex-start',
+                      color: action.danger ? 'var(--danger)' : 'var(--text-primary)',
+                    }}
+                    onClick={() => {
+                      setActiveMenuKey(null);
+                      action.onClick(item);
+                    }}
+                  >
+                    {action.icon}
+                    {action.label}
+                  </button>
+                ));
+            })()}
+          </div>
+        </>,
+        document.body
       )}
 
       {/* Pagination Footer */}

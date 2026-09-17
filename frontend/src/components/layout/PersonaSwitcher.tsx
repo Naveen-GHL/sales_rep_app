@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Shield, Building2, UserCheck, RefreshCw, ChevronDown } from 'lucide-react';
 import { storageService } from '../../services/storageService';
+import './PersonaSwitcher.css';
 
 export const PersonaSwitcher: React.FC = () => {
   const { user, tenant, isSuperAdmin, switchPersona } = useAuth();
@@ -59,84 +60,29 @@ export const PersonaSwitcher: React.FC = () => {
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="persona-switcher-container">
       <button
-        className="btn btn-secondary btn-sm"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          color: '#ffffff',
-          background: isSuperAdmin
-            ? 'rgba(139, 92, 246, 0.1)'
-            : 'rgba(59, 130, 246, 0.08)',
-          border: `1px solid ${isSuperAdmin ? '#8b5cf6' : 'var(--primary-500)'
-            }`,
-          padding: '5px 12px',
-        }}
+        className={`btn btn-secondary btn-sm persona-trigger-btn ${isSuperAdmin ? 'super-admin' : 'tenant-admin'}`}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: '#ffffff',
-          }}
-        >
-          ROLE:
-        </span>
-
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: '#ffffff',
-          }}
-        >
+        <span className="persona-role-prefix">ROLE:</span>
+        <span className="persona-role-name">
           {isSuperAdmin ? 'Super Admin' : `${tenant?.name} (${user?.role.name})`}
         </span>
-
         <ChevronDown size={14} color="#ffffff" />
       </button>
 
       {isOpen && (
         <>
           <div
-            style={{ position: 'fixed', inset: 0, zIndex: 1000 }}
+            className="persona-backdrop"
             onClick={() => setIsOpen(false)}
           />
-          <div
-            className="card animate-slide-down"
-            style={{
-              position: 'absolute',
-              top: '100%',
-              right: 0,
-              marginTop: 8,
-              zIndex: 1050,
-              width: 320,
-              padding: 8,
-              boxShadow: 'var(--shadow-xl)',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                padding: '8px 12px 10px',
-                borderBottom: '1px solid var(--border-base)',
-                fontSize: 11,
-                fontWeight: 700,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
+          <div className="card animate-slide-down persona-dropdown">
+            <div className="persona-dropdown-header">
               <span>Switch Tenant Persona</span>
               <button
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize: 10, padding: '2px 6px', color: 'var(--text-muted)' }}
+                className="btn btn-ghost btn-sm persona-reset-btn"
                 onClick={handleResetData}
                 title="Reset local storage"
               >
@@ -144,7 +90,7 @@ export const PersonaSwitcher: React.FC = () => {
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+            <div className="persona-list">
               {personas.map((p, idx) => {
                 const isActive =
                   p.role === 'super_admin'
@@ -154,62 +100,23 @@ export const PersonaSwitcher: React.FC = () => {
                 return (
                   <button
                     key={idx}
-                    className="btn btn-ghost"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      textAlign: 'left',
-                      padding: '8px 10px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: isActive ? 'var(--primary-50)' : 'transparent',
-                      border: isActive ? '1px solid var(--primary-100)' : '1px solid transparent',
-                    }}
+                    className={`btn btn-ghost persona-item-btn ${isActive ? 'active' : ''}`}
                     onClick={() => {
                       switchPersona(p.role, (p as any).slug);
                       setIsOpen(false);
                     }}
                   >
-                    <div style={{ marginTop: 2, marginRight: 10 }}>{p.icon}</div>
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          alignItems: 'center',
-                          gap: 6,
-                          whiteSpace: 'normal',
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: isActive ? '#0f172a' : 'var(--text-primary)',
-                          }}
-                        >
+                    <div className="persona-item-icon">{p.icon}</div>
+                    <div className="persona-item-content">
+                      <div className="persona-item-header">
+                        <span className={`persona-item-label ${isActive ? 'active' : ''}`}>
                           {p.label}
                         </span>
-                        <span
-                          style={{
-                            fontSize: 10,
-                            padding: '1px 6px',
-                            borderRadius: 'var(--radius-full)',
-                            background: 'var(--bg-surface-hover)',
-                            color: 'var(--text-secondary)',
-                            flexShrink: 0,
-                          }}
-                        >
+                        <span className="persona-item-badge">
                           {p.badge}
                         </span>
                       </div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: isActive ? '#475569' : 'var(--text-muted)',
-                          marginTop: 2,
-                          whiteSpace: 'normal',
-                        }}
-                      >
+                      <div className={`persona-item-desc ${isActive ? 'active' : ''}`}>
                         {p.desc}
                       </div>
                     </div>
@@ -219,17 +126,7 @@ export const PersonaSwitcher: React.FC = () => {
 
               {customTenants.length > 0 && (
                 <>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      color: 'var(--text-muted)',
-                      padding: '8px 10px 4px',
-                      borderTop: '1px solid var(--border-subtle)',
-                    }}
-                  >
+                  <div className="persona-custom-header">
                     Custom Tenants
                   </div>
                   {customTenants.map(t => {
@@ -237,64 +134,25 @@ export const PersonaSwitcher: React.FC = () => {
                     return (
                       <button
                         key={t.id}
-                        className="btn btn-ghost"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          textAlign: 'left',
-                          padding: '8px 10px',
-                          borderRadius: 'var(--radius-md)',
-                          backgroundColor: isActive ? 'var(--primary-50)' : 'transparent',
-                          border: isActive ? '1px solid var(--primary-100)' : '1px solid transparent',
-                        }}
+                        className={`btn btn-ghost persona-item-btn ${isActive ? 'active' : ''}`}
                         onClick={() => {
                           switchPersona('company_admin', t.slug);
                           setIsOpen(false);
                         }}
                       >
-                        <div style={{ marginTop: 2, marginRight: 10 }}>
+                        <div className="persona-item-icon">
                           <Building2 size={14} color={t.brandColor || '#8b5cf6'} />
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div
-                            style={{
-                              display: 'flex',
-                              flexWrap: 'wrap',
-                              alignItems: 'center',
-                              gap: 6,
-                              whiteSpace: 'normal',
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: 13,
-                                fontWeight: 700,
-                                color: isActive ? '#0f172a' : 'var(--text-primary)',
-                              }}
-                            >
+                        <div className="persona-item-content">
+                          <div className="persona-item-header">
+                            <span className={`persona-item-label ${isActive ? 'active' : ''}`}>
                               {t.name}
                             </span>
-                            <span
-                              style={{
-                                fontSize: 10,
-                                padding: '1px 6px',
-                                borderRadius: 'var(--radius-full)',
-                                background: 'var(--bg-surface-hover)',
-                                color: 'var(--text-secondary)',
-                                flexShrink: 0,
-                              }}
-                            >
+                            <span className="persona-item-badge">
                               Admin
                             </span>
                           </div>
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: isActive ? '#475569' : 'var(--text-muted)',
-                              marginTop: 2,
-                              whiteSpace: 'normal',
-                            }}
-                          >
+                          <div className={`persona-item-desc ${isActive ? 'active' : ''}`}>
                             {t.tagline}
                           </div>
                         </div>

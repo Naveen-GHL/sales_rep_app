@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Grid, MapPin, CheckCircle, Clock, ShieldCheck, UserCheck, Phone, Plus } from 'lucide-react';
+import { Grid } from 'lucide-react';
 import { Plot, PropertyProject } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { storageService } from '../../services/storageService';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Modal } from '../../components/common/Modal';
+import './PlotsPage.css';
 
 export const PlotsPage: React.FC = () => {
   const { tenant, user } = useAuth();
@@ -94,7 +95,7 @@ export const PlotsPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="plots-page-container">
       {/* Header */}
       <div className="page-header">
         <div>
@@ -110,8 +111,7 @@ export const PlotsPage: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 13, fontWeight: 600 }}>Project:</span>
           <select
-            className="form-select"
-            style={{ width: 260 }}
+            className="form-select plots-project-selector"
             value={selectedProject}
             onChange={e => setSelectedProject(e.target.value)}
           >
@@ -125,137 +125,82 @@ export const PlotsPage: React.FC = () => {
       </div>
 
       {/* Status Legend & Telemetry Bar */}
-      <div
-        className="card"
-        style={{
-          padding: '16px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 16,
-          backgroundColor: 'var(--bg-surface)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#10b981' }} />
-            <span style={{ fontSize: 13, fontWeight: 600 }}>Available: </span>
+      <div className="card plots-legend-bar">
+        <div className="plots-legend-group">
+          <div className="plots-legend-item">
+            <span className="plots-legend-dot avail" />
+            <span className="plots-legend-label">Available: </span>
             <strong style={{ color: '#059669' }}>{availableCount}</strong>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#f59e0b' }} />
-            <span style={{ fontSize: 13, fontWeight: 600 }}>On Hold: </span>
+          <div className="plots-legend-item">
+            <span className="plots-legend-dot hold" />
+            <span className="plots-legend-label">On Hold: </span>
             <strong style={{ color: '#d97706' }}>{holdCount}</strong>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#ef4444' }} />
-            <span style={{ fontSize: 13, fontWeight: 600 }}>Sold: </span>
+          <div className="plots-legend-item">
+            <span className="plots-legend-dot sold" />
+            <span className="plots-legend-label">Sold: </span>
             <strong style={{ color: '#dc2626' }}>{soldCount}</strong>
           </div>
         </div>
 
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+        <div className="plots-legend-hint">
           Click any plot below to inspect specifications or initiate a client hold
         </div>
       </div>
 
       {/* Visual Plot Layout Grid (Blueprint Section 7.19) */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-          gap: 16,
-        }}
-      >
+      <div className="plots-grid-container">
         {projectPlots.map(plot => {
           const isAvailable = plot.status === 'Available';
           const isHold = plot.status === 'Hold';
           const isSold = plot.status === 'Sold';
-
-          const statusBorderColor = isAvailable
-            ? 'rgba(16, 185, 129, 0.4)'
-            : isHold
-            ? 'rgba(245, 158, 11, 0.4)'
-            : 'rgba(239, 68, 68, 0.4)';
-
-          const statusBgColor = isAvailable
-            ? 'rgba(16, 185, 129, 0.05)'
-            : isHold
-            ? 'rgba(245, 158, 11, 0.05)'
-            : 'rgba(239, 68, 68, 0.05)';
+          const statusClass = isAvailable ? 'available' : isHold ? 'hold' : 'sold';
 
           return (
             <div
               key={plot.id}
-              className="card card-hover"
-              style={{
-                padding: 16,
-                backgroundColor: statusBgColor,
-                borderColor: statusBorderColor,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 10,
-                cursor: 'pointer',
-              }}
+              className={`card card-hover plot-item-card ${statusClass}`}
               onClick={() => setSelectedPlot(plot)}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)' }}>
+              <div className="plot-card-header">
+                <span className="plot-number-title">
                   {plot.plotNumber}
                 </span>
                 <StatusChip status={plot.status} size="sm" />
               </div>
 
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              <div className="plot-dimensions">
                 {plot.dimension && <span>{plot.dimension} ft • </span>}
                 <strong>{plot.sizeSqft} sq.ft</strong>
               </div>
 
               {plot.facing && (
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                <div className="plot-facing">
                   Facing: {plot.facing}
                 </div>
               )}
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-base)', paddingTop: 10, marginTop: 4 }}>
-                <span style={{ fontWeight: 800, fontSize: 15, color: '#059669' }}>
+              <div className="plot-pricing-footer">
+                <span className="plot-price-highlight">
                   {formatCurrency(plot.totalPrice)}
                 </span>
-                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                <span className="plot-sqft-rate">
                   @ ₹{plot.pricePerSqft}/sqft
                 </span>
               </div>
 
               {isHold && (
-                <div
-                  style={{
-                    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-                    padding: '6px 8px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: 11,
-                    color: '#b45309',
-                    marginTop: 4,
-                  }}
-                >
+                <div className="plot-hold-badge">
                   🔒 Held for <strong>{plot.holdByCustomer}</strong>
                   {plot.holdExpiry && <div>Expiry: {plot.holdExpiry}</div>}
                 </div>
               )}
 
               {isSold && (
-                <div
-                  style={{
-                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                    padding: '4px 8px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: 11,
-                    color: '#b91c1c',
-                    marginTop: 4,
-                  }}
-                >
+                <div className="plot-sold-badge">
                   ✓ Registered to <strong>{plot.holdByCustomer || 'Client'}</strong>
                 </div>
               )}
@@ -274,8 +219,7 @@ export const PlotsPage: React.FC = () => {
           <>
             {selectedPlot?.status === 'Available' && (
               <button
-                className="btn btn-primary"
-                style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
+                className="btn btn-primary plot-hold-btn-gold"
                 onClick={() => handleOpenHold(selectedPlot)}
               >
                 Put Plot on 7-Day Hold
@@ -284,8 +228,7 @@ export const PlotsPage: React.FC = () => {
 
             {selectedPlot?.status === 'Hold' && (
               <button
-                className="btn btn-secondary"
-                style={{ color: '#dc2626' }}
+                className="btn btn-secondary plot-release-btn"
                 onClick={() => handleReleaseHold(selectedPlot)}
               >
                 Release Hold to Available
@@ -299,44 +242,36 @@ export const PlotsPage: React.FC = () => {
         }
       >
         {selectedPlot && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="plot-detail-body">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Current Status:</span>
               <StatusChip status={selectedPlot.status} />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
+            <div className="plot-detail-grid">
               <div>
                 <span style={{ color: 'var(--text-muted)' }}>Plot Dimension:</span>
-                <div style={{ fontWeight: 700 }}>{selectedPlot.dimension || 'Standard'}</div>
+                <div className="plot-detail-val">{selectedPlot.dimension || 'Standard'}</div>
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)' }}>Total Area:</span>
-                <div style={{ fontWeight: 700 }}>{selectedPlot.sizeSqft} sq.ft</div>
+                <div className="plot-detail-val">{selectedPlot.sizeSqft} sq.ft</div>
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)' }}>Rate per sq.ft:</span>
-                <div style={{ fontWeight: 700 }}>₹{selectedPlot.pricePerSqft}</div>
+                <div className="plot-detail-val">₹{selectedPlot.pricePerSqft}</div>
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)' }}>Total Plot Price:</span>
-                <div style={{ fontWeight: 800, color: '#059669', fontSize: 16 }}>
+                <div className="plot-detail-price">
                   {formatCurrency(selectedPlot.totalPrice)}
                 </div>
               </div>
             </div>
 
             {selectedPlot.status === 'Hold' && (
-              <div
-                style={{
-                  backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: 14,
-                  border: '1px solid rgba(245, 158, 11, 0.3)',
-                  fontSize: 12,
-                }}
-              >
-                <div style={{ fontWeight: 700, color: '#b45309', marginBottom: 4 }}>
+              <div className="plot-hold-detail-box">
+                <div className="plot-hold-detail-title">
                   Active Hold Reservation Details
                 </div>
                 <div>Customer: <strong>{selectedPlot.holdByCustomer}</strong></div>

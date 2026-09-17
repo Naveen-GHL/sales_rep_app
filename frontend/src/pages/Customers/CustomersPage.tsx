@@ -2,29 +2,21 @@ import React, { useState, useEffect } from 'react';
 import {
   Building2,
   Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  Briefcase,
-  Play,
-  FileText,
   Plus,
-  Clock,
-  ArrowRight,
+  Play,
   ExternalLink,
-  Volume2,
   Filter,
 } from 'lucide-react';
 import { Customer, CallRecord, Followup, Deal } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
 import { storageService } from '../../services/storageService';
-import { DataTable, Column, RowAction } from '../../components/common/DataTable';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Timeline, TimelineEvent } from '../../components/common/Timeline';
 import { DocumentUploader } from '../../components/common/DocumentUploader';
 import { DocumentList } from '../../components/common/DocumentList';
 import { Modal } from '../../components/common/Modal';
+import './CustomersPage.css';
 
 export const CustomersPage: React.FC = () => {
   const { tenant, user } = useAuth();
@@ -155,66 +147,6 @@ export const CustomersPage: React.FC = () => {
     return `₹${val.toLocaleString('en-IN')}`;
   };
 
-  const columns: Column<Customer>[] = [
-    {
-      key: 'name',
-      header: 'Customer Name',
-      sortable: true,
-      render: c => (
-        <div>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{c.name}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            {c.phone} {c.location && `• ${c.location}`}
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      sortable: true,
-      render: c => <StatusChip status={c.status} size="sm" />,
-    },
-    {
-      key: 'openDealsCount',
-      header: 'Deals',
-      sortable: true,
-      render: c => (
-        <span style={{ fontWeight: 600, color: 'var(--primary-600)' }}>
-          {c.openDealsCount} Deal(s)
-        </span>
-      ),
-    },
-    {
-      key: 'totalValue',
-      header: 'Account Value',
-      sortable: true,
-      render: c => (
-        <span style={{ fontWeight: 700, color: '#059669' }}>
-          {formatCurrency(c.totalValue || 0)}
-        </span>
-      ),
-    },
-    {
-      key: 'assignedAgentName',
-      header: 'Account Manager',
-      render: c => <span style={{ fontSize: 12 }}>{c.assignedAgentName}</span>,
-    },
-  ];
-
-  const rowActions: RowAction<Customer>[] = [
-    {
-      label: 'Call Customer',
-      icon: <Phone size={14} color="#059669" style={{ marginRight: 6 }} />,
-      onClick: c => initiateCall(c.name, c.phone, 'customer', c.id),
-    },
-    {
-      label: 'Select 360 View',
-      icon: <ExternalLink size={14} style={{ marginRight: 6 }} />,
-      onClick: c => setSelectedCustomer(c),
-    },
-  ];
-
   const rawEvents: TimelineEvent[] = [];
 
   if (selectedCustomer) {
@@ -269,7 +201,7 @@ export const CustomersPage: React.FC = () => {
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="customers-page">
       {/* Header */}
       <div className="page-header">
         <div>
@@ -283,97 +215,40 @@ export const CustomersPage: React.FC = () => {
       </div>
 
       {/* Customer 360 Split View: List on left, Full 360 on right */}
-      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 20, alignItems: 'flex-start' }}>
+      <div className="customers-split-layout">
         {/* Left: Customer Directory */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div className="card" style={{ padding: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>Customer Accounts</h3>
+        <div className="customers-sidebar">
+          <div className="card customers-sidebar-card">
+            <div className="customers-sidebar-header">
+              <h3 className="customers-sidebar-title">Customer Accounts</h3>
               <button
-                className="btn btn-primary btn-sm"
-                style={{ fontSize: 12, padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+                className="btn btn-primary btn-sm customers-btn-new"
                 onClick={() => { resetAddForm(); setIsAddModalOpen(true); }}
               >
                 <Plus size={13} /> New Customer
               </button>
             </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                width: '100%',
-                flexWrap: 'nowrap',
-                boxSizing: 'border-box',
-                marginTop: 4,
-                marginBottom: 14,
-              }}
-            >
+
+            <div className="customers-filter-row">
               {/* Filters Label */}
-              <span
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: 'var(--text-secondary)',
-                  whiteSpace: 'nowrap',
-                  userSelect: 'none',
-                  flexShrink: 0,
-                }}
-              >
+              <span className="customers-filter-label">
                 <Filter size={13} />
                 Filters:
               </span>
 
               {/* Status Filter */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  flex: '1 1 0',
-                  minWidth: 0,
-                  boxSizing: 'border-box',
-                }}
-              >
+              <div className="customers-filter-group">
                 <label
                   htmlFor="filter-customer-status"
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: 'var(--text-secondary)',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}
+                  className="customers-filter-tag"
                 >
                   Status:
                 </label>
                 <select
                   id="filter-customer-status"
-                  className="form-select"
+                  className={`form-select customers-filter-select ${statusFilter !== 'All' && statusFilter !== '' ? 'is-filtered' : ''}`}
                   value={statusFilter}
                   onChange={e => setStatusFilter(e.target.value)}
-                  style={{
-                    height: 30,
-                    fontSize: 12,
-                    paddingTop: 0,
-                    paddingBottom: 0,
-                    paddingLeft: 8,
-                    paddingRight: 22,
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-base)',
-                    backgroundColor:
-                      statusFilter !== 'All' && statusFilter !== ''
-                        ? 'var(--primary-50)'
-                        : 'var(--bg-surface)',
-                    color: 'var(--text-primary)',
-                    cursor: 'pointer',
-                    width: '100%',
-                    minWidth: 0,
-                    boxSizing: 'border-box',
-                  }}
                 >
                   <option value="All">All</option>
                   <option value="Active">Active</option>
@@ -384,95 +259,53 @@ export const CustomersPage: React.FC = () => {
 
               {/* Agent Filter */}
               {!isExec && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    flex: '1 1 0',
-                    minWidth: 0,
-                    boxSizing: 'border-box',
-                  }}
+              <div className="customers-filter-group">
+                <label
+                  htmlFor="filter-customer-agent"
+                  className="customers-filter-tag"
                 >
-                  <label
-                    htmlFor="filter-customer-agent"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: 'var(--text-secondary)',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                    }}
-                  >
-                    Agent:
-                  </label>
-                  <select
-                    id="filter-customer-agent"
-                    className="form-select"
-                    value={agentFilter}
-                    onChange={e => setAgentFilter(e.target.value)}
-                    style={{
-                      height: 30,
-                      fontSize: 12,
-                      paddingTop: 0,
-                      paddingBottom: 0,
-                      paddingLeft: 8,
-                      paddingRight: 22,
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-base)',
-                      backgroundColor:
-                        agentFilter !== 'All' && agentFilter !== ''
-                          ? 'var(--primary-50)'
-                          : 'var(--bg-surface)',
-                      color: 'var(--text-primary)',
-                      cursor: 'pointer',
-                      width: '100%',
-                      minWidth: 0,
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <option value="All">All</option>
-                    {agentOptions.map(opt => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  Agent:
+                </label>
+                <select
+                  id="filter-customer-agent"
+                  className={`form-select customers-filter-select ${agentFilter !== 'All' && agentFilter !== '' ? 'is-filtered' : ''}`}
+                  value={agentFilter}
+                  onChange={e => setAgentFilter(e.target.value)}
+                >
+                  <option value="All">All</option>
+                  {agentOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               )}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="customers-list">
               {filteredCustomers.map(c => {
                 const isSelected = selectedCustomer?.id === c.id;
                 return (
                   <div
                     key={c.id}
                     onClick={() => setSelectedCustomer(c)}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: isSelected ? 'var(--primary-50)' : 'var(--bg-surface-hover)',
-                      border: isSelected ? '1px solid var(--primary-500)' : '1px solid var(--border-base)',
-                      cursor: 'pointer',
-                      transition: 'all var(--transition-fast)',
-                    }}
+                    className={`customer-list-item ${isSelected ? 'is-selected' : ''}`}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
+                    <div className="customer-list-item-top">
+                      <div className="customer-list-name">
                         {c.name}
                       </div>
                       <StatusChip status={c.status} size="sm" />
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>
+                    <div className="customer-list-sub">
                       {c.phone} • {c.location}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#059669' }}>
+                    <div className="customer-list-bottom">
+                      <span className="customer-list-val">
                         {formatCurrency(c.totalValue || 0)}
                       </span>
                       <button
-                        className="btn btn-call btn-sm btn-icon"
-                        style={{ width: 26, height: 26, borderRadius: 6 }}
+                        className="btn btn-call btn-sm btn-icon customer-list-call-btn"
                         onClick={e => {
                           e.stopPropagation();
                           initiateCall(c.name, c.phone, 'customer', c.id);
@@ -490,26 +323,15 @@ export const CustomersPage: React.FC = () => {
 
         {/* Right: Full 360 Cockpit */}
         {selectedCustomer ? (
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="card customer-cockpit-card">
             {/* 360 Header */}
-            <div
-              style={{
-                padding: '24px 28px',
-                borderBottom: '1px solid var(--border-base)',
-                background: 'linear-gradient(to right, var(--bg-surface), var(--bg-surface-hover))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: 16,
-              }}
-            >
+            <div className="customer-cockpit-header">
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <h2 style={{ fontSize: 22, fontWeight: 800 }}>{selectedCustomer.name}</h2>
+                <div className="customer-cockpit-name-row">
+                  <h2 className="customer-cockpit-name">{selectedCustomer.name}</h2>
                   <StatusChip status={selectedCustomer.status} />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
+                <div className="customer-cockpit-meta-row">
                   <span>📞 {selectedCustomer.phone}</span>
                   {selectedCustomer.email && <span>✉️ {selectedCustomer.email}</span>}
                   <span>📍 {selectedCustomer.location}</span>
@@ -517,10 +339,9 @@ export const CustomersPage: React.FC = () => {
               </div>
 
               {/* Quick Actions */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="customer-cockpit-actions">
                 <button
-                  className="btn btn-primary"
-                  style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                  className="btn btn-primary customer-call-btn"
                   onClick={() => initiateCall(selectedCustomer.name, selectedCustomer.phone, 'customer', selectedCustomer.id)}
                 >
                   <Phone size={15} /> Click to Call
@@ -529,14 +350,7 @@ export const CustomersPage: React.FC = () => {
             </div>
 
             {/* Navigation Tabs */}
-            <div
-              style={{
-                display: 'flex',
-                borderBottom: '1px solid var(--border-base)',
-                backgroundColor: 'var(--bg-surface)',
-                padding: '0 20px',
-              }}
-            >
+            <div className="customer-tabs-bar">
               {[
                 { id: 'overview', label: 'Overview' },
                 { id: 'calls', label: `Calls (${customerCalls.length})` },
@@ -547,14 +361,7 @@ export const CustomersPage: React.FC = () => {
               ].map(tab => (
                 <button
                   key={tab.id}
-                  className="btn btn-ghost"
-                  style={{
-                    borderRadius: 0,
-                    borderBottom: activeTab === tab.id ? '2px solid var(--primary-600)' : '2px solid transparent',
-                    color: activeTab === tab.id ? 'var(--primary-600)' : 'var(--text-secondary)',
-                    fontWeight: activeTab === tab.id ? 700 : 500,
-                    padding: '12px 16px',
-                  }}
+                  className={`customer-tab-btn ${activeTab === tab.id ? 'is-active' : ''}`}
                   onClick={() => setActiveTab(tab.id as any)}
                 >
                   {tab.label}
@@ -563,31 +370,31 @@ export const CustomersPage: React.FC = () => {
             </div>
 
             {/* Tab Contents */}
-            <div style={{ padding: 24 }}>
+            <div className="customer-tab-content">
               {activeTab === 'overview' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                  <div className="card" style={{ padding: 18 }}>
-                    <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>
+                <div className="customer-overview-stack">
+                  <div className="card customer-profile-card">
+                    <h4 className="customer-section-heading">
                       Account & Commercial Profile
                     </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: 13 }}>
+                    <div className="customer-profile-grid">
                       <div>
-                        <span style={{ color: 'var(--text-secondary)' }}>Assigned Account Manager:</span>
-                        <div style={{ fontWeight: 600 }}>{selectedCustomer.assignedAgentName}</div>
+                        <span className="customer-profile-label">Assigned Account Manager:</span>
+                        <div className="customer-profile-val">{selectedCustomer.assignedAgentName}</div>
                       </div>
                       <div>
-                        <span style={{ color: 'var(--text-secondary)' }}>Total Committed Value:</span>
-                        <div style={{ fontWeight: 700, color: '#059669', fontSize: 15 }}>
+                        <span className="customer-profile-label">Total Committed Value:</span>
+                        <div className="customer-profile-val-green">
                           {formatCurrency(selectedCustomer.totalValue || 0)}
                         </div>
                       </div>
                       <div>
-                        <span style={{ color: 'var(--text-secondary)' }}>Customer Since:</span>
-                        <div style={{ fontWeight: 600 }}>{selectedCustomer.createdAt}</div>
+                        <span className="customer-profile-label">Customer Since:</span>
+                        <div className="customer-profile-val">{selectedCustomer.createdAt}</div>
                       </div>
                       <div>
-                        <span style={{ color: 'var(--text-secondary)' }}>Last Contacted:</span>
-                        <div style={{ fontWeight: 600, color: 'var(--primary-600)' }}>
+                        <span className="customer-profile-label">Last Contacted:</span>
+                        <div className="customer-profile-val-primary">
                           {selectedCustomer.lastContacted}
                         </div>
                       </div>
@@ -595,17 +402,17 @@ export const CustomersPage: React.FC = () => {
                   </div>
 
                   {selectedCustomer.customFields && (
-                    <div className="card" style={{ padding: 18, background: 'var(--primary-50)', border: '1px solid var(--primary-100)' }}>
-                      <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--primary-700)', marginBottom: 12 }}>
+                    <div className="card customer-custom-card">
+                      <h4 className="customer-custom-heading">
                         Tenant Specific Relationship Attributes
                       </h4>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
+                      <div className="customer-custom-grid">
                         {Object.entries(selectedCustomer.customFields).map(([k, v]) => (
                           <div key={k}>
-                            <span style={{ color: 'var(--text-secondary)', textTransform: 'capitalize' }}>
+                            <span className="customer-custom-label">
                               {k.replace(/([A-Z])/g, ' $1')}:
                             </span>
-                            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{String(v)}</div>
+                            <div className="customer-custom-val">{String(v)}</div>
                           </div>
                         ))}
                       </div>
@@ -615,34 +422,27 @@ export const CustomersPage: React.FC = () => {
               )}
 
               {activeTab === 'calls' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div className="customer-calls-stack">
                   {customerCalls.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}>
+                    <div className="customer-empty-text">
                       No calls logged yet with this customer. Click "Click to Call" to initiate a call.
                     </div>
                   ) : (
                     customerCalls.map(c => (
                       <div
                         key={c.id}
-                        className="card"
-                        style={{
-                          padding: 16,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          border: '1px solid var(--border-base)',
-                        }}
+                        className="card customer-call-card"
                       >
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div className="customer-call-meta">
                             <StatusChip status={c.direction} size="sm" />
                             <StatusChip status={c.disposition} size="sm" />
-                            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                            <span className="customer-call-duration">
                               Duration: {Math.floor(c.duration / 60)}m {c.duration % 60}s • {c.timestamp}
                             </span>
                           </div>
                           {c.transcription && (
-                            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, fontStyle: 'italic' }}>
+                            <p className="customer-call-transcript">
                               "{c.transcription}"
                             </p>
                           )}
@@ -663,31 +463,23 @@ export const CustomersPage: React.FC = () => {
               )}
 
               {activeTab === 'followups' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div className="customer-followups-stack">
                   {customerFollowups.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}>
+                    <div className="customer-empty-text">
                       No open follow-ups for this customer.
                     </div>
                   ) : (
                     customerFollowups.map(f => (
                       <div
                         key={f.id}
-                        style={{
-                          padding: 14,
-                          borderRadius: 'var(--radius-md)',
-                          backgroundColor: 'var(--bg-surface-hover)',
-                          border: '1px solid var(--border-base)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}
+                        className="customer-followup-item"
                       >
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontWeight: 600, fontSize: 13 }}>{f.notes}</span>
+                          <div className="customer-followup-header">
+                            <span className="customer-followup-notes">{f.notes}</span>
                             <StatusChip status={f.priority} size="sm" />
                           </div>
-                          <div style={{ fontSize: 12, color: 'var(--primary-600)', marginTop: 4 }}>
+                          <div className="customer-followup-due">
                             ⏰ Due: {f.scheduledAt} • Assignee: {f.assignedAgentName}
                           </div>
                         </div>
@@ -707,30 +499,24 @@ export const CustomersPage: React.FC = () => {
               )}
 
               {activeTab === 'deals' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div className="customer-deals-stack">
                   {customerDeals.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}>
+                    <div className="customer-empty-text">
                       No active deals linked yet.
                     </div>
                   ) : (
                     customerDeals.map(d => (
                       <div
                         key={d.id}
-                        className="card"
-                        style={{
-                          padding: 16,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}
+                        className="card customer-deal-card"
                       >
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: 14 }}>{d.title}</div>
-                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+                          <div className="customer-deal-title">{d.title}</div>
+                          <div className="customer-deal-sub">
                             Stage: <StatusChip status={d.stage} size="sm" /> • Expected Close: {d.expectedCloseDate}
                           </div>
                         </div>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: '#059669' }}>
+                        <div className="customer-deal-val">
                           {formatCurrency(d.value)}
                         </div>
                       </div>
@@ -742,7 +528,7 @@ export const CustomersPage: React.FC = () => {
               {activeTab === 'timeline' && <Timeline events={timelineEvents} />}
 
               {activeTab === 'documents' && selectedCustomer && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div className="customer-docs-stack">
                   <DocumentUploader
                     entityType="customer"
                     entityId={selectedCustomer.id}
@@ -758,7 +544,7 @@ export const CustomersPage: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="card" style={{ padding: 40, textAlign: 'center' }}>
+          <div className="card customer-empty-placeholder">
             Select a customer from the list to view their 360 profile.
           </div>
         )}
@@ -780,7 +566,7 @@ export const CustomersPage: React.FC = () => {
           </>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="customer-modal-stack">
           {/* Name */}
           <div className="form-group">
             <label className="form-label">Name *</label>

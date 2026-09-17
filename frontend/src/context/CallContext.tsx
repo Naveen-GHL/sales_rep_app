@@ -103,7 +103,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       meetingLink: null,
     };
     setActiveCall(newCall);
-    if (availability === 'Available') {
+    const prefs = storageService.getCallPreferences();
+    if (prefs.autoBusyEnabled && availability === 'Available') {
       setAvailability('Busy');
     }
   };
@@ -135,7 +136,31 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       meetingLink: null,
     };
     setActiveCall(newCall);
-    setAvailability('Busy');
+    const prefs = storageService.getCallPreferences();
+    // Play ringtone via Web Audio API if sound is enabled
+    if (prefs.soundEnabled) {
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          const osc = ctx.createOscillator();
+          osc.frequency.value = 880;
+          osc.type = 'sine';
+          osc.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.3);
+        }
+      } catch { /* audio not available */ }
+    }
+    // Desktop notification if enabled and permission granted
+    if (prefs.desktopNotifEnabled && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      try {
+        new Notification('Incoming Call', { body: `${newCall.contactName} — ${newCall.contactPhone}` });
+      } catch { /* notifications not available */ }
+    }
+    if (prefs.autoBusyEnabled) {
+      setAvailability('Busy');
+    }
   };
 
   const acceptCall = () => {
@@ -212,7 +237,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         agentId: user.id,
         agentName: user.name,
         disposition,
-        timestamp: 'Just now',
+        timestamp: new Date().toISOString(),
         recordingUrl: 'https://cdn.nexusplatform.io/recordings/sample.mp3',
         transcription: `Automated Call Transcript: Agent ${user.name} connected with ${lastCallRecord.contactName}. Call disposition marked as ${disposition}.`,
         notes: notes || lastCallRecord.quickNotes,

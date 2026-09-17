@@ -4,6 +4,7 @@ import { storageService } from '../../../services/storageService';
 import { DataTable, Column } from '../../../components/common/DataTable';
 import { StatusChip } from '../../../components/common/StatusChip';
 import { User } from '../../../types';
+import './PlatformUsersPage.css';
 
 export const PlatformUsersPage: React.FC = () => {
   const [usersList, setUsersList] = useState<User[]>(() => storageService.getUsers());
@@ -20,8 +21,8 @@ export const PlatformUsersPage: React.FC = () => {
       sortable: true,
       render: u => (
         <div>
-          <div style={{ fontWeight: 700, color: '#ffffff' }}>{u.name}</div>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>{u.email}</div>
+          <div className="platform-users-name">{u.name}</div>
+          <div className="platform-users-email">{u.email}</div>
         </div>
       ),
     },
@@ -30,7 +31,7 @@ export const PlatformUsersPage: React.FC = () => {
       header: 'Tenant Organization',
       sortable: true,
       render: u => (
-        <span style={{ fontWeight: 600, color: '#38bdf8' }}>
+        <span className="platform-users-tenant">
           {u.companyName || 'Platform Console (Global)'}
         </span>
       ),
@@ -39,7 +40,7 @@ export const PlatformUsersPage: React.FC = () => {
       key: 'role',
       header: 'Role Code',
       render: u => (
-        <span style={{ color: '#c084fc', fontWeight: 600 }}>{u.role.name}</span>
+        <span className="platform-users-role">{u.role.name}</span>
       ),
     },
     {
@@ -54,19 +55,19 @@ export const PlatformUsersPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="platform-users-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title" style={{ color: '#ffffff' }}>
+          <h1 className="page-title">
             <Users size={24} color="#8b5cf6" /> Cross-Tenant Users & Agents
           </h1>
-          <p className="page-subtitle" style={{ color: '#94a3b8' }}>
+          <p className="page-subtitle">
             Platform-wide identity directory covering all tenant company organizations.
           </p>
         </div>
       </div>
 
-      <div style={{ color: '#cbd5e1' }}>
+      <div className="platform-users-table-container">
         <DataTable
           columns={columns}
           data={usersList}

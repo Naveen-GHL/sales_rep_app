@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { History, Play, Phone, FileText, Download, User } from 'lucide-react';
+import { History, Phone, FileText, Download, AlertCircle } from 'lucide-react';
+import Papa from 'papaparse';
 import { CallRecord } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useCall } from '../../context/CallContext';
 import { storageService } from '../../services/storageService';
 import { DataTable, Column, RowAction } from '../../components/common/DataTable';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Drawer } from '../../components/common/Drawer';
 import { FilterBar } from '../../components/common/FilterBar';
+import './CallHistoryPage.css';
 
 export const CallHistoryPage: React.FC = () => {
-  const { tenant } = useAuth();
+  const { tenant, user } = useAuth();
+  const { initiateCall } = useCall();
+
   const [calls, setCalls] = useState<CallRecord[]>([]);
   const [selectedCall, setSelectedCall] = useState<CallRecord | null>(null);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [dispositionFilter, setDispositionFilter] = useState('All');
   const [directionFilter, setDirectionFilter] = useState('All');
 
@@ -27,24 +31,69 @@ export const CallHistoryPage: React.FC = () => {
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
 
-  const filteredCalls = calls.filter(c => {
+  // ── Task 2: Role-scoping (same pattern as DashboardPage.tsx scopedCalls) ──
+  const isExec = user?.role?.code === 'sales_executive';
+  const scopedCalls = isExec
+    ? calls.filter(c =>
+      (c.agentId && c.agentId === user?.id) ||
+      (c.agentName && c.agentName === user?.name)
+    )
+    : calls;
+
+  // ── Filters applied on top of role-scoped calls ───────────────────────────
+  const filteredCalls = scopedCalls.filter(c => {
     if (dispositionFilter !== 'All' && c.disposition !== dispositionFilter) return false;
     if (directionFilter !== 'All' && c.direction !== directionFilter) return false;
     return true;
   });
 
+  // ── Formatters ────────────────────────────────────────────────────────────
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}m ${secs}s`;
   };
 
+  // Parses an ISO timestamp and returns a readable local string.
+  // Falls back to the raw value for legacy non-ISO strings (e.g. old "Just now" entries).
+  const formatTimestamp = (iso: string): string => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso; // graceful fallback
+    const date = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); // "16 Sep"
+    const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }); // "10:23 AM"
+    return `${date}, ${time}`;
+  };
+
+  // ── Task 3: CSV export ────────────────────────────────────────────────────
+  const handleExportCSV = () => {
+    const rows = filteredCalls.map(c => ({
+      'Date & Time': formatTimestamp(c.timestamp),
+      'Contact Name': c.contactName,
+      'Phone': c.contactPhone,
+      'Direction': c.direction,
+      'Duration (seconds)': c.duration,
+      'Agent': c.agentName,
+      'Disposition': c.disposition,
+      'Notes': c.notes || '',
+    }));
+    const csv = Papa.unparse(rows);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `call-history-${tenant?.slug}-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ── Table columns ─────────────────────────────────────────────────────────
   const columns: Column<CallRecord>[] = [
     {
       key: 'timestamp',
       header: 'Date & Time',
       sortable: true,
-      render: c => <span style={{ fontSize: 12, fontWeight: 500 }}>{c.timestamp}</span>,
+      render: c => <span style={{ fontSize: 12, fontWeight: 500 }}>{formatTimestamp(c.timestamp)}</span>,
     },
     {
       key: 'contactName',
@@ -81,33 +130,21 @@ export const CallHistoryPage: React.FC = () => {
       sortable: true,
       render: c => <StatusChip status={c.disposition} size="sm" />,
     },
-    {
-      key: 'recordingUrl',
-      header: 'Recording',
-      render: c => (
-        <button
-          className="btn btn-ghost btn-sm"
-          style={{ color: 'var(--primary-600)' }}
-          onClick={e => {
-            e.stopPropagation();
-            setSelectedCall(c);
-            setIsPlayingAudio(true);
-          }}
-        >
-          <Play size={13} /> Listen
-        </button>
-      ),
-    },
+    // Task 1: "Listen" / recording column removed — replaced by row-click detail drawer
   ];
 
+  // ── Row actions ───────────────────────────────────────────────────────────
   const rowActions: RowAction<CallRecord>[] = [
     {
       label: 'View Call Log & Transcript',
       icon: <FileText size={14} style={{ marginRight: 6 }} />,
-      onClick: c => {
-        setSelectedCall(c);
-        setIsPlayingAudio(false);
-      },
+      onClick: c => setSelectedCall(c),
+    },
+    // Task 4: Call Back quick action
+    {
+      label: 'Call Back',
+      icon: <Phone size={14} style={{ marginRight: 6 }} />,
+      onClick: c => initiateCall(c.contactName, c.contactPhone),
     },
   ];
 
@@ -119,9 +156,16 @@ export const CallHistoryPage: React.FC = () => {
             <History size={24} color="var(--primary-600)" /> Call Log & History
           </h1>
           <p className="page-subtitle">
-            Auditable archive of customer calls, voice recordings, and automated transcripts for {tenant?.name}.
+            {isExec
+              ? `Auditable archive of your calls and automated transcripts for ${tenant?.name}.`
+              : `Auditable archive of all agent calls and automated transcripts for ${tenant?.name}.`}
           </p>
         </div>
+
+        {/* Task 3: Export CSV button — same style as ReportsPage */}
+        <button className="btn btn-secondary" onClick={handleExportCSV}>
+          <Download size={15} /> Export CSV
+        </button>
       </div>
 
       <DataTable
@@ -129,10 +173,7 @@ export const CallHistoryPage: React.FC = () => {
         data={filteredCalls}
         keyExtractor={c => c.id}
         rowActions={rowActions}
-        onRowClick={c => {
-          setSelectedCall(c);
-          setIsPlayingAudio(false);
-        }}
+        onRowClick={c => setSelectedCall(c)}
         searchPlaceholder="Search calls by contact name, phone, or agent..."
         filtersNode={
           <FilterBar
@@ -174,12 +215,9 @@ export const CallHistoryPage: React.FC = () => {
       {/* Call Detail Drawer */}
       <Drawer
         isOpen={!!selectedCall}
-        onClose={() => {
-          setSelectedCall(null);
-          setIsPlayingAudio(false);
-        }}
+        onClose={() => setSelectedCall(null)}
         title="Call Detail & Transcription"
-        subtitle={`${selectedCall?.contactName} (${selectedCall?.contactPhone}) • ${selectedCall?.timestamp}`}
+        subtitle={`${selectedCall?.contactName} (${selectedCall?.contactPhone}) • ${selectedCall ? formatTimestamp(selectedCall.timestamp) : ''}`}
         width={560}
       >
         {selectedCall && (
@@ -206,49 +244,35 @@ export const CallHistoryPage: React.FC = () => {
                   <strong>{formatDuration(selectedCall.duration)}</strong>
                 </div>
               </div>
+
+              {/* Task 4: Quick Call Back from drawer */}
+              <button
+                className="btn btn-primary btn-sm"
+                style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                onClick={() => initiateCall(selectedCall.contactName, selectedCall.contactPhone)}
+              >
+                <Phone size={13} /> Call Back
+              </button>
             </div>
 
-            {/* Audio Player Card */}
-            <div className="card" style={{ padding: 18, border: '1px solid var(--border-strong)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 700 }}>Call Voice Recording</span>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Quality: 64kbps Opus</span>
-              </div>
-
+            {/* Task 1: Honest recording state — no fake player */}
+            <div className="card" style={{ padding: 18, border: '1px solid var(--border-base)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Call Voice Recording</div>
               <div
                 style={{
-                  backgroundColor: 'var(--bg-surface-hover)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: 14,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 12,
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--bg-surface-hover)',
+                  border: '1px dashed var(--border-strong)',
                 }}
               >
-                <button
-                  className="btn btn-primary btn-icon btn-sm"
-                  style={{ width: 34, height: 34, borderRadius: '50%' }}
-                  onClick={() => setIsPlayingAudio(!isPlayingAudio)}
-                >
-                  <Play size={14} />
-                </button>
-                <div style={{ flex: 1 }}>
-                  <div style={{ height: 4, backgroundColor: 'var(--border-strong)', borderRadius: 2, position: 'relative' }}>
-                    <div
-                      style={{
-                        width: isPlayingAudio ? '65%' : '0%',
-                        height: '100%',
-                        backgroundColor: 'var(--primary-600)',
-                        borderRadius: 2,
-                        transition: 'width 2s ease',
-                      }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
-                    <span>{isPlayingAudio ? '01:24' : '00:00'}</span>
-                    <span>{formatDuration(selectedCall.duration)}</span>
-                  </div>
-                </div>
+                <AlertCircle size={18} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  Recording playback isn't available — this call was simulated, no audio was recorded.
+                </p>
               </div>
             </div>
 

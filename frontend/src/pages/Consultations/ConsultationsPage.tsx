@@ -18,6 +18,7 @@ import { DataTable, Column, RowAction } from '../../components/common/DataTable'
 import { StatusChip } from '../../components/common/StatusChip';
 import { FilterBar } from '../../components/common/FilterBar';
 import { Modal } from '../../components/common/Modal';
+import './ConsultationsPage.css';
 
 // ─── Status Options ─────────────────────────────────────────────────────────
 const STATUS_OPTIONS: { value: Consultation['status']; label: string }[] = [
@@ -239,8 +240,8 @@ export const ConsultationsPage: React.FC = () => {
       sortable: true,
       render: c => (
         <div>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{c.scheduledAt}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>ID: {c.id}</div>
+          <div className="consultation-slot-title">{c.scheduledAt}</div>
+          <div className="consultation-slot-id">ID: {c.id}</div>
         </div>
       ),
     },
@@ -250,8 +251,8 @@ export const ConsultationsPage: React.FC = () => {
       sortable: true,
       render: c => (
         <div>
-          <div style={{ fontWeight: 600, color: 'var(--primary-600)' }}>{c.investorName}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{c.investorPhone}</div>
+          <div className="consultation-client-name">{c.investorName}</div>
+          <div className="consultation-client-phone">{c.investorPhone}</div>
         </div>
       ),
     },
@@ -260,7 +261,7 @@ export const ConsultationsPage: React.FC = () => {
       header: 'Advisory Agenda & Scope',
       render: c => (
         <div>
-          <span style={{ fontSize: 12 }}>{c.agenda}</span>
+          <span className="consultation-agenda-text">{c.agenda}</span>
           {c.outcomeNotes && (
             <div
               style={{
@@ -279,7 +280,7 @@ export const ConsultationsPage: React.FC = () => {
     {
       key: 'consultantName',
       header: 'Private Wealth Advisor',
-      render: c => <span style={{ fontSize: 12, fontWeight: 500 }}>{c.consultantName}</span>,
+      render: c => <span className="consultation-advisor-name">{c.consultantName}</span>,
     },
     {
       key: 'status',
@@ -399,8 +400,7 @@ export const ConsultationsPage: React.FC = () => {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* ── Page header ─────────────────────────────────────────────────── */}
+    <div className="consultations-page-container">
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -494,10 +494,7 @@ export const ConsultationsPage: React.FC = () => {
           </>
         }
       >
-        <form
-          onSubmit={handleSaveConsultation}
-          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-        >
+        <form onSubmit={handleSaveConsultation} className="consultation-form">
           {/* Investor Dropdown */}
           <div className="form-group">
             <label className="form-label">Investor *</label>
@@ -529,8 +526,7 @@ export const ConsultationsPage: React.FC = () => {
             )}
           </div>
 
-          {/* Row: Phone & Consultation Slot */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="consultation-form-grid-2">
             <div className="form-group">
               <label className="form-label">Investor Phone</label>
               <input
