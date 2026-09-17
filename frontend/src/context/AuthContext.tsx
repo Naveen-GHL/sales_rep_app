@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTenant(targetTenant);
 
     // Check if a real user exists for this tenant and role in storage
-    const tenantUsers = storageService.getUsers(targetTenant.id);
+    const tenantUsers = storageService.getUsers(targetTenant.slug);
     const existingUser = tenantUsers.find(u => u.role.code === roleCode);
     if (existingUser) {
       setUser(existingUser);
@@ -131,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       lastLogin: 'Just now',
     };
 
+    storageService.saveUser(targetUser);
     setUser(targetUser);
   };
 
@@ -195,6 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       lastLogin: 'Just now',
     };
 
+    storageService.saveUser(authenticatedUser);
     setUser(authenticatedUser);
     return true;
   };

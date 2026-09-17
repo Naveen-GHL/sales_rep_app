@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { AuthLayout } from './layouts/AuthLayout';
 import { SalesLayout } from './layouts/SalesLayout';
@@ -53,6 +53,13 @@ export const App: React.FC = () => {
   const [currentRoute, setCurrentRoute] = useState<string>(() => {
     return sessionStorage.getItem('nexus_current_route') || 'dashboard';
   });
+
+  // Seed initial mock data on clean install / empty session
+  useEffect(() => {
+    if (storageService.getUsers().length === 0) {
+      storageService.loadMockDataFromSeparateFolder();
+    }
+  }, []);
 
   // Quick Create Modal State
   const [quickCreateType, setQuickCreateType] = useState<

@@ -412,6 +412,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                   </div>
                 </div>
 
+
                 <div style={{ marginTop: 6 }}>
                   <button
                     className="btn btn-ghost btn-sm"

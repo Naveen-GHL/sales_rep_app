@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { storageService, PopupPosition } from '../../services/storageService';
+
 import {
   Phone,
   PhoneCall,
@@ -129,6 +131,8 @@ export const IncomingCallPopup: React.FC = () => {
     };
   }, []);
 
+  if (!activeCall || activeCall.status !== 'ringing') return null;
+
   const getPositionStyles = (): React.CSSProperties => {
     switch (popupPosition) {
       case 'top-left':
@@ -142,8 +146,6 @@ export const IncomingCallPopup: React.FC = () => {
         return { top: 24, right: 24 };
     }
   };
-
-  if (!activeCall || activeCall.status !== 'ringing') return null;
 
   return (
     <div
@@ -547,7 +549,7 @@ export const InCallBar: React.FC = () => {
         <div className="incall-docs-tabs-bar">
           {[
             { id: 'customer' as const, label: 'Customer Documents' },
-            { id: 'company'  as const, label: 'Company Resources'  },
+            { id: 'company' as const, label: 'Company Resources' },
           ].map(tab => (
             <button
               key={tab.id}
