@@ -50,7 +50,9 @@ import './App.css';
 
 export const App: React.FC = () => {
   const { isAuthenticated, isSuperAdmin, tenant, user } = useAuth();
-  const [currentRoute, setCurrentRoute] = useState<string>('dashboard');
+  const [currentRoute, setCurrentRoute] = useState<string>(() => {
+    return sessionStorage.getItem('nexus_current_route') || 'dashboard';
+  });
 
   // Quick Create Modal State
   const [quickCreateType, setQuickCreateType] = useState<
@@ -73,6 +75,7 @@ export const App: React.FC = () => {
   // Handle route change
   const navigate = (route: string) => {
     setCurrentRoute(route);
+    sessionStorage.setItem('nexus_current_route', route);
   };
 
   const handleOpenQuickCreate = (type: 'lead' | 'followup' | 'deal' | 'visit' | 'consultation') => {
