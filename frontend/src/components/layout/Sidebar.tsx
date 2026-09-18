@@ -21,6 +21,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  XCircle,
+  Trash2,
+  MessageSquare,
+  User as UserIcon,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { FEATURES } from '../../constants/features';
@@ -47,7 +51,7 @@ interface NavSection {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) => {
-  const { isSuperAdmin, tenant, enabledFeatures, permissions } = useAuth();
+  const { isSuperAdmin, tenant, enabledFeatures, permissions, user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [isCollapseHovered, setIsCollapseHovered] = useState(false);
 
@@ -125,6 +129,53 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
     },
   ];
 
+  const ghlSalesExecSections: NavSection[] = [
+    {
+      items: [
+        { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+      ],
+    },
+    {
+      header: 'Sales',
+      items: [
+        { id: 'leads', label: 'Leads', icon: <Users size={18} />, feature: FEATURES.LEADS, permission: PERMISSIONS.LEADS_VIEW },
+        { id: 'customers', label: 'Customers 360', icon: <Building2 size={18} />, feature: FEATURES.CUSTOMERS, permission: PERMISSIONS.CUSTOMERS_VIEW },
+        { id: 'followups', label: 'Follow-ups', icon: <CalendarCheck size={18} />, feature: FEATURES.FOLLOWUPS, permission: PERMISSIONS.FOLLOWUPS_VIEW },
+        { id: 'consultations', label: 'Consultations', icon: <Calendar size={18} />, feature: FEATURES.CONSULTATIONS, permission: PERMISSIONS.CONSULTATIONS_VIEW },
+        { id: 'not-interested', label: 'Not - Interested', icon: <XCircle size={18} /> },
+        { id: 'junk', label: 'Junk', icon: <Trash2 size={18} /> },
+      ],
+    },
+    {
+      header: 'Calling',
+      items: [
+        { id: 'call-center', label: 'Call Center', icon: <PhoneCall size={18} />, feature: FEATURES.CALLS, permission: PERMISSIONS.CALLS_MAKE },
+        { id: 'call-history', label: 'Call History', icon: <History size={18} />, feature: FEATURES.CALLS, permission: PERMISSIONS.CALLS_VIEW },
+      ],
+    },
+    {
+      header: 'Analytics',
+      items: [
+        { id: 'reports', label: 'Reports', icon: <BarChart3 size={18} />, feature: FEATURES.REPORTS, permission: PERMISSIONS.REPORTS_VIEW },
+        { id: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
+      ],
+    },
+    {
+      header: 'Help and Support',
+      items: [
+        { id: 'chat', label: 'Chat', icon: <MessageSquare size={18} /> },
+        { id: 'smarty-ai', label: 'Smarty AI', icon: <Sparkles size={18} /> },
+      ],
+    },
+    {
+      header: 'Settings',
+      items: [
+        { id: 'call-settings', label: 'Call Settings', icon: <PhoneCall size={18} />, feature: FEATURES.CALLS, permission: PERMISSIONS.CALLS_VIEW },
+        { id: 'profile', label: 'Profile', icon: <UserIcon size={18} /> },
+      ],
+    },
+  ];
+
   // Helper to filter items based on tenant-enabled features and user permissions
   const filterSection = (section: NavSection): NavItem[] => {
     return section.items.filter(item => {
@@ -134,7 +185,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
     });
   };
 
-  const sectionsToRender = isSuperAdmin ? superAdminSections : companySections;
+  const isGhlSalesExec = tenant?.slug === 'ghl' && user?.role?.code === 'sales_executive';
+  const sectionsToRender = isSuperAdmin ? superAdminSections : isGhlSalesExec ? ghlSalesExecSections : companySections;
 
   return (
     <aside
