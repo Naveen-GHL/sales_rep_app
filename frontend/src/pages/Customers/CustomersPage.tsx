@@ -30,9 +30,9 @@ export const CustomersPage: React.FC = () => {
   const isExec = roleCode === 'sales_executive';
   const scopedCustomers = isExec
     ? customers.filter(c =>
-        (c.assignedAgentId && c.assignedAgentId === user?.id) ||
-        (c.assignedAgentName && c.assignedAgentName === user?.name)
-      )
+      (c.assignedAgentId && c.assignedAgentId === user?.id) ||
+      (c.assignedAgentName && c.assignedAgentName === user?.name)
+    )
     : customers;
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'calls' | 'followups' | 'deals' | 'timeline' | 'documents'>('overview');
@@ -59,9 +59,9 @@ export const CustomersPage: React.FC = () => {
     // that is invisible in their own filtered left-panel list.
     const firstVisible = isExec
       ? custs.filter(c =>
-          (c.assignedAgentId && c.assignedAgentId === user?.id) ||
-          (c.assignedAgentName && c.assignedAgentName === user?.name)
-        )[0]
+        (c.assignedAgentId && c.assignedAgentId === user?.id) ||
+        (c.assignedAgentName && c.assignedAgentName === user?.name)
+      )[0]
       : custs[0];
     if (firstVisible && !selectedCustomer) {
       setSelectedCustomer(firstVisible);

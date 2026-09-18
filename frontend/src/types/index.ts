@@ -305,6 +305,9 @@ export interface Investor {
   referralSource?: string;
   createdAt: string;
   notes: string;
+  committedAUM?: string;
+  investmentMandate?: string;
+  riskTolerance?: 'Conservative' | 'Moderate' | 'Aggressive';
 }
 
 export interface Consultation {

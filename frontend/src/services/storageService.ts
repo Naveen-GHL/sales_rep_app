@@ -82,6 +82,11 @@ class StorageService {
     this.set('users', users);
   }
 
+  deleteUser(id: string): void {
+    const users = this.getUsers().filter(u => u.id !== id);
+    this.set('users', users);
+  }
+
   // Leads (Defaults to empty [] - real-time data only)
   getLeads(companyId?: string): Lead[] {
     const leads = this.get<Lead[]>('leads', []);
@@ -250,6 +255,11 @@ class StorageService {
     this.set('investors', investors);
   }
 
+  deleteInvestor(id: string): void {
+    const investors = this.getInvestors().filter(i => i.id !== id);
+    this.set('investors', investors);
+  }
+
   // Consultations (Defaults to empty [] - real-time data only)
   getConsultations(companyId?: string): Consultation[] {
     const consultations = this.get<Consultation[]>('consultations', []);
@@ -264,6 +274,11 @@ class StorageService {
     } else {
       consultations.unshift(consultation);
     }
+    this.set('consultations', consultations);
+  }
+
+  deleteConsultation(id: string): void {
+    const consultations = this.getConsultations().filter(c => c.id !== id);
     this.set('consultations', consultations);
   }
 
@@ -283,6 +298,12 @@ class StorageService {
     }
     this.set('opportunities', opps);
   }
+
+  deleteOpportunity(id: string): void {
+    const opps = this.getOpportunities().filter(o => o.id !== id);
+    this.set('opportunities', opps);
+  }
+
 
   // Audit Logs (Defaults to empty [] - real-time data only)
   getAuditLogs(companyId?: string): AuditLog[] {
