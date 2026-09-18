@@ -2,7 +2,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 class ApiClient {
   private getHeaders(): HeadersInit {
-    const token = localStorage.getItem('nexus_auth_token');
+    const token = sessionStorage.getItem('nexus_auth_token') || localStorage.getItem('nexus_auth_token');
     return {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -13,6 +13,8 @@ class ApiClient {
     if (res.status === 401) {
       const err = await res.json().catch(() => ({ message: 'Invalid credentials.' }));
       if (!res.url.includes('/auth/login')) {
+        sessionStorage.removeItem('nexus_auth_token');
+        sessionStorage.removeItem('nexus_current_user');
         localStorage.removeItem('nexus_auth_token');
         localStorage.removeItem('nexus_current_user');
         window.dispatchEvent(new Event('nexus_auth_unauthorized'));

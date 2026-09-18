@@ -50,7 +50,16 @@ import './App.css';
 
 export const App: React.FC = () => {
   const { isAuthenticated, isSuperAdmin, tenant, user } = useAuth();
-  const [currentRoute, setCurrentRoute] = useState<string>('dashboard');
+  const [currentRoute, setCurrentRoute] = useState<string>(() => {
+    return sessionStorage.getItem('nexus_current_route') || 'dashboard';
+  });
+
+  // Seed initial mock data on clean install / empty session
+  useEffect(() => {
+    if (storageService.getUsers().length === 0) {
+      storageService.loadMockDataFromSeparateFolder();
+    }
+  }, []);
 
   // Seed initial mock data on clean install / empty session
   useEffect(() => {
@@ -80,6 +89,7 @@ export const App: React.FC = () => {
   // Handle route change
   const navigate = (route: string) => {
     setCurrentRoute(route);
+    sessionStorage.setItem('nexus_current_route', route);
   };
 
   const handleOpenQuickCreate = (type: 'lead' | 'followup' | 'deal' | 'visit' | 'consultation') => {

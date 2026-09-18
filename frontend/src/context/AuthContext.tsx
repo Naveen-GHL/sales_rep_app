@@ -26,17 +26,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [loginError, setLoginError] = useState<string | null>(null);
+  // Use sessionStorage: preserves session during page reload/refresh,
+  // but defaults to Login on new app launches / new tabs.
   const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('nexus_current_user');
+    const saved = sessionStorage.getItem('nexus_current_user');
     if (saved) {
       try { return JSON.parse(saved); } catch { }
     }
-    // Default to active session if previously saved, else null (shows Login)
     return null;
   });
 
   const [tenant, setTenant] = useState<Tenant | null>(() => {
-    const saved = localStorage.getItem('nexus_current_tenant');
+    const saved = sessionStorage.getItem('nexus_current_tenant');
     if (saved) {
       try { return JSON.parse(saved); } catch { }
     }
@@ -45,16 +46,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (user) {
-      localStorage.setItem('nexus_current_user', JSON.stringify(user));
+      sessionStorage.setItem('nexus_current_user', JSON.stringify(user));
     } else {
+      sessionStorage.removeItem('nexus_current_user');
+      sessionStorage.removeItem('nexus_auth_token');
+      // Also ensure legacy localStorage items don't linger
       localStorage.removeItem('nexus_current_user');
+      localStorage.removeItem('nexus_auth_token');
     }
   }, [user]);
 
   useEffect(() => {
     if (tenant) {
-      localStorage.setItem('nexus_current_tenant', JSON.stringify(tenant));
+      sessionStorage.setItem('nexus_current_tenant', JSON.stringify(tenant));
     } else {
+      sessionStorage.removeItem('nexus_current_tenant');
       localStorage.removeItem('nexus_current_tenant');
     }
   }, [tenant]);
@@ -146,6 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const { token, user: userData, tenant: tenantData } = response.data;
 
           if (token) {
+            sessionStorage.setItem('nexus_auth_token', token);
             localStorage.setItem('nexus_auth_token', token);
           }
 
@@ -195,6 +202,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    sessionStorage.removeItem('nexus_auth_token');
+    sessionStorage.removeItem('nexus_current_user');
+    sessionStorage.removeItem('nexus_current_tenant');
+    sessionStorage.removeItem('nexus_current_route');
     localStorage.removeItem('nexus_auth_token');
     localStorage.removeItem('nexus_current_user');
     localStorage.removeItem('nexus_current_tenant');
