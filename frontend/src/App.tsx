@@ -16,6 +16,15 @@ import { CallHistoryPage } from './pages/CallHistory/CallHistoryPage';
 import { CallSettingsPage } from './pages/CallSettings/CallSettingsPage';
 import { ReportsPage } from './pages/Reports/ReportsPage';
 import { NotificationsPage } from './pages/Notifications/NotificationsPage';
+import { NotInterestedPage } from './pages/NotInterested/NotInterestedPage';
+import { JunkPage } from './pages/Junk/JunkPage';
+
+const PlaceholderPage = ({ title }: { title: string }) => (
+  <div style={{ padding: 24, textAlign: 'center' }}>
+    <h2>{title}</h2>
+    <p>This module is coming soon.</p>
+  </div>
+);
 
 // Tenant Specific: Jamin
 import { ProjectsPage } from './pages/Properties/ProjectsPage';
@@ -297,6 +306,16 @@ export const App: React.FC = () => {
         <ConsultationsPage />
       ) : currentRoute === 'opportunities' ? (
         <OpportunitiesPage />
+      ) : currentRoute === 'not-interested' ? (
+        <NotInterestedPage />
+      ) : currentRoute === 'junk' ? (
+        <JunkPage />
+      ) : currentRoute === 'chat' ? (
+        <PlaceholderPage title="Chat" />
+      ) : currentRoute === 'smarty-ai' ? (
+        <PlaceholderPage title="Smarty AI" />
+      ) : currentRoute === 'profile' ? (
+        <PlaceholderPage title="Profile" />
       ) : currentRoute === 'reports' ? (
         <ReportsPage />
       ) : currentRoute === 'notifications' ? (

@@ -238,20 +238,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onOpen
         </div>
 
         {/* Card 4: Pipeline Value */}
-        <div className="card card-hover dashboard-kpi-card" onClick={() => onNavigate('pipeline')}>
-          <div className="dashboard-kpi-header">
-            <span className="dashboard-kpi-label">{label.pipelinevalue}</span>
-            <div className="dashboard-kpi-icon-box deals">
-              <TrendingUp size={18} />
+        {!isExec && (
+          <div className="card card-hover dashboard-kpi-card" onClick={() => onNavigate('pipeline')}>
+            <div className="dashboard-kpi-header">
+              <span className="dashboard-kpi-label">{label.pipelinevalue}</span>
+              <div className="dashboard-kpi-icon-box deals">
+                <TrendingUp size={18} />
+              </div>
+            </div>
+            <div className="dashboard-kpi-value">
+              {formatCurrency(totalPipelineValue)}
+            </div>
+            <div className="dashboard-kpi-deals-stat">
+              {scopedDeals.length} active deals
             </div>
           </div>
-          <div className="dashboard-kpi-value">
-            {formatCurrency(totalPipelineValue)}
-          </div>
-          <div className="dashboard-kpi-deals-stat">
-            {scopedDeals.length} active deals
-          </div>
-        </div>
+        )}
 
         {/* Tenant Specific 5th Card — plots (not scoped per-agent per spec) */}
         {enabledFeatures.includes(FEATURES.PROPERTIES) && (

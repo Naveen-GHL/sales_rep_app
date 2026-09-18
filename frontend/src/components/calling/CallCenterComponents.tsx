@@ -616,6 +616,7 @@ export const DispositionModal: React.FC = () => {
 
   const [disposition, setDisposition] = useState<CallDisposition>('Interested');
   const [notes, setNotes] = useState('');
+  const [reason, setReason] = useState('');
   const [scheduleFollowup, setScheduleFollowup] = useState(false);
   const [followupDate, setFollowupDate] = useState('');
   const [followupTime, setFollowupTime] = useState('');
@@ -632,6 +633,7 @@ export const DispositionModal: React.FC = () => {
     const freshTomorrow = d.toISOString().slice(0, 10);
     setDisposition('Interested');
     setNotes('');
+    setReason('');
     setScheduleFollowup(false);
     setFollowupDate(freshTomorrow);
     setFollowupTime(storageService.getCallPreferences().defaultFollowupTime);
@@ -665,7 +667,8 @@ export const DispositionModal: React.FC = () => {
             priority: followupPriority,
             notes: `Follow-up required from call with ${lastCallRecord.contactName}: ${notes}`,
           }
-        : undefined
+        : undefined,
+      (disposition === 'Not Interested' || disposition === 'Wrong Number') ? reason : undefined
     );
   };
 
@@ -682,7 +685,7 @@ export const DispositionModal: React.FC = () => {
             Skip for Now
           </button>
           <button className="btn btn-primary" onClick={handleSave}>
-            Save Disposition & Wrap Up
+            {disposition === 'Not Interested' ? 'Move to Not Interested' : disposition === 'Wrong Number' ? 'Move to Junk' : 'Save Disposition & Wrap Up'}
           </button>
         </>
       }
@@ -722,6 +725,21 @@ export const DispositionModal: React.FC = () => {
             onChange={e => setNotes(e.target.value)}
           />
         </div>
+
+        {/* Reason Box for Not Interested / Wrong Number */}
+        {(disposition === 'Not Interested' || disposition === 'Wrong Number') && (
+          <div className="form-group">
+            <label className="form-label">Reason *</label>
+            <textarea
+              className="form-textarea"
+              rows={2}
+              placeholder={disposition === 'Not Interested' ? 'Why are they not interested?' : 'Details about the wrong number...'}
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              required
+            />
+          </div>
+        )}
 
         {/* Conditional Follow-up Section */}
         <div className="disposition-followup-box">

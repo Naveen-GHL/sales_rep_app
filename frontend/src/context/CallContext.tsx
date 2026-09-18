@@ -51,7 +51,8 @@ interface CallContextType {
   saveDisposition: (
     disposition: CallDisposition,
     notes: string,
-    scheduleFollowup?: { scheduledAt: string; priority: 'Low' | 'Medium' | 'High'; notes: string }
+    scheduleFollowup?: { scheduledAt: string; priority: 'Low' | 'Medium' | 'High'; notes: string },
+    reason?: string
   ) => void;
   closeDispositionModal: () => void;
 }
@@ -224,7 +225,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const saveDisposition = (
     disposition: CallDisposition,
     notes: string,
-    scheduleFollowup?: { scheduledAt: string; priority: 'Low' | 'Medium' | 'High'; notes: string }
+    scheduleFollowup?: { scheduledAt: string; priority: 'Low' | 'Medium' | 'High'; notes: string },
+    reason?: string
   ) => {
     if (lastCallRecord && tenant && user) {
       const callRecord: CallRecord = {
@@ -240,7 +242,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         timestamp: new Date().toISOString(),
         recordingUrl: 'https://cdn.nexusplatform.io/recordings/sample.mp3',
         transcription: `Automated Call Transcript: Agent ${user.name} connected with ${lastCallRecord.contactName}. Call disposition marked as ${disposition}.`,
-        notes: notes || lastCallRecord.quickNotes,
+        notes: reason ? `${notes}\n\nReason: ${reason}` : (notes || lastCallRecord.quickNotes),
       };
 
       storageService.addCall(callRecord);
@@ -274,6 +276,23 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
           assignedAgentId: user.id,
           assignedAgentName: user.name,
         });
+      }
+      
+      // Handle Not Interested and Wrong Number to move lead to Not Interested or Junk module
+      if (disposition === 'Not Interested' || disposition === 'Wrong Number') {
+        const leadId = lastCallRecord.matchedRecord?.type === 'lead' ? lastCallRecord.matchedRecord.id : null;
+        if (leadId) {
+          const leads = storageService.getLeads(tenant.id);
+          const matchedLead = leads.find(l => l.id === leadId);
+          if (matchedLead) {
+            matchedLead.status = disposition === 'Not Interested' ? 'Not Interested' : 'Junk';
+            if (reason) {
+              matchedLead.notes = `${matchedLead.notes}\n\n[${new Date().toLocaleDateString()}] ${disposition} Reason: ${reason}`;
+              matchedLead.customFields = { ...matchedLead.customFields, dispositionReason: reason };
+            }
+            storageService.saveLead(matchedLead);
+          }
+        }
       }
     }
 
