@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { CallDisposition, CallRecord } from '../types';
+import { CallDisposition, CallRecord, Lead } from '../types';
 import { storageService } from '../services/storageService';
 import { useAuth } from './AuthContext';
 
@@ -292,6 +292,25 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             storageService.saveLead(matchedLead);
           }
+        } else {
+          // It's an unknown caller, create a new Lead so it appears in the modules
+          const newLead: Lead = {
+            id: `lead-${Date.now()}`,
+            companyId: tenant.id,
+            name: lastCallRecord.contactName || 'Unknown Caller',
+            phone: lastCallRecord.contactPhone,
+            email: '',
+            location: '',
+            source: 'Inbound Call',
+            status: disposition === 'Not Interested' ? 'Not Interested' : 'Junk',
+            priority: 'Low',
+            assignedAgentId: user.id,
+            assignedAgentName: user.name,
+            createdAt: new Date().toISOString().split('T')[0],
+            notes: reason ? `[${new Date().toLocaleDateString()}] ${disposition} Reason: ${reason}` : '',
+            customFields: { dispositionReason: reason || '' },
+          };
+          storageService.saveLead(newLead);
         }
       }
     }

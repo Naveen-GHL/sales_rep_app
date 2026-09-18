@@ -715,16 +715,18 @@ export const DispositionModal: React.FC = () => {
         </div>
 
         {/* Call Notes */}
-        <div className="form-group">
-          <label className="form-label">Call Discussion Summary & Notes</label>
-          <textarea
-            className="form-textarea"
-            rows={3}
-            placeholder="Key discussion points, customer objections, next steps..."
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-          />
-        </div>
+        {!(disposition === 'Not Interested' || disposition === 'Wrong Number') && (
+          <div className="form-group">
+            <label className="form-label">Call Discussion Summary & Notes</label>
+            <textarea
+              className="form-textarea"
+              rows={3}
+              placeholder="Key discussion points, customer objections, next steps..."
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+            />
+          </div>
+        )}
 
         {/* Reason Box for Not Interested / Wrong Number */}
         {(disposition === 'Not Interested' || disposition === 'Wrong Number') && (
@@ -742,58 +744,60 @@ export const DispositionModal: React.FC = () => {
         )}
 
         {/* Conditional Follow-up Section */}
-        <div className="disposition-followup-box">
-          <div
-            className="disposition-followup-header"
-            style={{ marginBottom: scheduleFollowup ? 12 : 0 }}
-          >
-            <label className="disposition-followup-label">
-              <input
-                type="checkbox"
-                checked={scheduleFollowup}
-                onChange={e => setScheduleFollowup(e.target.checked)}
-                style={{ width: 16, height: 16 }}
-              />
-              Schedule a Next Follow-up Task
-            </label>
-            <Calendar size={16} color="var(--primary-600)" />
-          </div>
-
-          {scheduleFollowup && (
-            <div className="disposition-followup-fields">
-              <div className="form-group">
-                <label className="form-label">Follow-up Date</label>
+        {!(disposition === 'Not Interested' || disposition === 'Wrong Number') && (
+          <div className="disposition-followup-box">
+            <div
+              className="disposition-followup-header"
+              style={{ marginBottom: scheduleFollowup ? 12 : 0 }}
+            >
+              <label className="disposition-followup-label">
                 <input
-                  type="date"
-                  className="form-input"
-                  value={followupDate}
-                  onChange={e => setFollowupDate(e.target.value)}
+                  type="checkbox"
+                  checked={scheduleFollowup}
+                  onChange={e => setScheduleFollowup(e.target.checked)}
+                  style={{ width: 16, height: 16 }}
                 />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Follow-up Time</label>
-                <input
-                  type="time"
-                  className="form-input"
-                  value={followupTime}
-                  onChange={e => setFollowupTime(e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Priority</label>
-                <select
-                  className="form-select"
-                  value={followupPriority}
-                  onChange={e => setFollowupPriority(e.target.value as any)}
-                >
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                </select>
-              </div>
+                Schedule a Next Follow-up Task
+              </label>
+              <Calendar size={16} color="var(--primary-600)" />
             </div>
-          )}
-        </div>
+
+            {scheduleFollowup && (
+              <div className="disposition-followup-fields">
+                <div className="form-group">
+                  <label className="form-label">Follow-up Date</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={followupDate}
+                    onChange={e => setFollowupDate(e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Follow-up Time</label>
+                  <input
+                    type="time"
+                    className="form-input"
+                    value={followupTime}
+                    onChange={e => setFollowupTime(e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Priority</label>
+                  <select
+                    className="form-select"
+                    value={followupPriority}
+                    onChange={e => setFollowupPriority(e.target.value as any)}
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </Modal>
   );
