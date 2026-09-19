@@ -70,6 +70,13 @@ export const App: React.FC = () => {
     }
   }, []);
 
+  // Seed initial mock data on clean install / empty session
+  useEffect(() => {
+    if (storageService.getUsers().length === 0) {
+      storageService.loadMockDataFromSeparateFolder();
+    }
+  }, []);
+
   // Quick Create Modal State
   const [quickCreateType, setQuickCreateType] = useState<
     'lead' | 'followup' | 'deal' | 'visit' | 'consultation' | null
