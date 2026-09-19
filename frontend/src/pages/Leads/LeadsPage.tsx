@@ -6,7 +6,6 @@ import {
   Plus,
   Upload,
   CheckCircle2,
-  UserCheck,
   Trash2,
   Edit,
   ExternalLink,
@@ -466,12 +465,6 @@ export const LeadsPage: React.FC = () => {
       label: 'Edit Lead',
       icon: <Edit size={14} className="leads-action-icon" />,
       onClick: l => handleOpenEdit(l),
-    },
-    {
-      label: 'Convert to Customer',
-      icon: <UserCheck size={14} color="#2563eb" className="leads-action-icon" />,
-      hidden: l => l.status === 'Converted',
-      onClick: l => handleStartConvert(l),
     },
     {
       label: 'Delete Lead',
