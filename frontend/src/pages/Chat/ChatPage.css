@@ -1956,24 +1956,26 @@
 .chat-settings-layout {
   display: flex;
   gap: 24px;
-  min-height: 380px;
+  min-height: 480px;
 }
 
 .chat-settings-nav {
-  width: 190px;
-  min-width: 190px;
+  width: 210px;
+  min-width: 210px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   border-right: 1px solid var(--border-base);
-  padding-right: 16px;
+  padding-right: 14px;
+  max-height: 530px;
+  overflow-y: auto;
 }
 
 .chat-settings-nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
+  padding: 8px 12px;
   border-radius: var(--radius-md);
   border: none;
   background: none;
@@ -1997,6 +1999,9 @@
 .chat-settings-panel {
   flex: 1;
   min-width: 0;
+  max-height: 530px;
+  overflow-y: auto;
+  padding-right: 8px;
 }
 
 .settings-section-title {
@@ -2007,11 +2012,18 @@
   font-family: var(--font-display);
 }
 
+.settings-section-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: -10px 0 16px;
+  line-height: 1.4;
+}
+
 .settings-toggle-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 0;
+  padding: 11px 0;
   border-bottom: 1px solid var(--border-subtle);
 }
 .settings-toggle-label {
@@ -2066,9 +2078,238 @@
 .chat-settings-footer {
   display: flex;
   justify-content: flex-end;
-  margin-top: 20px;
+  margin-top: 18px;
   padding-top: 14px;
   border-top: 1px solid var(--border-base);
+}
+
+/* ── Teams Theme Cards ──────────────────────────────────────────────────────── */
+.teams-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.teams-theme-card {
+  border: 2px solid var(--border-base);
+  border-radius: var(--radius-lg);
+  padding: 10px;
+  cursor: pointer;
+  background: var(--bg-surface);
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+.teams-theme-card:hover {
+  border-color: var(--primary-400);
+  transform: translateY(-2px);
+}
+.teams-theme-card.active {
+  border-color: var(--primary-600);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+.teams-theme-preview {
+  height: 64px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+.theme-preview-default {
+  background: #f1f5f9;
+}
+.theme-preview-default .preview-bar {
+  width: 22px;
+  background: #4f46e5;
+}
+.theme-preview-default .preview-content {
+  flex: 1;
+  background: #ffffff;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.theme-preview-dark {
+  background: #0f172a;
+}
+.theme-preview-dark .preview-bar {
+  width: 22px;
+  background: #1e1b4b;
+}
+.theme-preview-dark .preview-content {
+  flex: 1;
+  background: #1e293b;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.theme-preview-hc {
+  background: #000000;
+}
+.theme-preview-hc .preview-bar {
+  width: 22px;
+  background: #000;
+  border-right: 1px solid #ffff00;
+}
+.theme-preview-hc .preview-content {
+  flex: 1;
+  background: #000;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid #00ffff;
+}
+.preview-line {
+  height: 6px;
+  border-radius: 3px;
+  background: currentColor;
+  opacity: 0.3;
+}
+.teams-theme-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ── Teams Audio/Video Device Controls ─────────────────────────────────────── */
+.teams-device-test-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.teams-mic-meter-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-md);
+}
+.teams-mic-meter-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--border-base);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+.teams-mic-meter-fill {
+  height: 100%;
+  width: 65%;
+  background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+
+.teams-camera-preview-box {
+  margin-top: 10px;
+  border-radius: var(--radius-lg);
+  background: #090d16;
+  border: 1px solid var(--border-base);
+  height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.teams-camera-active-simulation {
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #94a3b8;
+}
+.teams-camera-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.teams-camera-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+/* ── Teams Shortcuts & Tags ─────────────────────────────────────────────────── */
+.teams-shortcuts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin-top: 12px;
+}
+.teams-shortcuts-table th {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 2px solid var(--border-base);
+  color: var(--text-muted);
+  font-size: 11.5px;
+  text-transform: uppercase;
+}
+.teams-shortcuts-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+.teams-kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: monospace;
+  background: var(--bg-app);
+  border: 1px solid var(--border-base);
+  border-radius: 4px;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.teams-chips-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.teams-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-base);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.teams-chip-remove {
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+.teams-chip-remove:hover {
+  color: var(--danger-500);
 }
 
 /* ── Mobile Layout (< 768px) ────────────────────────────────────────────────── */

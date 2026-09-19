@@ -576,21 +576,74 @@ export interface ChatConversation {
 }
 
 export interface ChatSettings {
-  notifications: {
-    desktopPush: boolean;
-    sound: boolean;
-    mentionOnly: boolean;
+  general?: {
+    theme: 'default' | 'dark' | 'high_contrast';
+    autoStartApp: boolean;
+    openInBackground: boolean;
+    onCloseKeepRunning: boolean;
+    gpuHardwareAcceleration: boolean;
+    registerAsDefaultChatApp: boolean;
+    language: string;
+    keyboardLanguage: string;
+    turnOffAnimations: boolean;
+    outOfOfficeReply: boolean;
+    outOfOfficeMessage: string;
+  };
+  accounts?: {
+    activeTenant: string;
   };
   privacy: {
     readReceipts: boolean;
     typingIndicator: boolean;
     whoCanDm: 'everyone' | 'team' | 'managers_admins';
+    priorityAccess?: string[];
+    blockedContacts?: string[];
+    participateInSurveys?: boolean;
+  };
+  notifications: {
+    desktopPush: boolean;
+    sound: boolean;
+    mentionOnly: boolean;
+    notificationStyle?: 'teams' | 'windows';
+    showPreview?: boolean;
+    missedActivityEmails?: 'hourly' | 'daily' | 'asap' | 'off';
+    chatsAndChannels?: 'banner_feed' | 'feed_only' | 'off';
+    meetingsAndCalls?: 'banner' | 'off';
+  };
+  captions?: {
+    autoIdentifyMe: boolean;
+    spokenLanguage: string;
+    autoStartTranscription: boolean;
+  };
+  files?: {
+    fileOpenPreference: 'teams' | 'desktop' | 'browser';
+    downloadLocation: string;
+    alwaysAskWhereToSave: boolean;
   };
   calls: {
     defaultMic: string;
     defaultCamera: string;
+    defaultSpeaker?: string;
+    noiseSuppression?: 'auto' | 'high' | 'low' | 'off';
+    secondaryRinger?: string;
     cameraOffOnJoin: boolean;
     autoAnswer: boolean;
+    callAnsweringRules?: 'ring_me' | 'forward';
+    forwardTo?: 'voicemail' | 'delegates';
+    ringDurationBeforeRedirect?: number;
+    ringtone?: string;
+  };
+  appPermissions?: {
+    media: boolean;
+    location: boolean;
+    notifications: boolean;
+    externalLinks: boolean;
+    midiDevices: boolean;
+  };
+  accessibility?: {
+    signLanguageView: boolean;
+    alwaysShowMeetingControls: boolean;
+    highContrast: boolean;
   };
   adminGovernance?: {
     retentionDays: number; // 0 for forever
