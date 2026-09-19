@@ -553,6 +553,7 @@ export interface ChatMessage {
 export interface ChatMember {
   id: string;
   name: string;
+  email?: string;
   roleCode: string;
   roleName: string;
   companyId: string;

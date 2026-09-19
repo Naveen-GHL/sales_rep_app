@@ -193,7 +193,7 @@ export function getTyping(conversationId: string, currentUserId: string): Typing
 
 // ── Directory ─────────────────────────────────────────────────────────────────
 export function buildDirectory(
-  users: Array<{ id: string; name: string; role?: { code: string; name: string }; companyId?: string; companySlug?: string }>,
+  users: Array<{ id: string; name: string; email?: string; role?: { code: string; name: string }; companyId?: string; companySlug?: string }>,
   companyId: string,
   tenantSlug?: string,
 ): ChatMember[] {
@@ -208,6 +208,7 @@ export function buildDirectory(
     .map(u => ({
       id: u.id,
       name: u.name,
+      email: u.email,
       roleCode: u.role?.code || 'sales_executive',
       roleName: u.role?.name || 'Sales Executive',
       companyId,
@@ -227,6 +228,7 @@ export function ensureDemoConversations(companyId: string, tenantSlug?: string):
     const admin: ChatMember = {
       id: 'usr-ghl-admin',
       name: 'Vikram Malhotra',
+      email: 'vikram.malhotra@ghl.com',
       roleCode: 'company_admin',
       roleName: 'Company Admin',
       companyId,
@@ -235,6 +237,7 @@ export function ensureDemoConversations(companyId: string, tenantSlug?: string):
     const exec: ChatMember = {
       id: 'usr-ghl-exec',
       name: 'Ananya Iyer',
+      email: 'ananya.iyer@ghl.com',
       roleCode: 'sales_executive',
       roleName: 'Sales Executive',
       companyId,
@@ -382,6 +385,7 @@ export function ensureDemoConversations(companyId: string, tenantSlug?: string):
     const admin: ChatMember = {
       id: 'usr-jamin-admin',
       name: 'Kavita Rao',
+      email: 'kavita.rao@jaminbazaar.com',
       roleCode: 'company_admin',
       roleName: 'Company Admin',
       companyId,
@@ -390,6 +394,7 @@ export function ensureDemoConversations(companyId: string, tenantSlug?: string):
     const exec: ChatMember = {
       id: 'usr-jamin-exec',
       name: 'Pooja Hegde',
+      email: 'pooja.hegde@jaminbazaar.com',
       roleCode: 'sales_executive',
       roleName: 'Sales Executive',
       companyId,

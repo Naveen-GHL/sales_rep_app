@@ -43,6 +43,7 @@ export const ChatPage: React.FC<{ onNavigate?: (route: string) => void }> = ({ o
     ? {
         id: user.id,
         name: user.name,
+        email: user.email,
         roleCode: user.role.code,
         roleName: user.role.name,
         companyId,
