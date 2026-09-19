@@ -247,8 +247,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
 
       {/* Right Controls */}
       <div className="topbar-right-controls">
-        {/* Theme Toggle (Only for Sales Executive in GHL) */}
-        {user?.role?.code === 'sales_executive' && (
+        {/* Theme Toggle (Available for all roles except Super Admin) */}
+        {!isSuperAdmin && (
           <button
             className="btn btn-ghost btn-icon btn-sm"
             style={{ color: 'var(--text-secondary)' }}
