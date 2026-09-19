@@ -654,18 +654,23 @@ export const DispositionModal: React.FC = () => {
 
   const handleSave = () => {
     // Combine date + time into a proper ISO string so scheduledAt is parseable
-    const combinedDateTime = scheduleFollowup && followupDate
-      ? new Date(`${followupDate}T${followupTime || '11:00'}:00`).toISOString()
+    const targetDate = followupDate || (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      return d.toISOString().slice(0, 10);
+    })();
+    const combinedDateTime = (scheduleFollowup || disposition === 'Follow-up Required')
+      ? new Date(`${targetDate}T${followupTime || '11:00'}:00`).toISOString()
       : '';
 
     saveDisposition(
       disposition,
       notes,
-      scheduleFollowup && combinedDateTime
+      combinedDateTime
         ? {
             scheduledAt: combinedDateTime,
             priority: followupPriority,
-            notes: `Follow-up required from call with ${lastCallRecord.contactName}: ${notes}`,
+            notes: notes ? `Follow-up required from call with ${lastCallRecord.contactName}: ${notes}` : `Follow-up required from call with ${lastCallRecord.contactName}`,
           }
         : undefined,
       (disposition === 'Not Interested' || disposition === 'Wrong Number') ? reason : undefined
@@ -685,7 +690,7 @@ export const DispositionModal: React.FC = () => {
             Skip for Now
           </button>
           <button className="btn btn-primary" onClick={handleSave}>
-            {disposition === 'Not Interested' ? 'Move to Not Interested' : disposition === 'Wrong Number' ? 'Move to Junk' : 'Save Disposition & Wrap Up'}
+            Save Disposition & Wrap Up
           </button>
         </>
       }
