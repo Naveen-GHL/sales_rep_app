@@ -18,6 +18,7 @@ import { ReportsPage } from './pages/Reports/ReportsPage';
 import { NotificationsPage } from './pages/Notifications/NotificationsPage';
 import { NotInterestedPage } from './pages/NotInterested/NotInterestedPage';
 import { JunkPage } from './pages/Junk/JunkPage';
+import { ProfilePage } from './pages/Profile/ProfilePage';
 
 const PlaceholderPage = ({ title }: { title: string }) => (
   <div style={{ padding: 24, textAlign: 'center' }}>
@@ -315,7 +316,7 @@ export const App: React.FC = () => {
       ) : currentRoute === 'smarty-ai' ? (
         <PlaceholderPage title="Smarty AI" />
       ) : currentRoute === 'profile' ? (
-        <PlaceholderPage title="Profile" />
+        <ProfilePage />
       ) : currentRoute === 'reports' ? (
         <ReportsPage />
       ) : currentRoute === 'notifications' ? (

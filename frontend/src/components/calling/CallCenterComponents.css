@@ -158,9 +158,8 @@
 /* Minimized In-Call Bar */
 .incall-minimized-wrapper {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
   z-index: 1500;
+  user-select: none;
 }
 
 .incall-minimized-card {
@@ -218,10 +217,9 @@
 /* Expanded In-Call Panel */
 .incall-expanded-wrapper {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
   z-index: 1500;
   width: 420px;
+  user-select: none;
 }
 
 .incall-expanded-card {
@@ -288,6 +286,14 @@
 .incall-live-timer {
   color: #38bdf8;
   font-weight: 700;
+}
+
+.incall-drag-handle {
+  border-bottom: 1px solid #1e293b;
+}
+
+.incall-drag-handle:active {
+  cursor: grabbing !important;
 }
 
 .incall-btn-minimize {
