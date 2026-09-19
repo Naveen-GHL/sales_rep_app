@@ -694,6 +694,7 @@ export const InCallBar: React.FC = () => {
 // --- Mandatory Post-Call Disposition Modal ---
 export const DispositionModal: React.FC = () => {
   const { showDispositionModal, lastCallRecord, saveDisposition, closeDispositionModal } = useCall();
+  const { tenant, user } = useAuth();
 
   const [disposition, setDisposition] = useState<CallDisposition>('Interested');
   const [notes, setNotes] = useState('');
@@ -723,7 +724,9 @@ export const DispositionModal: React.FC = () => {
 
   if (!showDispositionModal || !lastCallRecord) return null;
 
-  const dispositions: CallDisposition[] = [
+  const isGhlSalesExec = (tenant?.slug === 'ghl' || tenant?.id === 't-ghl-01') && user?.role?.code === 'sales_executive';
+
+  const allDispositions: CallDisposition[] = [
     'Interested',
     'Follow-up Required',
     'Call Back',
@@ -732,6 +735,10 @@ export const DispositionModal: React.FC = () => {
     'Wrong Number',
     'No Response',
   ];
+
+  const dispositions: CallDisposition[] = isGhlSalesExec
+    ? allDispositions.filter(d => d !== 'Converted')
+    : allDispositions;
 
   const handleSave = () => {
     // Combine date + time into a proper ISO string so scheduledAt is parseable
