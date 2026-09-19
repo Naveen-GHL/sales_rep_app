@@ -74,7 +74,23 @@ export const LeadsPage: React.FC = () => {
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
 
+  const isGhlSalesExec = tenant?.slug === 'ghl' && user?.role?.code === 'sales_executive';
+  const ghlPendingFollowups = isGhlSalesExec
+    ? (storageService.getFollowups(tenant?.id) || []).filter(f => f.status === 'Pending')
+    : [];
+
   const filteredLeads = scopedLeads.filter(lead => {
+    if (isGhlSalesExec) {
+      const leadPhoneDigits = (lead.phone || '').replace(/\D/g, '').slice(-10);
+      const hasPendingFollowup = ghlPendingFollowups.some(f => {
+        if (f.contactId && f.contactId !== 'contact-new' && f.contactId === lead.id) {
+          return true;
+        }
+        const fPhoneDigits = (f.contactPhone || '').replace(/\D/g, '').slice(-10);
+        return fPhoneDigits && leadPhoneDigits && fPhoneDigits === leadPhoneDigits;
+      });
+      if (hasPendingFollowup) return false;
+    }
     if (statusFilter !== 'All' && lead.status !== statusFilter) return false;
     if (priorityFilter !== 'All' && lead.priority !== priorityFilter) return false;
     return true;
@@ -95,9 +111,21 @@ export const LeadsPage: React.FC = () => {
       assignedAgentName: user?.name || 'Agent',
       createdAt: new Date().toISOString().split('T')[0],
       notes: '',
-      customFields: tenant?.slug === 'jamin'
-        ? { budgetRange: '₹45L - ₹65L', preferredLocation: 'Devanahalli North', readyToRegister: 'Immediate' }
-        : { investmentCapacity: '₹1 Cr - ₹3 Cr', preferredAssetClass: 'Commercial Pre-Leased', horizon: '3-5 Years' },
+      customFields: (() => {
+        const defs = storageService
+          .getCustomFieldDefinitions(tenant?.id)
+          .filter(d => d.active !== false && (d.module === 'leads' || !d.module));
+        const initialCustom: Record<string, any> = {};
+        defs.forEach(d => {
+          const key = d.fieldKey || d.id;
+          if (d.defaultValue !== undefined) {
+            initialCustom[key] = d.defaultValue;
+          } else if (d.options && d.options.length > 0) {
+            initialCustom[key] = d.options[0];
+          }
+        });
+        return initialCustom;
+      })(),
     });
     setIsEditDrawerOpen(true);
   };
@@ -561,21 +589,45 @@ export const LeadsPage: React.FC = () => {
             </div>
 
             {/* Tenant-Specific Dynamic Custom Fields */}
-            <div className="card lead-custom-card">
-              <h4 className="lead-custom-title">
-                {tenant?.name} Custom Attributes
-              </h4>
-              <div className="lead-detail-grid">
-                {Object.entries(selectedLead.customFields || {}).map(([key, val]) => (
-                  <div key={key}>
-                    <span className="lead-custom-label">
-                      {key.replace(/([A-Z])/g, ' $1')}:
-                    </span>
-                    <div className="lead-custom-value">{String(val)}</div>
+            {(() => {
+              const activeDefs = storageService
+                .getCustomFieldDefinitions(tenant?.id)
+                .filter(d => d.active !== false && (d.module === 'leads' || !d.module))
+                .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+
+              const rows = activeDefs
+                .map(def => {
+                  const key = def.fieldKey || def.id;
+                  const val = selectedLead.customFields?.[key];
+                  if (val === undefined || val === null || val === '') return null;
+                  return {
+                    id: def.id,
+                    label: def.label || key.replace(/([A-Z])/g, ' $1'),
+                    value: String(val),
+                  };
+                })
+                .filter(Boolean);
+
+              if (rows.length === 0) return null;
+
+              return (
+                <div className="card lead-custom-card">
+                  <h4 className="lead-custom-title">
+                    {tenant?.name} Custom Attributes
+                  </h4>
+                  <div className="lead-detail-grid">
+                    {rows.map(item => (
+                      <div key={item!.id}>
+                        <span className="lead-custom-label">
+                          {item!.label}:
+                        </span>
+                        <div className="lead-custom-value">{item!.value}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              );
+            })()}
 
             {/* Activity History Timeline */}
             <div>
@@ -696,83 +748,67 @@ export const LeadsPage: React.FC = () => {
               {tenant?.name} Custom Form Schema
             </div>
 
-            {tenant?.slug === 'jamin' ? (
-              <div className="lead-form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">Plot Budget Range</label>
-                  <select
-                    className="form-select"
-                    value={formData.customFields?.budgetRange || '₹45L - ₹65L'}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        customFields: { ...formData.customFields, budgetRange: e.target.value },
-                      })
-                    }
-                  >
-                    <option value="₹25L - ₹45L">₹25L - ₹45L</option>
-                    <option value="₹45L - ₹65L">₹45L - ₹65L</option>
-                    <option value="₹65L - ₹90L">₹65L - ₹90L</option>
-                    <option value="₹90L+">₹90L+</option>
-                  </select>
+            {(() => {
+              const leadFieldDefs = storageService
+                .getCustomFieldDefinitions(tenant?.id)
+                .filter(d => d.active !== false && (d.module === 'leads' || !d.module))
+                .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+
+              if (leadFieldDefs.length === 0) return null;
+
+              return (
+                <div className="lead-form-grid-2">
+                  {leadFieldDefs.map(def => {
+                    const key = def.fieldKey || def.id;
+                    const val = formData.customFields?.[key] ?? def.defaultValue ?? '';
+                    return (
+                      <div key={def.id} className="form-group">
+                        <label className="form-label">
+                          {def.label || key}
+                          {def.required ? ' *' : ''}
+                        </label>
+                        {def.fieldType === 'select' && def.options && def.options.length > 0 ? (
+                          <select
+                            className="form-select"
+                            required={def.required}
+                            value={val}
+                            onChange={e =>
+                              setFormData({
+                                ...formData,
+                                customFields: { ...formData.customFields, [key]: e.target.value },
+                              })
+                            }
+                          >
+                            {!def.defaultValue && !def.options.includes(val) && (
+                              <option value="">Select {def.label}...</option>
+                            )}
+                            {def.options.map(opt => (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type={def.fieldType === 'number' ? 'number' : 'text'}
+                            className="form-input"
+                            required={def.required}
+                            placeholder={`Enter ${def.label}...`}
+                            value={val}
+                            onChange={e =>
+                              setFormData({
+                                ...formData,
+                                customFields: { ...formData.customFields, [key]: e.target.value },
+                              })
+                            }
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Preferred Micro-Market</label>
-                  <select
-                    className="form-select"
-                    value={formData.customFields?.preferredLocation || 'Devanahalli North'}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        customFields: { ...formData.customFields, preferredLocation: e.target.value },
-                      })
-                    }
-                  >
-                    <option value="Devanahalli North">Devanahalli North (Airport)</option>
-                    <option value="Sarjapur East">Sarjapur East</option>
-                    <option value="Mysore Highway Corridor">Mysore Highway Corridor</option>
-                  </select>
-                </div>
-              </div>
-            ) : (
-              <div className="lead-form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">Investment Capacity</label>
-                  <select
-                    className="form-select"
-                    value={formData.customFields?.investmentCapacity || '₹1 Cr - ₹3 Cr'}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        customFields: { ...formData.customFields, investmentCapacity: e.target.value },
-                      })
-                    }
-                  >
-                    <option value="₹50L - ₹1 Cr">₹50L - ₹1 Cr</option>
-                    <option value="₹1 Cr - ₹3 Cr">₹1 Cr - ₹3 Cr</option>
-                    <option value="₹3 Cr - ₹5 Cr">₹3 Cr - ₹5 Cr</option>
-                    <option value="₹5 Cr+">₹5 Cr+</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Preferred Asset Class</label>
-                  <select
-                    className="form-select"
-                    value={formData.customFields?.preferredAssetClass || 'Commercial Pre-Leased'}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        customFields: { ...formData.customFields, preferredAssetClass: e.target.value },
-                      })
-                    }
-                  >
-                    <option value="Commercial Pre-Leased">Commercial Pre-Leased</option>
-                    <option value="Industrial Logistics Park">Industrial Logistics Park</option>
-                    <option value="Commercial Yield Funds">Commercial Yield Funds</option>
-                  </select>
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           <div className="form-group">

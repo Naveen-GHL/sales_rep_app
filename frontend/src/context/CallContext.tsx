@@ -261,36 +261,184 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       // If scheduled followup requested
+      const isGhlSalesExec = tenant?.slug === 'ghl' && user?.role?.code === 'sales_executive';
+
       if (scheduleFollowup) {
-        storageService.saveFollowup({
-          id: `flw-${Date.now()}`,
-          companyId: tenant.id,
-          contactId: lastCallRecord.matchedRecord?.id || 'contact-new',
-          contactName: lastCallRecord.contactName,
-          contactPhone: lastCallRecord.contactPhone,
-          contactType: (lastCallRecord.matchedRecord?.type as any) || 'lead',
-          scheduledAt: scheduleFollowup.scheduledAt,
-          priority: scheduleFollowup.priority,
-          status: 'Pending',
-          notes: scheduleFollowup.notes,
-          assignedAgentId: user.id,
-          assignedAgentName: user.name,
-        });
+        if (isGhlSalesExec) {
+          const existingFollowups = storageService.getFollowups(tenant.id) || [];
+          const targetContactId = lastCallRecord.matchedRecord?.id;
+          const targetPhoneDigits = (lastCallRecord.contactPhone || '').replace(/\D/g, '').slice(-10);
+
+          const existingPending = existingFollowups.find(f => {
+            if (f.status !== 'Pending') return false;
+            if (targetContactId && targetContactId !== 'contact-new' && f.contactId === targetContactId) {
+              return true;
+            }
+            const fPhoneDigits = (f.contactPhone || '').replace(/\D/g, '').slice(-10);
+            return fPhoneDigits && targetPhoneDigits && fPhoneDigits === targetPhoneDigits;
+          });
+
+          if (existingPending) {
+            storageService.saveFollowup({
+              ...existingPending,
+              scheduledAt: scheduleFollowup.scheduledAt,
+              priority: scheduleFollowup.priority,
+              notes: scheduleFollowup.notes,
+              relatedCallId: lastCallRecord.id,
+              assignedAgentId: user.id,
+              assignedAgentName: user.name,
+            });
+          } else {
+            storageService.saveFollowup({
+              id: `flw-${Date.now()}`,
+              companyId: tenant.id,
+              contactId: lastCallRecord.matchedRecord?.id || 'contact-new',
+              contactName: lastCallRecord.contactName,
+              contactPhone: lastCallRecord.contactPhone,
+              contactType: (lastCallRecord.matchedRecord?.type as any) || 'lead',
+              scheduledAt: scheduleFollowup.scheduledAt,
+              priority: scheduleFollowup.priority,
+              status: 'Pending',
+              notes: scheduleFollowup.notes,
+              assignedAgentId: user.id,
+              assignedAgentName: user.name,
+              relatedCallId: lastCallRecord.id,
+            });
+          }
+        } else {
+          // Untouched original behavior for all other roles and tenants
+          storageService.saveFollowup({
+            id: `flw-${Date.now()}`,
+            companyId: tenant.id,
+            contactId: lastCallRecord.matchedRecord?.id || 'contact-new',
+            contactName: lastCallRecord.contactName,
+            contactPhone: lastCallRecord.contactPhone,
+            contactType: (lastCallRecord.matchedRecord?.type as any) || 'lead',
+            scheduledAt: scheduleFollowup.scheduledAt,
+            priority: scheduleFollowup.priority,
+            status: 'Pending',
+            notes: scheduleFollowup.notes,
+            assignedAgentId: user.id,
+            assignedAgentName: user.name,
+          });
+        }
       }
       
-      // Handle Not Interested and Wrong Number to move lead to Not Interested or Junk module
-      if (disposition === 'Not Interested' || disposition === 'Wrong Number') {
+      // ── GHL Sales Exec: bidirectional lead routing ───────────────────────────
+      if (isGhlSalesExec) {
         const leadId = lastCallRecord.matchedRecord?.type === 'lead' ? lastCallRecord.matchedRecord.id : null;
-        if (leadId) {
+        const targetPhoneDigits = (lastCallRecord.contactPhone || '').replace(/\D/g, '').slice(-10);
+
+        // Helper: find matched lead by id or phone
+        const findMatchedLead = () => {
           const leads = storageService.getLeads(tenant.id);
-          const matchedLead = leads.find(l => l.id === leadId);
+          if (leadId) {
+            const byId = leads.find(l => l.id === leadId);
+            if (byId) return byId;
+          }
+          // Fallback: phone-match
+          return leads.find(l => {
+            const lPhone = (l.phone || '').replace(/\D/g, '').slice(-10);
+            return lPhone && targetPhoneDigits && lPhone === targetPhoneDigits;
+          }) || null;
+        };
+
+        // Helper: hard-delete ALL pending follow-up records for this contact so
+        // they are completely removed from the Follow-up queue (not just Completed).
+        // This enforces mutual exclusivity: a lead in NI/Junk must have zero
+        // Pending followup records.
+        const purgeFollowupsForContact = () => {
+          storageService.purgeFollowupsForContact(
+            tenant.id,
+            leadId,
+            lastCallRecord.contactPhone
+          );
+        };
+
+        // Helper: ensure a pending follow-up exists (creates one if absent and
+        // no explicit scheduleFollowup block was already processed above)
+        const ensurePendingFollowup = (matchedLeadId?: string) => {
+          if (scheduleFollowup) return; // already handled above
+          const followups = storageService.getFollowups(tenant.id) || [];
+          const hasPending = followups.some(f => {
+            if (f.status !== 'Pending') return false;
+            if (matchedLeadId && matchedLeadId !== 'contact-new' && f.contactId === matchedLeadId) return true;
+            const fPhone = (f.contactPhone || '').replace(/\D/g, '').slice(-10);
+            return fPhone && targetPhoneDigits && fPhone === targetPhoneDigits;
+          });
+
+          if (!hasPending) {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            storageService.saveFollowup({
+              id: `flw-${Date.now()}`,
+              companyId: tenant.id,
+              contactId: matchedLeadId || lastCallRecord.matchedRecord?.id || 'contact-new',
+              contactName: lastCallRecord.contactName,
+              contactPhone: lastCallRecord.contactPhone,
+              contactType: (lastCallRecord.matchedRecord?.type as any) || 'lead',
+              scheduledAt: tomorrow.toISOString(),
+              priority: 'High',
+              status: 'Pending',
+              notes: `Follow-up required from call with ${lastCallRecord.contactName}: ${notes}`,
+              assignedAgentId: user.id,
+              assignedAgentName: user.name,
+              relatedCallId: lastCallRecord.id,
+            });
+          }
+        };
+
+        // ── FORWARD ROUTING: active lead → Not Interested or Junk ──────────────
+        if (disposition === 'Not Interested' || disposition === 'Wrong Number') {
+          const matchedLead = findMatchedLead();
           if (matchedLead) {
-            matchedLead.status = disposition === 'Not Interested' ? 'Not Interested' : 'Junk';
+            const newStatus = disposition === 'Not Interested' ? 'Not Interested' : 'Junk';
+            const updatedLead = { ...matchedLead, status: newStatus as any };
             if (reason) {
-              matchedLead.notes = `${matchedLead.notes}\n\n[${new Date().toLocaleDateString()}] ${disposition} Reason: ${reason}`;
-              matchedLead.customFields = { ...matchedLead.customFields, dispositionReason: reason };
+              updatedLead.notes = `${matchedLead.notes}\n\n[${new Date().toLocaleDateString()}] ${disposition} Reason: ${reason}`;
+              updatedLead.customFields = { ...updatedLead.customFields, dispositionReason: reason };
             }
-            storageService.saveLead(matchedLead);
+            storageService.saveLead(updatedLead);
+            // Hard-delete pending follow-ups — lead is no longer active in queue
+            purgeFollowupsForContact();
+          }
+        }
+
+        // ── REVERSE ROUTING: Not Interested / Junk → active Follow-up ──────────
+        // Triggered when a re-engagement disposition is chosen after calling a
+        // lead that currently sits in Junk or Not Interested.
+        const reEngagementDispositions: CallDisposition[] = [
+          'Interested',
+          'Follow-up Required',
+          'Call Back',
+          'Converted',
+        ];
+
+        if (reEngagementDispositions.includes(disposition)) {
+          const matchedLead = findMatchedLead();
+          if (matchedLead && (matchedLead.status === 'Not Interested' || matchedLead.status === 'Junk')) {
+            // Restore to active status
+            storageService.saveLead({ ...matchedLead, status: 'Contacted' });
+            // Ensure at least one pending follow-up exists
+            ensurePendingFollowup(matchedLead.id);
+          }
+        }
+
+      } else {
+        // ── Non-GHL: preserve original forward routing only ──────────────────
+        if (disposition === 'Not Interested' || disposition === 'Wrong Number') {
+          const leadId = lastCallRecord.matchedRecord?.type === 'lead' ? lastCallRecord.matchedRecord.id : null;
+          if (leadId) {
+            const leads = storageService.getLeads(tenant.id);
+            const matchedLead = leads.find(l => l.id === leadId);
+            if (matchedLead) {
+              matchedLead.status = disposition === 'Not Interested' ? 'Not Interested' : 'Junk';
+              if (reason) {
+                matchedLead.notes = `${matchedLead.notes}\n\n[${new Date().toLocaleDateString()}] ${disposition} Reason: ${reason}`;
+                matchedLead.customFields = { ...matchedLead.customFields, dispositionReason: reason };
+              }
+              storageService.saveLead(matchedLead);
+            }
           }
         }
       }

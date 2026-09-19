@@ -516,3 +516,85 @@ export interface ProductService {
   status?: 'active' | 'inactive' | string;
 }
 
+// ── Chat Types ─────────────────────────────────────────────────────────────
+export interface ChatReaction {
+  emoji: string;
+  userId: string;
+  userName: string;
+}
+
+export type FileCategory = 'PDF' | 'Image' | 'Document' | 'Spreadsheet' | 'Other';
+export type FilePermission = 'read_only' | 'view_download' | 'view_edit';
+
+export interface ChatAttachment {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  category?: FileCategory;
+  permission?: FilePermission;
+  dataUrl: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  isDeleted: boolean;
+  isEdited: boolean;
+  createdAt: string;
+  updatedAt: string;
+  reactions: ChatReaction[];
+  attachments?: ChatAttachment[];
+}
+
+export interface ChatMember {
+  id: string;
+  name: string;
+  roleCode: string;
+  roleName: string;
+  companyId: string;
+  avatarUrl?: string;
+  status: 'online' | 'offline' | 'busy';
+}
+
+export interface ChatConversation {
+  id: string;
+  companyId: string;
+  type: 'dm' | 'group';
+  name?: string;
+  memberIds: string[];
+  members: ChatMember[];
+  lastMessage?: Pick<ChatMessage, 'content' | 'senderName' | 'isDeleted'>;
+  unreadCount: number;
+  createdAt: string;
+  updatedAt: string;
+  isPinned?: boolean;
+  isMuted?: boolean;
+}
+
+export interface ChatSettings {
+  notifications: {
+    desktopPush: boolean;
+    sound: boolean;
+    mentionOnly: boolean;
+  };
+  privacy: {
+    readReceipts: boolean;
+    typingIndicator: boolean;
+    whoCanDm: 'everyone' | 'team' | 'managers_admins';
+  };
+  calls: {
+    defaultMic: string;
+    defaultCamera: string;
+    cameraOffOnJoin: boolean;
+    autoAnswer: boolean;
+  };
+  adminGovernance?: {
+    retentionDays: number; // 0 for forever
+    fileRetentionDays: number;
+    whoCanCreateGroups: 'everyone' | 'managers_admins';
+  };
+}

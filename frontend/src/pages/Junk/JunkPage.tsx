@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, ExternalLink, Trash2 } from 'lucide-react';
+import { Phone, ExternalLink, Trash2, RefreshCw } from 'lucide-react';
 import { Lead } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
@@ -7,6 +7,7 @@ import { storageService } from '../../services/storageService';
 import { DataTable, Column, RowAction } from '../../components/common/DataTable';
 import { Drawer } from '../../components/common/Drawer';
 import { Timeline, TimelineEvent } from '../../components/common/Timeline';
+import { LeadDetailDrawerContent } from '../../components/common/LeadDetailDrawerContent';
 import './JunkPage.css';
 
 export const JunkPage: React.FC = () => {
@@ -16,21 +17,23 @@ export const JunkPage: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
+  const [reengaging, setReengaging] = useState(false);
 
   const roleCode = user?.role?.code;
   const isExec = roleCode === 'sales_executive';
+  const isGhlSalesExec = tenant?.slug === 'ghl' && isExec;
 
   const loadData = () => {
     const allLeads = storageService.getLeads(tenant?.id);
     const junkLeads = allLeads.filter(l => l.status === 'Junk');
-    
+
     const scopedLeads = isExec
       ? junkLeads.filter(l =>
           (l.assignedAgentId && l.assignedAgentId === user?.id) ||
           (l.assignedAgentName && l.assignedAgentName === user?.name)
         )
       : junkLeads;
-    
+
     setLeads(scopedLeads);
   };
 
@@ -40,6 +43,41 @@ export const JunkPage: React.FC = () => {
     window.addEventListener('nexus_storage_updated', handleUpdate);
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id, user?.id, isExec]);
+
+  // Re-engage: move lead from Junk → Contacted and create a follow-up entry
+  const handleReengage = (lead: Lead) => {
+    if (!tenant || !user) return;
+    setReengaging(true);
+    try {
+      // Reset lead status to Contacted
+      storageService.saveLead({ ...lead, status: 'Contacted' });
+
+      // Purge any stale Pending followups for this contact, then create a fresh one
+      storageService.purgeFollowupsForContact(tenant.id, lead.id, lead.phone);
+
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      storageService.saveFollowup({
+        id: `flw-${Date.now()}`,
+        companyId: tenant.id,
+        contactId: lead.id,
+        contactName: lead.name,
+        contactPhone: lead.phone,
+        contactType: 'lead',
+        scheduledAt: tomorrow.toISOString(),
+        priority: 'High',
+        status: 'Pending',
+        notes: `Re-engaged from Junk — follow-up required with ${lead.name}.`,
+        assignedAgentId: user.id,
+        assignedAgentName: user.name,
+      });
+
+      setIsDetailDrawerOpen(false);
+      setSelectedLead(null);
+    } finally {
+      setReengaging(false);
+    }
+  };
 
   const columns: Column<Lead>[] = [
     {
@@ -87,9 +125,10 @@ export const JunkPage: React.FC = () => {
     },
   ];
 
+  // ── Non-GHL exec: timeline helper ───────────────────────────────────────────
   const getTimelineEvents = (lead: Lead): TimelineEvent[] => {
     const events: TimelineEvent[] = [];
-    
+
     events.push({
       id: `ev-create-${lead.id}`,
       type: 'note',
@@ -100,7 +139,7 @@ export const JunkPage: React.FC = () => {
     });
 
     const calls = storageService.getCalls(tenant?.id).filter(c => c.contactPhone === lead.phone || c.contactName === lead.name);
-    
+
     calls.forEach(c => {
       events.push({
         id: `ev-call-${c.id}`,
@@ -115,8 +154,10 @@ export const JunkPage: React.FC = () => {
     return events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   };
 
-  const timelineEvents = selectedLead ? getTimelineEvents(selectedLead) : [];
-  const callsCount = selectedLead ? storageService.getCalls(tenant?.id).filter(c => c.contactPhone === selectedLead.phone || c.contactName === selectedLead.name).length : 0;
+  const timelineEvents = selectedLead && !isGhlSalesExec ? getTimelineEvents(selectedLead) : [];
+  const callsCount = selectedLead && !isGhlSalesExec
+    ? storageService.getCalls(tenant?.id).filter(c => c.contactPhone === selectedLead.phone || c.contactName === selectedLead.name).length
+    : 0;
 
   return (
     <div className="junk-page">
@@ -135,62 +176,124 @@ export const JunkPage: React.FC = () => {
           keyExtractor={(r) => r.id}
           rowActions={actions}
           emptyTitle="No junk leads found."
+          onRowClick={isGhlSalesExec ? (row) => { setSelectedLead(row); setIsDetailDrawerOpen(true); } : undefined}
         />
       </div>
 
       {/* Details Drawer */}
       <Drawer
         isOpen={isDetailDrawerOpen}
-        onClose={() => setIsDetailDrawerOpen(false)}
+        onClose={() => { setIsDetailDrawerOpen(false); setSelectedLead(null); }}
         title={selectedLead?.name || 'Lead Details'}
-        subtitle={`Junk Lead • Added on ${selectedLead?.createdAt}`}
-        width={500}
+        subtitle={isGhlSalesExec
+          ? `Phone: ${selectedLead?.phone || '—'} • ${tenant?.name}`
+          : `Junk Lead • Added on ${selectedLead?.createdAt}`
+        }
+        width={isGhlSalesExec ? 600 : 500}
       >
         {selectedLead && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '16px 0' }}>
-            {/* Core Details */}
-            <div className="card">
-              <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700 }}>
-                Contact Details
-              </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          isGhlSalesExec ? (
+            // ── GHL Sales Exec: full parity drawer ──────────────────────────────
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Re-engage action banner */}
+              <div
+                style={{
+                  backgroundColor: '#fff7ed',
+                  border: '1px solid #fed7aa',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                }}
+              >
                 <div>
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Phone:</span>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>{selectedLead.phone}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>
+                    Junk Lead
+                  </div>
+                  <div style={{ fontSize: 13, color: '#78350f', marginTop: 2 }}>
+                    {selectedLead.customFields?.dispositionReason || 'No specific reason provided.'}
+                  </div>
                 </div>
-                <div>
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Email:</span>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>{selectedLead.email || '—'}</div>
-                </div>
-                <div>
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Location:</span>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>{selectedLead.location || '—'}</div>
-                </div>
-                <div>
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Total Calls:</span>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>{callsCount}</div>
+                <button
+                  className="btn btn-sm"
+                  style={{
+                    backgroundColor: '#16a34a',
+                    color: '#fff',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                  disabled={reengaging}
+                  onClick={() => handleReengage(selectedLead)}
+                >
+                  <RefreshCw size={13} />
+                  Re-engage → Follow-up
+                </button>
+              </div>
+
+              {/* Full GHL detail drawer content */}
+              <LeadDetailDrawerContent
+                contactName={selectedLead.name}
+                contactPhone={selectedLead.phone}
+                contactId={selectedLead.id}
+                contactType="lead"
+                tenantId={tenant?.id}
+                tenantName={tenant?.name}
+                onCall={() => initiateCall(selectedLead.name, selectedLead.phone, 'lead', selectedLead.id)}
+              />
+            </div>
+          ) : (
+            // ── Non-GHL / non-exec: original lightweight drawer ──────────────────
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '16px 0' }}>
+              {/* Core Details */}
+              <div className="card">
+                <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700 }}>
+                  Contact Details
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Phone:</span>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>{selectedLead.phone}</div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Email:</span>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>{selectedLead.email || '—'}</div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Location:</span>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>{selectedLead.location || '—'}</div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Total Calls:</span>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>{callsCount}</div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Reason Details */}
-            <div className="card">
-              <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700 }}>
-                Junk Reason Details
-              </h4>
-              <p style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
-                {selectedLead.customFields?.dispositionReason || 'No specific reason provided.'}
-              </p>
-            </div>
+              {/* Reason Details */}
+              <div className="card">
+                <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700 }}>
+                  Junk Reason Details
+                </h4>
+                <p style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                  {selectedLead.customFields?.dispositionReason || 'No specific reason provided.'}
+                </p>
+              </div>
 
-            {/* Activity History Timeline */}
-            <div>
-              <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 16, fontWeight: 700 }}>
-                Call Records / History
-              </h4>
-              <Timeline events={timelineEvents} />
+              {/* Activity History Timeline */}
+              <div>
+                <h4 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 16, fontWeight: 700 }}>
+                  Call Records / History
+                </h4>
+                <Timeline events={timelineEvents} />
+              </div>
             </div>
-          </div>
+          )
         )}
       </Drawer>
     </div>

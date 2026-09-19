@@ -84,6 +84,10 @@ export const PERMISSIONS = {
   ASSIGNMENT_HISTORY_VIEW: 'assignment_history.view',
   ESCALATIONS_VIEW: 'escalations.view',
   ESCALATIONS_MANAGE: 'escalations.manage',
+
+  // Chat
+  CHAT_VIEW: 'chat.view',
+  CHAT_SEND: 'chat.send',
 } as const;
 
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS];
