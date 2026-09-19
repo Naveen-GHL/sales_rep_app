@@ -95,6 +95,39 @@
   --text-inverse: #0f172a;
 
   --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+  --primary-50: rgba(239, 68, 68, 0.1);
+  --primary-100: rgba(239, 68, 68, 0.2);
+
+  color: var(--text-primary);
+  background-color: var(--bg-app);
+}
+
+/* Dark Theme — toggled by Sales Executive user preference */
+.dark-theme {
+  --bg-app: #090d16;
+  --bg-surface: #0f172a;
+  --bg-surface-hover: #1e293b;
+  --bg-surface-active: #334155;
+  --bg-card: #0f172a;
+  --bg-glass: rgba(15, 23, 42, 0.85);
+
+  --border-subtle: #1e293b;
+  --border-base: #334155;
+  --border-strong: #475569;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --text-inverse: #0f172a;
+
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+  --primary-50: rgba(239, 68, 68, 0.1);
+  --primary-100: rgba(239, 68, 68, 0.2);
+
+  color: var(--text-primary);
+  background-color: var(--bg-app);
 }
 
 /* Reset & Base */

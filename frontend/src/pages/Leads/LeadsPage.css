@@ -218,10 +218,26 @@
   color: var(--text-primary);
 }
 
-.lead-timeline-title {
-  font-size: 14px;
-  font-weight: 700;
-  margin-bottom: 14px;
+.lead-user-message-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  min-height: 52px;
+}
+
+.lead-user-message-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.lead-user-message-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 /* Edit Form */
@@ -418,3 +434,148 @@
   font-size: 12px;
   color: var(--text-secondary);
 }
+
+/* ==========================================================================
+   Leads Module Enhanced Styles
+   ========================================================================== */
+
+/* Investment Amount */
+.lead-investment-val {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+/* Quick Call Column — exactly matches Customer 360 call button */
+.lead-quick-call-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.leads-page .btn-icon,
+.leads-page .customer-list-call-btn {
+  padding: 0 !important;
+  gap: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.leads-page .customer-list-call-btn {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  max-width: 26px !important;
+  max-height: 26px !important;
+  border-radius: 6px !important;
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3) !important;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.leads-page .customer-list-call-btn:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.45) !important;
+  transform: translateY(-1px);
+}
+
+.leads-page .customer-list-call-btn svg {
+  width: 12px !important;
+  height: 12px !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  flex-shrink: 0;
+  display: block;
+}
+
+/* Action Column Header replacement */
+.leads-page .data-table-container th:last-child {
+  font-size: 0;
+  text-align: right;
+}
+
+.leads-page .data-table-container th:last-child::after {
+  content: 'Action';
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+/* Filter Bar Alignment and Styling */
+.leads-page .filterbar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.leads-page .filterbar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.leads-page .filterbar-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.leads-page .filterbar-item-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.leads-page .filterbar-select {
+  height: 38px;
+  min-width: 150px;
+  font-size: 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-base);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  padding: 0 32px 0 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.leads-page .filterbar-select:focus {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+}
+
+.leads-page .filterbar-clear-btn {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-base);
+  background: var(--bg-surface);
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.leads-page .filterbar-clear-btn:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+

@@ -220,6 +220,67 @@ export const InCallBar: React.FC = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
+  // Draggable position state — null means "use default corner from popup position setting"
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+  const isDragging = useRef(false);
+  const dragStart = useRef<{ mx: number; my: number; ex: number; ey: number } | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Compute initial pixel position from the configured popup corner
+  const getCornerStyles = (): React.CSSProperties => {
+    const pos = storageService.getPopupPosition();
+    switch (pos) {
+      case 'top-left':    return { top: 24, left: 24, bottom: 'auto', right: 'auto' };
+      case 'bottom-left': return { bottom: 24, left: 24, top: 'auto', right: 'auto' };
+      case 'bottom-right': return { bottom: 24, right: 24, top: 'auto', left: 'auto' };
+      case 'top-right':
+      default:            return { top: 24, right: 24, bottom: 'auto', left: 'auto' };
+    }
+  };
+
+  const getWrapperStyle = (): React.CSSProperties => {
+    if (dragPos) {
+      return { top: dragPos.y, left: dragPos.x, right: 'auto', bottom: 'auto' };
+    }
+    return getCornerStyles();
+  };
+
+  // Reset drag position whenever a new call starts (status changes to connected)
+  const prevCallId = useRef<string | null>(null);
+  useEffect(() => {
+    if (activeCall?.status === 'connected' && activeCall.id !== prevCallId.current) {
+      prevCallId.current = activeCall.id;
+      setDragPos(null);
+    }
+  }, [activeCall?.id, activeCall?.status]);
+
+  // Drag handlers
+  const handleDragMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const el = panelRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    isDragging.current = true;
+    dragStart.current = { mx: e.clientX, my: e.clientY, ex: rect.left, ey: rect.top };
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDragging.current || !dragStart.current) return;
+      const dx = ev.clientX - dragStart.current.mx;
+      const dy = ev.clientY - dragStart.current.my;
+      setDragPos({ x: dragStart.current.ex + dx, y: dragStart.current.ey + dy });
+    };
+
+    const onMouseUp = () => {
+      isDragging.current = false;
+      dragStart.current = null;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
   // Start / stop camera based on isVideoMode
   useEffect(() => {
     if (activeCall?.isVideoMode) {
@@ -300,8 +361,16 @@ export const InCallBar: React.FC = () => {
   // ── MINIMIZED MODE ──────────────────────────────────────────────────────────
   if (!activeCall.isExpanded) {
     return (
-      <div className="incall-minimized-wrapper">
-        <div className="incall-minimized-card">
+      <div
+        ref={panelRef}
+        className="incall-minimized-wrapper"
+        style={getWrapperStyle()}
+      >
+        <div
+          className="incall-minimized-card"
+          style={{ cursor: isDragging.current ? 'grabbing' : 'grab' }}
+          onMouseDown={handleDragMouseDown}
+        >
           {/* Pulse dot */}
           <div className="incall-minimized-dot" />
 
@@ -318,6 +387,7 @@ export const InCallBar: React.FC = () => {
             className="btn btn-icon btn-sm incall-minimized-btn-expand"
             title="Expand panel"
             onClick={toggleExpanded}
+            onMouseDown={e => e.stopPropagation()}
           >
             <Maximize2 size={14} />
           </button>
@@ -327,6 +397,7 @@ export const InCallBar: React.FC = () => {
             className="btn btn-danger btn-icon btn-sm incall-minimized-btn-end"
             title="End Call"
             onClick={endCall}
+            onMouseDown={e => e.stopPropagation()}
           >
             <PhoneOff size={14} />
           </button>
@@ -338,10 +409,19 @@ export const InCallBar: React.FC = () => {
   // ── EXPANDED MODE ───────────────────────────────────────────────────────────
   return (
     <>
-      <div className="incall-expanded-wrapper">
+      <div
+        ref={panelRef}
+        className="incall-expanded-wrapper"
+        style={getWrapperStyle()}
+      >
         <div className="animate-slide-down incall-expanded-card">
-          {/* ── Header row ── */}
-          <div className="incall-header">
+          {/* ── Header row (drag handle) ── */}
+          <div
+            className="incall-header incall-drag-handle"
+            onMouseDown={handleDragMouseDown}
+            style={{ cursor: isDragging.current ? 'grabbing' : 'grab' }}
+            title="Drag to move"
+          >
             {/* Avatar */}
             <div className="incall-avatar">
               {initials}
@@ -368,6 +448,7 @@ export const InCallBar: React.FC = () => {
               className="btn btn-icon btn-sm incall-btn-minimize"
               title="Minimize panel"
               onClick={toggleExpanded}
+              onMouseDown={e => e.stopPropagation()}
             >
               <Minimize2 size={14} />
             </button>
@@ -616,6 +697,7 @@ export const DispositionModal: React.FC = () => {
 
   const [disposition, setDisposition] = useState<CallDisposition>('Interested');
   const [notes, setNotes] = useState('');
+  const [reason, setReason] = useState('');
   const [scheduleFollowup, setScheduleFollowup] = useState(false);
   const [followupDate, setFollowupDate] = useState('');
   const [followupTime, setFollowupTime] = useState('');
@@ -632,6 +714,7 @@ export const DispositionModal: React.FC = () => {
     const freshTomorrow = d.toISOString().slice(0, 10);
     setDisposition('Interested');
     setNotes('');
+    setReason('');
     setScheduleFollowup(false);
     setFollowupDate(freshTomorrow);
     setFollowupTime(storageService.getCallPreferences().defaultFollowupTime);
@@ -652,20 +735,26 @@ export const DispositionModal: React.FC = () => {
 
   const handleSave = () => {
     // Combine date + time into a proper ISO string so scheduledAt is parseable
-    const combinedDateTime = scheduleFollowup && followupDate
-      ? new Date(`${followupDate}T${followupTime || '11:00'}:00`).toISOString()
+    const targetDate = followupDate || (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      return d.toISOString().slice(0, 10);
+    })();
+    const combinedDateTime = (scheduleFollowup || disposition === 'Follow-up Required')
+      ? new Date(`${targetDate}T${followupTime || '11:00'}:00`).toISOString()
       : '';
 
     saveDisposition(
       disposition,
       notes,
-      scheduleFollowup && combinedDateTime
+      combinedDateTime
         ? {
             scheduledAt: combinedDateTime,
             priority: followupPriority,
-            notes: `Follow-up required from call with ${lastCallRecord.contactName}: ${notes}`,
+            notes: notes ? `Follow-up required from call with ${lastCallRecord.contactName}: ${notes}` : `Follow-up required from call with ${lastCallRecord.contactName}`,
           }
-        : undefined
+        : undefined,
+      (disposition === 'Not Interested' || disposition === 'Wrong Number') ? reason : undefined
     );
   };
 
@@ -712,70 +801,89 @@ export const DispositionModal: React.FC = () => {
         </div>
 
         {/* Call Notes */}
-        <div className="form-group">
-          <label className="form-label">Call Discussion Summary & Notes</label>
-          <textarea
-            className="form-textarea"
-            rows={3}
-            placeholder="Key discussion points, customer objections, next steps..."
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-          />
-        </div>
+        {!(disposition === 'Not Interested' || disposition === 'Wrong Number') && (
+          <div className="form-group">
+            <label className="form-label">Call Discussion Summary & Notes</label>
+            <textarea
+              className="form-textarea"
+              rows={3}
+              placeholder="Key discussion points, customer objections, next steps..."
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+            />
+          </div>
+        )}
+
+        {/* Reason Box for Not Interested / Wrong Number */}
+        {(disposition === 'Not Interested' || disposition === 'Wrong Number') && (
+          <div className="form-group">
+            <label className="form-label">Reason *</label>
+            <textarea
+              className="form-textarea"
+              rows={2}
+              placeholder={disposition === 'Not Interested' ? 'Why are they not interested?' : 'Details about the wrong number...'}
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              required
+            />
+          </div>
+        )}
 
         {/* Conditional Follow-up Section */}
-        <div className="disposition-followup-box">
-          <div
-            className="disposition-followup-header"
-            style={{ marginBottom: scheduleFollowup ? 12 : 0 }}
-          >
-            <label className="disposition-followup-label">
-              <input
-                type="checkbox"
-                checked={scheduleFollowup}
-                onChange={e => setScheduleFollowup(e.target.checked)}
-                style={{ width: 16, height: 16 }}
-              />
-              Schedule a Next Follow-up Task
-            </label>
-            <Calendar size={16} color="var(--primary-600)" />
-          </div>
-
-          {scheduleFollowup && (
-            <div className="disposition-followup-fields">
-              <div className="form-group">
-                <label className="form-label">Follow-up Date</label>
+        {!(disposition === 'Not Interested' || disposition === 'Wrong Number') && (
+          <div className="disposition-followup-box">
+            <div
+              className="disposition-followup-header"
+              style={{ marginBottom: scheduleFollowup ? 12 : 0 }}
+            >
+              <label className="disposition-followup-label">
                 <input
-                  type="date"
-                  className="form-input"
-                  value={followupDate}
-                  onChange={e => setFollowupDate(e.target.value)}
+                  type="checkbox"
+                  checked={scheduleFollowup}
+                  onChange={e => setScheduleFollowup(e.target.checked)}
+                  style={{ width: 16, height: 16 }}
                 />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Follow-up Time</label>
-                <input
-                  type="time"
-                  className="form-input"
-                  value={followupTime}
-                  onChange={e => setFollowupTime(e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Priority</label>
-                <select
-                  className="form-select"
-                  value={followupPriority}
-                  onChange={e => setFollowupPriority(e.target.value as any)}
-                >
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                </select>
-              </div>
+                Schedule a Next Follow-up Task
+              </label>
+              <Calendar size={16} color="var(--primary-600)" />
             </div>
-          )}
-        </div>
+
+            {scheduleFollowup && (
+              <div className="disposition-followup-fields">
+                <div className="form-group">
+                  <label className="form-label">Follow-up Date</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={followupDate}
+                    onChange={e => setFollowupDate(e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Follow-up Time</label>
+                  <input
+                    type="time"
+                    className="form-input"
+                    value={followupTime}
+                    onChange={e => setFollowupTime(e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Priority</label>
+                  <select
+                    className="form-select"
+                    value={followupPriority}
+                    onChange={e => setFollowupPriority(e.target.value as any)}
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </Modal>
   );

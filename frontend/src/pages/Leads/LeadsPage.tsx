@@ -20,8 +20,18 @@ import { FilterBar } from '../../components/common/FilterBar';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Drawer } from '../../components/common/Drawer';
 import { Modal } from '../../components/common/Modal';
-import { Timeline, TimelineEvent } from '../../components/common/Timeline';
 import './LeadsPage.css';
+
+const AIF_CAPACITY_OPTIONS = [
+  '₹1 Cr – ₹5 Cr',
+  '₹5 Cr – ₹10 Cr',
+  '₹10 Cr – ₹25 Cr',
+  '₹25 Cr+',
+];
+
+const CO_AIF_CAPACITY_OPTIONS = [
+  '₹10 Lakh to ₹1 Cr',
+];
 
 export const LeadsPage: React.FC = () => {
   const { tenant, user } = useAuth();
@@ -29,16 +39,20 @@ export const LeadsPage: React.FC = () => {
 
   const [leads, setLeads] = useState<Lead[]>([]);
 
+  const MOVED_LEAD_STATUSES = ['Interested', 'Converted', 'Follow-up Required', 'Not Interested', 'Junk'];
+
   // Role-based scoping: Sales Executives see only their own leads.
   // Managers / Admins / Super Admins see the full company lead list (no filter).
+  // Inactive / moved leads (Interested, Follow-up Required, Not Interested, Junk, Converted) are excluded from active Leads.
   const roleCode = user?.role?.code;
   const isExec = roleCode === 'sales_executive';
-  const scopedLeads = isExec
+  const scopedLeads = (isExec
     ? leads.filter(l =>
         (l.assignedAgentId && l.assignedAgentId === user?.id) ||
         (l.assignedAgentName && l.assignedAgentName === user?.name)
       )
-    : leads;
+    : leads
+  ).filter(l => !MOVED_LEAD_STATUSES.includes(l.status));
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
@@ -56,15 +70,50 @@ export const LeadsPage: React.FC = () => {
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState('All');
-  const [priorityFilter, setPriorityFilter] = useState('All');
 
   // Form state
   const [formData, setFormData] = useState<Partial<Lead>>({});
   const [convertDealTitle, setConvertDealTitle] = useState('');
   const [convertDealValue, setConvertDealValue] = useState<number>(5000000);
 
+  const currentAssetClass =
+    formData.customFields?.assetClass ||
+    formData.customFields?.preferredAssetClass ||
+    'AIF';
+
+  const handleAssetClassChange = (newAssetClass: string) => {
+    let newCapacity = formData.customFields?.investmentCapacity;
+    if (newAssetClass === 'CO-AIF') {
+      newCapacity = '₹10 Lakh to ₹1 Cr';
+    } else if (newAssetClass === 'AIF') {
+      if (!AIF_CAPACITY_OPTIONS.includes(newCapacity)) {
+        newCapacity = '₹1 Cr – ₹5 Cr';
+      }
+    }
+    setFormData(prev => ({
+      ...prev,
+      customFields: {
+        ...prev.customFields,
+        assetClass: newAssetClass,
+        preferredAssetClass: newAssetClass,
+        investmentCapacity: newCapacity,
+      },
+    }));
+  };
+
   const loadData = () => {
-    setLeads(storageService.getLeads(tenant?.id));
+    const updated = storageService.getLeads(tenant?.id);
+    setLeads(updated);
+    setSelectedLead(prev => {
+      if (!prev) return null;
+      const found = updated.find(l => l.id === prev.id);
+      if (!found || MOVED_LEAD_STATUSES.includes(found.status)) {
+        setIsDetailDrawerOpen(false);
+        setIsEditDrawerOpen(false);
+        return null;
+      }
+      return found;
+    });
   };
 
   useEffect(() => {
@@ -75,8 +124,7 @@ export const LeadsPage: React.FC = () => {
   }, [tenant?.id]);
 
   const filteredLeads = scopedLeads.filter(lead => {
-    if (statusFilter !== 'All' && lead.status !== statusFilter) return false;
-    if (priorityFilter !== 'All' && lead.priority !== priorityFilter) return false;
+    if (statusFilter !== 'All' && (lead.status as string) !== statusFilter) return false;
     return true;
   });
 
@@ -97,7 +145,7 @@ export const LeadsPage: React.FC = () => {
       notes: '',
       customFields: tenant?.slug === 'jamin'
         ? { budgetRange: '₹45L - ₹65L', preferredLocation: 'Devanahalli North', readyToRegister: 'Immediate' }
-        : { investmentCapacity: '₹1 Cr - ₹3 Cr', preferredAssetClass: 'Commercial Pre-Leased', horizon: '3-5 Years' },
+        : { investmentCapacity: '₹1 Cr – ₹5 Cr', assetClass: 'AIF', preferredAssetClass: 'AIF', horizon: '3-5 Years' },
     });
     setIsEditDrawerOpen(true);
   };
@@ -111,7 +159,10 @@ export const LeadsPage: React.FC = () => {
     e.preventDefault();
     if (!formData.name || !formData.phone) return;
 
-    const leadToSave = formData as Lead;
+    const leadToSave = {
+      ...formData,
+      status: formData.status || 'New',
+    } as Lead;
     storageService.saveLead(leadToSave);
 
     storageService.addAuditLog({
@@ -295,7 +346,7 @@ export const LeadsPage: React.FC = () => {
     setImportResults(null);
   };
 
-  // Columns for DataTable
+  // Columns for DataTable (Exactly 7 defined columns + 1 Action column via rowActions = 8 columns)
   const columns: Column<Lead>[] = [
     {
       key: 'name',
@@ -304,11 +355,59 @@ export const LeadsPage: React.FC = () => {
       render: l => (
         <div>
           <div className="lead-name-primary">{l.name}</div>
-          <div className="lead-name-sub">
-            {l.phone} {l.location && `• ${l.location}`}
-          </div>
+          <div className="lead-name-sub">{l.phone}</div>
         </div>
       ),
+    },
+    {
+      key: 'email',
+      header: 'Email',
+      sortable: true,
+      render: l => <span className="lead-text-muted">{l.email || '—'}</span>,
+    },
+    {
+      key: 'location',
+      header: 'City',
+      sortable: true,
+      render: l => <span>{l.location || '—'}</span>,
+    },
+    {
+      key: 'investmentAmount',
+      header: 'Investment Amount',
+      sortable: true,
+      render: l => {
+        const amount =
+          l.customFields?.investmentCapacity ||
+          l.customFields?.budgetRange ||
+          (l as any).investmentAmount ||
+          '—';
+        return <span className="lead-investment-val">{amount}</span>;
+      },
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortable: true,
+      render: l => {
+        if ((l.status as string) === 'Callback') {
+          return (
+            <span
+              className="status-chip status-chip-callback"
+              style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                color: '#2563eb',
+                borderColor: 'rgba(59, 130, 246, 0.3)',
+                fontSize: '11px',
+                padding: '2px 8px',
+              }}
+            >
+              <span className="status-dot" style={{ backgroundColor: '#2563eb' }} />
+              Callback
+            </span>
+          );
+        }
+        return <StatusChip status={l.status} size="sm" />;
+      },
     },
     {
       key: 'source',
@@ -317,42 +416,28 @@ export const LeadsPage: React.FC = () => {
       render: l => <span className="lead-text-muted">{l.source}</span>,
     },
     {
-      key: 'status',
-      header: 'Status',
-      sortable: true,
-      render: l => <StatusChip status={l.status} size="sm" />,
-    },
-    {
-      key: 'priority',
-      header: 'Priority',
-      sortable: true,
-      render: l => <StatusChip status={l.priority} size="sm" />,
-    },
-    {
-      key: 'assignedAgentName',
-      header: 'Assigned Agent',
-      sortable: true,
+      key: 'quickCall',
+      header: 'Quick Call',
+      align: 'center',
       render: l => (
-        <span className="lead-agent-name">{l.assignedAgentName}</span>
-      ),
-    },
-    {
-      key: 'nextFollowupDate',
-      header: 'Follow-up',
-      render: l => (
-        <span className={`lead-followup-text ${l.nextFollowupDate ? 'has-date' : ''}`}>
-          {l.nextFollowupDate || 'None scheduled'}
-        </span>
+        <div className="lead-quick-call-cell">
+          <button
+            className="btn btn-call btn-sm btn-icon customer-list-call-btn"
+            title={`Call ${l.name}`}
+            aria-label={`Call ${l.name}`}
+            onClick={e => {
+              e.stopPropagation();
+              initiateCall(l.name, l.phone, 'lead', l.id);
+            }}
+          >
+            <Phone size={12} color="#ffffff" />
+          </button>
+        </div>
       ),
     },
   ];
 
   const rowActions: RowAction<Lead>[] = [
-    {
-      label: 'Call Lead',
-      icon: <Phone size={14} color="#059669" className="leads-action-icon" />,
-      onClick: l => initiateCall(l.name, l.phone, 'lead', l.id),
-    },
     {
       label: 'View 360 Drawer',
       icon: <ExternalLink size={14} className="leads-action-icon" />,
@@ -367,39 +452,12 @@ export const LeadsPage: React.FC = () => {
       onClick: l => handleOpenEdit(l),
     },
     {
-      label: 'Convert to Customer',
-      icon: <UserCheck size={14} color="#2563eb" className="leads-action-icon" />,
-      hidden: l => l.status === 'Converted',
-      onClick: l => handleStartConvert(l),
-    },
-    {
       label: 'Delete Lead',
       icon: <Trash2 size={14} color="#ef4444" className="leads-action-icon" />,
       danger: true,
       onClick: l => handleDeleteLead(l),
     },
   ];
-
-  const timelineEvents: TimelineEvent[] = selectedLead
-    ? [
-        {
-          id: 'ev-1',
-          type: 'status_change',
-          title: `Status set to ${selectedLead.status}`,
-          description: `Current priority: ${selectedLead.priority}. Location: ${selectedLead.location}.`,
-          timestamp: selectedLead.createdAt,
-          actorName: selectedLead.assignedAgentName,
-        },
-        {
-          id: 'ev-2',
-          type: 'note',
-          title: 'Inquiry Recorded',
-          description: selectedLead.notes || 'Inbound registration captured.',
-          timestamp: selectedLead.createdAt,
-          actorName: 'System Bot',
-        },
-      ]
-    : [];
 
   return (
     <div className="leads-page">
@@ -452,29 +510,13 @@ export const LeadsPage: React.FC = () => {
                 onChange: setStatusFilter,
                 options: [
                   { value: 'New', label: 'New' },
-                  { value: 'Contacted', label: 'Contacted' },
-                  { value: 'Qualified', label: 'Qualified' },
-                  { value: 'Proposal', label: 'Proposal' },
-                  { value: 'Negotiation', label: 'Negotiation' },
-                  { value: 'Converted', label: 'Converted' },
-                ],
-              },
-              {
-                key: 'priority',
-                label: 'Priority',
-                value: priorityFilter,
-                onChange: setPriorityFilter,
-                options: [
-                  { value: 'Urgent', label: 'Urgent' },
-                  { value: 'High', label: 'High' },
-                  { value: 'Medium', label: 'Medium' },
-                  { value: 'Low', label: 'Low' },
+                  { value: 'Callback', label: 'Callback' },
+                  { value: 'No Response', label: 'No Response' },
                 ],
               },
             ]}
             onClearAll={() => {
               setStatusFilter('All');
-              setPriorityFilter('All');
             }}
           />
         }
@@ -511,26 +553,11 @@ export const LeadsPage: React.FC = () => {
       >
         {selectedLead && (
           <>
-            {/* Quick Action Banner */}
+            {/* Quick Info Banner */}
             <div className="lead-quick-banner">
-              <div>
-                <div className="lead-quick-chips">
-                  <StatusChip status={selectedLead.status} />
-                  <StatusChip status={selectedLead.priority} />
-                </div>
-                <div className="lead-assigned-note">
-                  Assigned to <strong>{selectedLead.assignedAgentName}</strong>
-                </div>
+              <div className="lead-assigned-note">
+                Assigned to <strong>{selectedLead.assignedAgentName}</strong>
               </div>
-
-              {selectedLead.status !== 'Converted' && (
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={() => handleStartConvert(selectedLead)}
-                >
-                  <UserCheck size={14} /> Convert to Customer
-                </button>
-              )}
             </div>
 
             {/* Core Details */}
@@ -577,12 +604,28 @@ export const LeadsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Activity History Timeline */}
-            <div>
-              <h4 className="lead-timeline-title">
-                Activity & Engagement History
+            {/* Message from User */}
+            <div className="card lead-custom-card">
+              <h4 className="lead-custom-title">
+                Message from User
               </h4>
-              <Timeline events={timelineEvents} />
+              <div className="lead-user-message-box">
+                {(selectedLead as any).message ||
+                (selectedLead as any).userMessage ||
+                selectedLead.customFields?.message ||
+                selectedLead.customFields?.userMessage ||
+                selectedLead.notes ? (
+                  <div className="lead-user-message-text">
+                    {(selectedLead as any).message ||
+                      (selectedLead as any).userMessage ||
+                      selectedLead.customFields?.message ||
+                      selectedLead.customFields?.userMessage ||
+                      selectedLead.notes}
+                  </div>
+                ) : (
+                  <div className="lead-user-message-empty">No message available</div>
+                )}
+              </div>
             </div>
           </>
         )}
@@ -660,40 +703,10 @@ export const LeadsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="lead-form-grid-2">
-            <div className="form-group">
-              <label className="form-label">Status</label>
-              <select
-                className="form-select"
-                value={formData.status || 'New'}
-                onChange={e => setFormData({ ...formData, status: e.target.value as any })}
-              >
-                <option value="New">New</option>
-                <option value="Contacted">Contacted</option>
-                <option value="Qualified">Qualified</option>
-                <option value="Proposal">Proposal</option>
-                <option value="Negotiation">Negotiation</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Priority</label>
-              <select
-                className="form-select"
-                value={formData.priority || 'Medium'}
-                onChange={e => setFormData({ ...formData, priority: e.target.value as any })}
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-                <option value="Urgent">Urgent</option>
-              </select>
-            </div>
-          </div>
-
           {/* DYNAMIC TENANT CUSTOM FIELDS (Blueprint Section 7.3) */}
           <div className="lead-custom-schema-box">
             <div className="lead-custom-schema-title">
-              {tenant?.name} Custom Form Schema
+              {tenant?.slug === 'jamin' ? `${tenant?.name} Custom Form Schema` : 'GHL India Ventures Asset Terms'}
             </div>
 
             {tenant?.slug === 'jamin' ? (
@@ -737,53 +750,46 @@ export const LeadsPage: React.FC = () => {
             ) : (
               <div className="lead-form-grid-2">
                 <div className="form-group">
-                  <label className="form-label">Investment Capacity</label>
+                  <label className="form-label">Asset Class</label>
                   <select
                     className="form-select"
-                    value={formData.customFields?.investmentCapacity || '₹1 Cr - ₹3 Cr'}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        customFields: { ...formData.customFields, investmentCapacity: e.target.value },
-                      })
-                    }
+                    value={currentAssetClass}
+                    onChange={e => handleAssetClassChange(e.target.value)}
                   >
-                    <option value="₹50L - ₹1 Cr">₹50L - ₹1 Cr</option>
-                    <option value="₹1 Cr - ₹3 Cr">₹1 Cr - ₹3 Cr</option>
-                    <option value="₹3 Cr - ₹5 Cr">₹3 Cr - ₹5 Cr</option>
-                    <option value="₹5 Cr+">₹5 Cr+</option>
+                    <option value="AIF">AIF</option>
+                    <option value="CO-AIF">CO-AIF</option>
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Preferred Asset Class</label>
+                  <label className="form-label">Investment Capacity</label>
                   <select
                     className="form-select"
-                    value={formData.customFields?.preferredAssetClass || 'Commercial Pre-Leased'}
+                    value={
+                      formData.customFields?.investmentCapacity ||
+                      (currentAssetClass === 'CO-AIF' ? '₹10 Lakh to ₹1 Cr' : '₹1 Cr – ₹5 Cr')
+                    }
                     onChange={e =>
-                      setFormData({
-                        ...formData,
-                        customFields: { ...formData.customFields, preferredAssetClass: e.target.value },
-                      })
+                      setFormData(prev => ({
+                        ...prev,
+                        customFields: { ...prev.customFields, investmentCapacity: e.target.value },
+                      }))
                     }
                   >
-                    <option value="Commercial Pre-Leased">Commercial Pre-Leased</option>
-                    <option value="Industrial Logistics Park">Industrial Logistics Park</option>
-                    <option value="Commercial Yield Funds">Commercial Yield Funds</option>
+                    {currentAssetClass === 'CO-AIF'
+                      ? CO_AIF_CAPACITY_OPTIONS.map(opt => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))
+                      : AIF_CAPACITY_OPTIONS.map(opt => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
                   </select>
                 </div>
               </div>
             )}
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Notes & Requirements</label>
-            <textarea
-              className="form-textarea"
-              rows={3}
-              value={formData.notes || ''}
-              onChange={e => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Client background, key objections, time horizon..."
-            />
           </div>
 
           <div className="lead-form-footer-actions">
