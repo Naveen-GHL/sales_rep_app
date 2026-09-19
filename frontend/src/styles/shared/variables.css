@@ -96,6 +96,9 @@
 
   --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
 
+  --primary-50: rgba(239, 68, 68, 0.1);
+  --primary-100: rgba(239, 68, 68, 0.2);
+
   color: var(--text-primary);
   background-color: var(--bg-app);
 }
@@ -119,6 +122,9 @@
   --text-inverse: #0f172a;
 
   --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+  --primary-50: rgba(239, 68, 68, 0.1);
+  --primary-100: rgba(239, 68, 68, 0.2);
 
   color: var(--text-primary);
   background-color: var(--bg-app);
