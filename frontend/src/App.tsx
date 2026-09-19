@@ -19,6 +19,7 @@ import { NotificationsPage } from './pages/Notifications/NotificationsPage';
 import { NotInterestedPage } from './pages/NotInterested/NotInterestedPage';
 import { JunkPage } from './pages/Junk/JunkPage';
 import { ChatPage } from './pages/Chat/ChatPage';
+import { ProfilePage } from './pages/Profile/ProfilePage';
 
 const PlaceholderPage = ({ title }: { title: string }) => (
   <div style={{ padding: 24, textAlign: 'center' }}>
@@ -323,7 +324,7 @@ export const App: React.FC = () => {
       ) : currentRoute === 'smarty-ai' ? (
         <PlaceholderPage title="Smarty AI" />
       ) : currentRoute === 'profile' ? (
-        <PlaceholderPage title="Profile" />
+        <ProfilePage />
       ) : currentRoute === 'reports' ? (
         <ReportsPage />
       ) : currentRoute === 'notifications' ? (
@@ -475,8 +476,8 @@ export const App: React.FC = () => {
                 quickCreateType === 'consultation'
                   ? 'Topics to discuss, investor interest area...'
                   : quickCreateType === 'visit'
-                  ? 'Special requirements, preferred plots...'
-                  : 'Brief requirement summary...'
+                    ? 'Special requirements, preferred plots...'
+                    : 'Brief requirement summary...'
               }
             />
           </div>

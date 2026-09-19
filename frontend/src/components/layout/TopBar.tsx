@@ -5,8 +5,11 @@ import {
   Plus,
   ChevronDown,
   LogOut,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { AgentAvailabilityToggle } from '../calling/CallCenterComponents';
 import { PersonaSwitcher } from './PersonaSwitcher';
 import { storageService } from '../../services/storageService';
@@ -20,6 +23,7 @@ interface TopBarProps {
 
 export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate }) => {
   const { user, tenant, isSuperAdmin, logout, enabledFeatures } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -243,6 +247,18 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
 
       {/* Right Controls */}
       <div className="topbar-right-controls">
+        {/* Theme Toggle (Available for all roles except Super Admin) */}
+        {!isSuperAdmin && (
+          <button
+            className="btn btn-ghost btn-icon btn-sm"
+            style={{ color: 'var(--text-secondary)' }}
+            onClick={toggleTheme}
+            title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+          >
+            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
+        )}
+
         {/* Agent Availability (Only for company users) */}
         {!isSuperAdmin && <AgentAvailabilityToggle />}
 

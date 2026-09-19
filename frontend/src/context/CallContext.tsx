@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { CallDisposition, CallRecord } from '../types';
+import { CallDisposition, CallRecord, Lead, Customer, Deal } from '../types';
 import { storageService } from '../services/storageService';
 import { useAuth } from './AuthContext';
 
@@ -260,186 +260,278 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         details: `Saved disposition "${disposition}" for call with ${lastCallRecord.contactName} (${lastCallRecord.duration}s).`,
       });
 
-      // If scheduled followup requested
-      const isGhlSalesExec = tenant?.slug === 'ghl' && user?.role?.code === 'sales_executive';
+      // Locate matched lead if any
+      const leadId = lastCallRecord.matchedRecord?.type === 'lead' ? lastCallRecord.matchedRecord.id : null;
+      const allLeads = storageService.getLeads(tenant.id);
+      const matchedLead = leadId
+        ? allLeads.find(l => l.id === leadId)
+        : allLeads.find(l => l.phone === lastCallRecord.contactPhone || (l.name && l.name.toLowerCase() === lastCallRecord.contactName.toLowerCase()));
 
-      if (scheduleFollowup) {
-        if (isGhlSalesExec) {
-          const existingFollowups = storageService.getFollowups(tenant.id) || [];
-          const targetContactId = lastCallRecord.matchedRecord?.id;
-          const targetPhoneDigits = (lastCallRecord.contactPhone || '').replace(/\D/g, '').slice(-10);
+      // 1. Interested -> Move to Customer 360, remove from active Leads
+      if (disposition === 'Interested') {
+        const existingCustomers = storageService.getCustomers(tenant.id);
+        let cust = existingCustomers.find(c =>
+          (matchedLead && c.phone === matchedLead.phone) ||
+          c.phone === lastCallRecord.contactPhone ||
+          (matchedLead?.email && c.email === matchedLead.email)
+        );
 
-          const existingPending = existingFollowups.find(f => {
-            if (f.status !== 'Pending') return false;
-            if (targetContactId && targetContactId !== 'contact-new' && f.contactId === targetContactId) {
-              return true;
-            }
-            const fPhoneDigits = (f.contactPhone || '').replace(/\D/g, '').slice(-10);
-            return fPhoneDigits && targetPhoneDigits && fPhoneDigits === targetPhoneDigits;
-          });
-
-          if (existingPending) {
-            storageService.saveFollowup({
-              ...existingPending,
-              scheduledAt: scheduleFollowup.scheduledAt,
-              priority: scheduleFollowup.priority,
-              notes: scheduleFollowup.notes,
-              relatedCallId: lastCallRecord.id,
-              assignedAgentId: user.id,
-              assignedAgentName: user.name,
-            });
-          } else {
-            storageService.saveFollowup({
-              id: `flw-${Date.now()}`,
-              companyId: tenant.id,
-              contactId: lastCallRecord.matchedRecord?.id || 'contact-new',
-              contactName: lastCallRecord.contactName,
-              contactPhone: lastCallRecord.contactPhone,
-              contactType: (lastCallRecord.matchedRecord?.type as any) || 'lead',
-              scheduledAt: scheduleFollowup.scheduledAt,
-              priority: scheduleFollowup.priority,
-              status: 'Pending',
-              notes: scheduleFollowup.notes,
-              assignedAgentId: user.id,
-              assignedAgentName: user.name,
-              relatedCallId: lastCallRecord.id,
-            });
-          }
+        if (!cust) {
+          cust = {
+            id: matchedLead ? `cust-${matchedLead.id.replace('lead-', '')}` : `cust-${Date.now()}`,
+            companyId: tenant.id,
+            name: matchedLead?.name || lastCallRecord.contactName || 'Customer',
+            phone: matchedLead?.phone || lastCallRecord.contactPhone,
+            email: matchedLead?.email || '',
+            status: 'Active',
+            assignedAgentId: matchedLead?.assignedAgentId || user.id,
+            assignedAgentName: matchedLead?.assignedAgentName || user.name,
+            location: matchedLead?.location || '',
+            lastContacted: 'Just now',
+            openDealsCount: 0,
+            totalValue: 0,
+            createdAt: matchedLead?.createdAt || new Date().toISOString().split('T')[0],
+            notes: notes
+              ? `${matchedLead?.notes ? matchedLead.notes + '\n\n' : ''}[Call Disposition - Interested]: ${notes}`
+              : (matchedLead?.notes || 'Interested - Transferred to Customer 360'),
+            customFields: {
+              ...(matchedLead?.customFields || {}),
+              movedFromLeadAt: new Date().toISOString(),
+              disposition: 'Interested',
+            },
+          };
         } else {
-          // Untouched original behavior for all other roles and tenants
+          cust.lastContacted = 'Just now';
+          if (notes) {
+            cust.notes = cust.notes ? `${cust.notes}\n\n[Call Disposition - Interested]: ${notes}` : `[Call Disposition - Interested]: ${notes}`;
+          }
+          if (matchedLead?.customFields) {
+            cust.customFields = { ...cust.customFields, ...matchedLead.customFields };
+          }
+        }
+        storageService.saveCustomer(cust);
+
+        if (matchedLead) {
+          matchedLead.status = 'Converted';
+          matchedLead.notes = `${matchedLead.notes ? matchedLead.notes + '\n\n' : ''}[${new Date().toLocaleDateString()}] Interested - Moved to Customer 360${notes ? `: ${notes}` : ''}`;
+          storageService.saveLead(matchedLead);
+        }
+      }
+
+      // 2. Follow-up Required -> Move to Follow-up section, remove from active Leads
+      else if (disposition === 'Follow-up Required') {
+        const followupScheduledAt = scheduleFollowup?.scheduledAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        const followupPriority = scheduleFollowup?.priority || 'High';
+        const followupNotes = scheduleFollowup?.notes || (notes ? `Follow-up required: ${notes}` : `Follow-up required from call with ${lastCallRecord.contactName}`);
+
+        storageService.saveFollowup({
+          id: `flw-${Date.now()}`,
+          companyId: tenant.id,
+          contactId: matchedLead?.id || lastCallRecord.matchedRecord?.id || `contact-${Date.now()}`,
+          contactName: lastCallRecord.contactName,
+          contactPhone: lastCallRecord.contactPhone,
+          contactType: 'lead',
+          scheduledAt: followupScheduledAt,
+          priority: followupPriority,
+          status: 'Pending',
+          notes: followupNotes,
+          assignedAgentId: matchedLead?.assignedAgentId || user.id,
+          assignedAgentName: matchedLead?.assignedAgentName || user.name,
+        });
+
+        if (matchedLead) {
+          matchedLead.status = 'Follow-up Required';
+          matchedLead.nextFollowupDate = followupScheduledAt;
+          if (notes) {
+            matchedLead.notes = `${matchedLead.notes ? matchedLead.notes + '\n\n' : ''}[${new Date().toLocaleDateString()}] Follow-up Required: ${notes}`;
+          }
+          storageService.saveLead(matchedLead);
+        }
+      }
+
+      // 3. Call Back -> Keep in Leads section, update status to Callback
+      else if (disposition === 'Call Back') {
+        if (matchedLead) {
+          matchedLead.status = 'Callback';
+          if (scheduleFollowup?.scheduledAt) {
+            matchedLead.nextFollowupDate = scheduleFollowup.scheduledAt;
+          }
+          if (notes) {
+            matchedLead.notes = `${matchedLead.notes ? matchedLead.notes + '\n\n' : ''}[${new Date().toLocaleDateString()}] Call Back: ${notes}`;
+          }
+          storageService.saveLead(matchedLead);
+        } else {
+          const newLead: Lead = {
+            id: `lead-${Date.now()}`,
+            companyId: tenant.id,
+            name: lastCallRecord.contactName || 'Unknown Caller',
+            phone: lastCallRecord.contactPhone,
+            email: '',
+            location: '',
+            source: 'Inbound Call',
+            status: 'Callback',
+            priority: 'Medium',
+            assignedAgentId: user.id,
+            assignedAgentName: user.name,
+            createdAt: new Date().toISOString().split('T')[0],
+            notes: notes || '',
+            customFields: {},
+          };
+          storageService.saveLead(newLead);
+        }
+
+        if (scheduleFollowup) {
           storageService.saveFollowup({
             id: `flw-${Date.now()}`,
             companyId: tenant.id,
-            contactId: lastCallRecord.matchedRecord?.id || 'contact-new',
+            contactId: matchedLead?.id || lastCallRecord.matchedRecord?.id || 'contact-new',
             contactName: lastCallRecord.contactName,
             contactPhone: lastCallRecord.contactPhone,
-            contactType: (lastCallRecord.matchedRecord?.type as any) || 'lead',
+            contactType: 'lead',
             scheduledAt: scheduleFollowup.scheduledAt,
             priority: scheduleFollowup.priority,
             status: 'Pending',
-            notes: scheduleFollowup.notes,
+            notes: scheduleFollowup.notes || (notes ? `Callback reminder: ${notes}` : `Callback reminder for ${lastCallRecord.contactName}`),
             assignedAgentId: user.id,
             assignedAgentName: user.name,
           });
         }
       }
-      
-      // ── GHL Sales Exec: bidirectional lead routing ───────────────────────────
-      if (isGhlSalesExec) {
-        const leadId = lastCallRecord.matchedRecord?.type === 'lead' ? lastCallRecord.matchedRecord.id : null;
-        const targetPhoneDigits = (lastCallRecord.contactPhone || '').replace(/\D/g, '').slice(-10);
 
-        // Helper: find matched lead by id or phone
-        const findMatchedLead = () => {
-          const leads = storageService.getLeads(tenant.id);
-          if (leadId) {
-            const byId = leads.find(l => l.id === leadId);
-            if (byId) return byId;
+      // 4. Not Interested -> Remove from Leads, move to Not Interested section
+      else if (disposition === 'Not Interested') {
+        const reasonText = reason || notes || 'Not Interested';
+        if (matchedLead) {
+          matchedLead.status = 'Not Interested';
+          matchedLead.notes = `${matchedLead.notes ? matchedLead.notes + '\n\n' : ''}[${new Date().toLocaleDateString()}] Not Interested Reason: ${reasonText}`;
+          matchedLead.customFields = { ...matchedLead.customFields, dispositionReason: reasonText };
+          storageService.saveLead(matchedLead);
+        } else {
+          const newLead: Lead = {
+            id: `lead-${Date.now()}`,
+            companyId: tenant.id,
+            name: lastCallRecord.contactName || 'Unknown Caller',
+            phone: lastCallRecord.contactPhone,
+            email: '',
+            location: '',
+            source: 'Inbound Call',
+            status: 'Not Interested',
+            priority: 'Low',
+            assignedAgentId: user.id,
+            assignedAgentName: user.name,
+            createdAt: new Date().toISOString().split('T')[0],
+            notes: `[${new Date().toLocaleDateString()}] Not Interested Reason: ${reasonText}`,
+            customFields: { dispositionReason: reasonText },
+          };
+          storageService.saveLead(newLead);
+        }
+      }
+
+      // 5. Wrong Number -> Remove from Leads, move to Junk section
+      else if (disposition === 'Wrong Number') {
+        const reasonText = reason || notes || 'Wrong Number';
+        if (matchedLead) {
+          matchedLead.status = 'Junk';
+          matchedLead.notes = `${matchedLead.notes ? matchedLead.notes + '\n\n' : ''}[${new Date().toLocaleDateString()}] Junk / Wrong Number Reason: ${reasonText}`;
+          matchedLead.customFields = { ...matchedLead.customFields, dispositionReason: reasonText };
+          storageService.saveLead(matchedLead);
+        } else {
+          const newLead: Lead = {
+            id: `lead-${Date.now()}`,
+            companyId: tenant.id,
+            name: lastCallRecord.contactName || 'Unknown Caller',
+            phone: lastCallRecord.contactPhone,
+            email: '',
+            location: '',
+            source: 'Inbound Call',
+            status: 'Junk',
+            priority: 'Low',
+            assignedAgentId: user.id,
+            assignedAgentName: user.name,
+            createdAt: new Date().toISOString().split('T')[0],
+            notes: `[${new Date().toLocaleDateString()}] Wrong Number Reason: ${reasonText}`,
+            customFields: { dispositionReason: reasonText },
+          };
+          storageService.saveLead(newLead);
+        }
+      }
+
+      // 6. No Response -> Keep in Leads section, update status to No Response
+      else if (disposition === 'No Response') {
+        if (matchedLead) {
+          matchedLead.status = 'No Response';
+          if (notes) {
+            matchedLead.notes = `${matchedLead.notes ? matchedLead.notes + '\n\n' : ''}[${new Date().toLocaleDateString()}] No Response: ${notes}`;
           }
-          // Fallback: phone-match
-          return leads.find(l => {
-            const lPhone = (l.phone || '').replace(/\D/g, '').slice(-10);
-            return lPhone && targetPhoneDigits && lPhone === targetPhoneDigits;
-          }) || null;
-        };
+          storageService.saveLead(matchedLead);
+        } else {
+          const newLead: Lead = {
+            id: `lead-${Date.now()}`,
+            companyId: tenant.id,
+            name: lastCallRecord.contactName || 'Unknown Caller',
+            phone: lastCallRecord.contactPhone,
+            email: '',
+            location: '',
+            source: 'Inbound Call',
+            status: 'No Response',
+            priority: 'Low',
+            assignedAgentId: user.id,
+            assignedAgentName: user.name,
+            createdAt: new Date().toISOString().split('T')[0],
+            notes: notes || '',
+            customFields: {},
+          };
+          storageService.saveLead(newLead);
+        }
+      }
 
-        // Helper: hard-delete ALL pending follow-up records for this contact so
-        // they are completely removed from the Follow-up queue (not just Completed).
-        // This enforces mutual exclusivity: a lead in NI/Junk must have zero
-        // Pending followup records.
-        const purgeFollowupsForContact = () => {
-          storageService.purgeFollowupsForContact(
-            tenant.id,
-            leadId,
-            lastCallRecord.contactPhone
-          );
-        };
-
-        // Helper: ensure a pending follow-up exists (creates one if absent and
-        // no explicit scheduleFollowup block was already processed above)
-        const ensurePendingFollowup = (matchedLeadId?: string) => {
-          if (scheduleFollowup) return; // already handled above
-          const followups = storageService.getFollowups(tenant.id) || [];
-          const hasPending = followups.some(f => {
-            if (f.status !== 'Pending') return false;
-            if (matchedLeadId && matchedLeadId !== 'contact-new' && f.contactId === matchedLeadId) return true;
-            const fPhone = (f.contactPhone || '').replace(/\D/g, '').slice(-10);
-            return fPhone && targetPhoneDigits && fPhone === targetPhoneDigits;
-          });
-
-          if (!hasPending) {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            storageService.saveFollowup({
-              id: `flw-${Date.now()}`,
+      // 7. Converted -> Existing conversion behavior
+      else if (disposition === 'Converted') {
+        if (matchedLead) {
+          const existingCustomers = storageService.getCustomers(tenant.id);
+          let cust = existingCustomers.find(c => c.phone === matchedLead.phone || (matchedLead.email && c.email === matchedLead.email));
+          if (!cust) {
+            cust = {
+              id: `cust-${matchedLead.id.replace('lead-', '')}`,
               companyId: tenant.id,
-              contactId: matchedLeadId || lastCallRecord.matchedRecord?.id || 'contact-new',
-              contactName: lastCallRecord.contactName,
-              contactPhone: lastCallRecord.contactPhone,
-              contactType: (lastCallRecord.matchedRecord?.type as any) || 'lead',
-              scheduledAt: tomorrow.toISOString(),
-              priority: 'High',
-              status: 'Pending',
-              notes: `Follow-up required from call with ${lastCallRecord.contactName}: ${notes}`,
-              assignedAgentId: user.id,
-              assignedAgentName: user.name,
-              relatedCallId: lastCallRecord.id,
-            });
+              name: matchedLead.name,
+              phone: matchedLead.phone,
+              email: matchedLead.email || '',
+              status: 'Active',
+              assignedAgentId: matchedLead.assignedAgentId || user.id,
+              assignedAgentName: matchedLead.assignedAgentName || user.name,
+              location: matchedLead.location || '',
+              lastContacted: 'Just now',
+              openDealsCount: 1,
+              totalValue: 5000000,
+              createdAt: new Date().toISOString().split('T')[0],
+              notes: `Converted from lead. Original notes: ${matchedLead.notes || ''}`,
+              customFields: matchedLead.customFields,
+            };
+            storageService.saveCustomer(cust);
           }
-        };
 
-        // ── FORWARD ROUTING: active lead → Not Interested or Junk ──────────────
-        if (disposition === 'Not Interested' || disposition === 'Wrong Number') {
-          const matchedLead = findMatchedLead();
-          if (matchedLead) {
-            const newStatus = disposition === 'Not Interested' ? 'Not Interested' : 'Junk';
-            const updatedLead = { ...matchedLead, status: newStatus as any };
-            if (reason) {
-              updatedLead.notes = `${matchedLead.notes}\n\n[${new Date().toLocaleDateString()}] ${disposition} Reason: ${reason}`;
-              updatedLead.customFields = { ...updatedLead.customFields, dispositionReason: reason };
-            }
-            storageService.saveLead(updatedLead);
-            // Hard-delete pending follow-ups — lead is no longer active in queue
-            purgeFollowupsForContact();
+          const newDeal: Deal = {
+            id: `deal-${Date.now()}`,
+            companyId: tenant.id,
+            title: `${cust.name} - Investment Consultation`,
+            customerId: cust.id,
+            customerName: cust.name,
+            stage: tenant.slug === 'jamin' ? 'site_visit' : 'consultation',
+            value: 5000000,
+            expectedCloseDate: 'Within 30 Days',
+            assignedAgentId: matchedLead.assignedAgentId || user.id,
+            assignedAgentName: matchedLead.assignedAgentName || user.name,
+            notes: `Deal initiated upon converting lead ${matchedLead.name}. ${notes ? `Call notes: ${notes}` : ''}`,
+            createdAt: new Date().toISOString().split('T')[0],
+          };
+          storageService.saveDeal(newDeal);
+
+          matchedLead.status = 'Converted';
+          if (notes) {
+            matchedLead.notes = `${matchedLead.notes ? matchedLead.notes + '\n\n' : ''}[${new Date().toLocaleDateString()}] Converted: ${notes}`;
           }
-        }
-
-        // ── REVERSE ROUTING: Not Interested / Junk → active Follow-up ──────────
-        // Triggered when a re-engagement disposition is chosen after calling a
-        // lead that currently sits in Junk or Not Interested.
-        const reEngagementDispositions: CallDisposition[] = [
-          'Interested',
-          'Follow-up Required',
-          'Call Back',
-          'Converted',
-        ];
-
-        if (reEngagementDispositions.includes(disposition)) {
-          const matchedLead = findMatchedLead();
-          if (matchedLead && (matchedLead.status === 'Not Interested' || matchedLead.status === 'Junk')) {
-            // Restore to active status
-            storageService.saveLead({ ...matchedLead, status: 'Contacted' });
-            // Ensure at least one pending follow-up exists
-            ensurePendingFollowup(matchedLead.id);
-          }
-        }
-
-      } else {
-        // ── Non-GHL: preserve original forward routing only ──────────────────
-        if (disposition === 'Not Interested' || disposition === 'Wrong Number') {
-          const leadId = lastCallRecord.matchedRecord?.type === 'lead' ? lastCallRecord.matchedRecord.id : null;
-          if (leadId) {
-            const leads = storageService.getLeads(tenant.id);
-            const matchedLead = leads.find(l => l.id === leadId);
-            if (matchedLead) {
-              matchedLead.status = disposition === 'Not Interested' ? 'Not Interested' : 'Junk';
-              if (reason) {
-                matchedLead.notes = `${matchedLead.notes}\n\n[${new Date().toLocaleDateString()}] ${disposition} Reason: ${reason}`;
-                matchedLead.customFields = { ...matchedLead.customFields, dispositionReason: reason };
-              }
-              storageService.saveLead(matchedLead);
-            }
-          }
+          storageService.saveLead(matchedLead);
         }
       }
     }

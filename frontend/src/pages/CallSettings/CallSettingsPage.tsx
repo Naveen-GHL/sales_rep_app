@@ -201,6 +201,7 @@ export const CallSettingsPage: React.FC = () => {
               </h3>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, marginBottom: 0 }}>
                 Select the screen corner where incoming call notifications appear.
+                The active call window also opens at this corner when you accept a call — and you can drag it anywhere on screen during the call.
               </p>
             </div>
             <button
