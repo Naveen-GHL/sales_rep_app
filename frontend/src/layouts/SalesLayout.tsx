@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
 import { TopBar } from '../components/layout/TopBar';
+import { useTheme } from '../context/ThemeContext';
 import {
   IncomingCallPopup,
   InCallBar,
@@ -20,8 +21,10 @@ export const SalesLayout: React.FC<SalesLayoutProps> = ({
   onOpenQuickCreate,
   children,
 }) => {
+  const { theme } = useTheme();
+
   return (
-    <div className="app-container">
+    <div className={`app-container ${theme === 'dark' ? 'dark-theme' : ''}`}>
       {/* Dynamic Tenant-Aware Sidebar */}
       <Sidebar currentRoute={currentRoute} onNavigate={onNavigate} />
 

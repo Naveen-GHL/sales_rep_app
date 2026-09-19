@@ -44,6 +44,22 @@
   background: #090d16 !important;
 }
 
+.dark-theme .main-content-area,
+.dark-theme .page-scrollable {
+  background: #090d16 !important;
+}
+
+.dark-theme .topbar-header {
+  background: #0f172a !important;
+  border-bottom-color: #334155 !important;
+}
+
+.dark-theme .sidebar-container {
+  background: #0f172a !important;
+  border-right-color: #334155 !important;
+}
+
+
 @media (max-width: 768px) {
   .page-scrollable {
     padding: 16px;
