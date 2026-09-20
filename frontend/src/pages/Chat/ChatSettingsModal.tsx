@@ -1125,7 +1125,7 @@ export const ChatSettingsModal: React.FC<Props> = ({
                   type="checkbox"
                   className="settings-toggle-input"
                   checked={true}
-                  onChange={() => {}}
+                  onChange={() => { }}
                 />
               </div>
             </div>
