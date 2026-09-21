@@ -18,6 +18,7 @@ import { ReportsPage } from './pages/Reports/ReportsPage';
 import { NotificationsPage } from './pages/Notifications/NotificationsPage';
 import { NotInterestedPage } from './pages/NotInterested/NotInterestedPage';
 import { JunkPage } from './pages/Junk/JunkPage';
+import { ChatPage } from './pages/Chat/ChatPage';
 import { ProfilePage } from './pages/Profile/ProfilePage';
 
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -52,10 +53,10 @@ import { PlatformFeaturesPage } from './pages/Admin/Features/PlatformFeaturesPag
 import { PlatformCallConfigPage } from './pages/Admin/CallConfig/PlatformCallConfigPage';
 import { PlatformAuditPage } from './pages/Admin/Audit/PlatformAuditPage';
 
-// Guards
 import { ProtectedRoute } from './components/common/Guards';
 import { Modal } from './components/common/Modal';
 import { storageService } from './services/storageService';
+import { PERMISSIONS } from './constants/permissions';
 import './App.css';
 
 export const App: React.FC = () => {
@@ -77,6 +78,17 @@ export const App: React.FC = () => {
       storageService.loadMockDataFromSeparateFolder();
     }
   }, []);
+
+  // Set default route for IRM user
+  useEffect(() => {
+    if (user?.role?.code === 'irm') {
+      const savedRoute = sessionStorage.getItem('nexus_current_route');
+      if (!savedRoute) {
+        setCurrentRoute('dashboard');
+        sessionStorage.setItem('nexus_current_route', 'dashboard');
+      }
+    }
+  }, [user?.role?.code]);
 
   // Quick Create Modal State
   const [quickCreateType, setQuickCreateType] = useState<
@@ -285,57 +297,101 @@ export const App: React.FC = () => {
       {currentRoute === 'dashboard' ? (
         <DashboardPage onNavigate={navigate} onOpenQuickCreate={handleOpenQuickCreate} />
       ) : currentRoute === 'leads' ? (
-        <LeadsPage />
+        <ProtectedRoute permission={PERMISSIONS.LEADS_VIEW}>
+          <LeadsPage />
+        </ProtectedRoute>
       ) : currentRoute === 'customers' ? (
-        <CustomersPage />
+        <ProtectedRoute permission={PERMISSIONS.CUSTOMERS_VIEW}>
+          <CustomersPage />
+        </ProtectedRoute>
       ) : currentRoute === 'pipeline' ? (
-        <PipelinePage onOpenQuickCreate={handleOpenQuickCreate} />
+        <ProtectedRoute permission={PERMISSIONS.DEALS_VIEW}>
+          <PipelinePage onOpenQuickCreate={handleOpenQuickCreate} />
+        </ProtectedRoute>
       ) : currentRoute === 'deals' ? (
-        <DealsPage onNavigate={navigate} />
+        <ProtectedRoute permission={PERMISSIONS.DEALS_VIEW}>
+          <DealsPage onNavigate={navigate} />
+        </ProtectedRoute>
       ) : currentRoute === 'followups' ? (
-        <FollowupsPage />
+        <ProtectedRoute permission={PERMISSIONS.FOLLOWUPS_VIEW}>
+          <FollowupsPage />
+        </ProtectedRoute>
       ) : currentRoute === 'call-center' ? (
-        <CallCenterPage />
+        <ProtectedRoute permission={PERMISSIONS.CALLS_MAKE}>
+          <CallCenterPage />
+        </ProtectedRoute>
       ) : currentRoute === 'call-history' ? (
-        <CallHistoryPage />
+        <ProtectedRoute permission={PERMISSIONS.CALLS_VIEW}>
+          <CallHistoryPage />
+        </ProtectedRoute>
       ) : currentRoute === 'call-settings' ? (
         <CallSettingsPage />
       ) : currentRoute === 'projects' ? (
-        <ProjectsPage onNavigate={navigate} />
+        <ProtectedRoute permission={PERMISSIONS.PROPERTIES_VIEW}>
+          <ProjectsPage onNavigate={navigate} />
+        </ProtectedRoute>
       ) : currentRoute === 'plots' ? (
-        <PlotsPage />
+        <ProtectedRoute permission={PERMISSIONS.PROPERTIES_VIEW}>
+          <PlotsPage />
+        </ProtectedRoute>
       ) : currentRoute === 'site-visits' ? (
-        <SiteVisitsPage />
+        <ProtectedRoute permission={PERMISSIONS.SITE_VISITS_VIEW}>
+          <SiteVisitsPage />
+        </ProtectedRoute>
       ) : currentRoute === 'bookings' ? (
-        <BookingsPage />
+        <ProtectedRoute permission={PERMISSIONS.BOOKINGS_VIEW}>
+          <BookingsPage />
+        </ProtectedRoute>
       ) : currentRoute === 'investors' ? (
-        <InvestorsPage />
+        <ProtectedRoute permission={PERMISSIONS.INVESTORS_VIEW}>
+          <InvestorsPage />
+        </ProtectedRoute>
       ) : currentRoute === 'consultations' ? (
-        <ConsultationsPage />
+        <ProtectedRoute permission={PERMISSIONS.CONSULTATIONS_VIEW}>
+          <ConsultationsPage />
+        </ProtectedRoute>
       ) : currentRoute === 'opportunities' ? (
-        <OpportunitiesPage />
+        <ProtectedRoute permission={PERMISSIONS.OPPORTUNITIES_VIEW}>
+          <OpportunitiesPage />
+        </ProtectedRoute>
       ) : currentRoute === 'not-interested' ? (
-        <NotInterestedPage />
+        <ProtectedRoute permission={PERMISSIONS.LEADS_VIEW}>
+          <NotInterestedPage />
+        </ProtectedRoute>
       ) : currentRoute === 'junk' ? (
-        <JunkPage />
+        <ProtectedRoute permission={PERMISSIONS.LEADS_VIEW}>
+          <JunkPage />
+        </ProtectedRoute>
       ) : currentRoute === 'chat' ? (
-        <PlaceholderPage title="Chat" />
+        <ChatPage onNavigate={navigate} />
       ) : currentRoute === 'smarty-ai' ? (
         <PlaceholderPage title="Smarty AI" />
       ) : currentRoute === 'profile' ? (
         <ProfilePage />
       ) : currentRoute === 'reports' ? (
-        <ReportsPage />
+        <ProtectedRoute permission={PERMISSIONS.REPORTS_VIEW}>
+          <ReportsPage />
+        </ProtectedRoute>
       ) : currentRoute === 'notifications' ? (
         <NotificationsPage onNavigate={navigate} />
       ) : currentRoute === 'company-users' ? (
-        <CompanyUsersPage />
+        <ProtectedRoute permission={PERMISSIONS.USERS_VIEW}>
+          <CompanyUsersPage />
+        </ProtectedRoute>
       ) : currentRoute === 'company-settings' ? (
-        <CompanySettingsPage />
+        <ProtectedRoute permission={PERMISSIONS.SETTINGS_VIEW}>
+          <CompanySettingsPage />
+        </ProtectedRoute>
       ) : currentRoute === 'company-audit' ? (
-        <CompanyAuditPage />
+        <ProtectedRoute permission={PERMISSIONS.AUDIT_VIEW}>
+          <CompanyAuditPage />
+        </ProtectedRoute>
       ) : (
-        <DashboardPage onNavigate={navigate} onOpenQuickCreate={handleOpenQuickCreate} />
+        user?.role?.code === 'irm' ? (
+          <InvestorsPage />
+        ) : (
+          <DashboardPage onNavigate={navigate} onOpenQuickCreate={handleOpenQuickCreate} />
+        )
       )}
 
       {/* Global Quick Action Modal */}
@@ -475,8 +531,8 @@ export const App: React.FC = () => {
                 quickCreateType === 'consultation'
                   ? 'Topics to discuss, investor interest area...'
                   : quickCreateType === 'visit'
-                  ? 'Special requirements, preferred plots...'
-                  : 'Brief requirement summary...'
+                    ? 'Special requirements, preferred plots...'
+                    : 'Brief requirement summary...'
               }
             />
           </div>

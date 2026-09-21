@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -27,6 +27,7 @@ import {
   User as UserIcon,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { storageService } from '../../services/storageService';
 import { FEATURES } from '../../constants/features';
 import { PERMISSIONS } from '../../constants/permissions';
 import './Sidebar.css';
@@ -54,6 +55,40 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
   const { isSuperAdmin, tenant, enabledFeatures, permissions, user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [isCollapseHovered, setIsCollapseHovered] = useState(false);
+
+  const isGhlSalesExec = tenant?.slug === 'ghl' && user?.role?.code === 'sales_executive';
+  const isIrm = user?.role?.code === 'irm';
+
+  const pendingFollowupsCount = isGhlSalesExec
+    ? (storageService.getFollowups(tenant?.id) || []).filter(
+      f => f.status === 'Pending' && (f.assignedAgentId === user?.id || f.assignedAgentName === user?.name)
+    ).length
+    : 0;
+
+  const companyId = (user?.companyId as string | undefined) ?? tenant?.id ?? '';
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+
+  useEffect(() => {
+    const updateUnread = () => {
+      if (!companyId) {
+        setUnreadChatCount(0);
+        return;
+      }
+      try {
+        const raw = localStorage.getItem('nexus_chat_conversations');
+        const all = raw ? JSON.parse(raw) : [];
+        const filtered = all.filter((c: any) => c.companyId === companyId);
+        const count = filtered.reduce((acc: number, c: any) => acc + (c.unreadCount || 0), 0);
+        setUnreadChatCount(count);
+      } catch {
+        setUnreadChatCount(0);
+      }
+    };
+
+    updateUnread();
+    window.addEventListener('nexus_chat_updated', updateUnread);
+    return () => window.removeEventListener('nexus_chat_updated', updateUnread);
+  }, [companyId]);
 
   // Super Admin Navigation Map (Section 4.1)
   const superAdminSections: NavSection[] = [
@@ -127,6 +162,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
         { id: 'company-audit', label: 'Audit Logs', icon: <FileCheck size={18} />, feature: FEATURES.AUDIT_LOGS, permission: PERMISSIONS.AUDIT_VIEW },
       ],
     },
+    {
+      header: 'Help and Support',
+      items: [
+        { id: 'chat', label: 'Chat', icon: <MessageSquare size={18} />, badge: unreadChatCount > 0 ? unreadChatCount : undefined },
+      ],
+    },
   ];
 
   const ghlSalesExecSections: NavSection[] = [
@@ -163,7 +204,52 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
     {
       header: 'Help and Support',
       items: [
-        { id: 'chat', label: 'Chat', icon: <MessageSquare size={18} /> },
+        { id: 'chat', label: 'Chat', icon: <MessageSquare size={18} />, badge: unreadChatCount > 0 ? unreadChatCount : undefined },
+        { id: 'smarty-ai', label: 'Smarty AI', icon: <Sparkles size={18} /> },
+      ],
+    },
+    {
+      header: 'Settings',
+      items: [
+        { id: 'call-settings', label: 'Call Settings', icon: <PhoneCall size={18} />, feature: FEATURES.CALLS, permission: PERMISSIONS.CALLS_VIEW },
+        { id: 'profile', label: 'Profile', icon: <UserIcon size={18} /> },
+      ],
+    },
+  ];
+
+  // Investor Relationship Manager (IRM) Navigation Map
+  const irmSections: NavSection[] = [
+    {
+      items: [
+        { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+      ],
+    },
+    {
+      header: 'Investors',
+      items: [
+        { id: 'investors', label: 'Investors 360', icon: <TrendingUp size={18} />, feature: FEATURES.INVESTORS, permission: PERMISSIONS.INVESTORS_VIEW },
+        { id: 'consultations', label: 'Consultations', icon: <Calendar size={18} />, feature: FEATURES.CONSULTATIONS, permission: PERMISSIONS.CONSULTATIONS_VIEW },
+        { id: 'opportunities', label: 'Opportunities', icon: <Briefcase size={18} />, feature: FEATURES.INVESTMENT_OPPORTUNITIES, permission: PERMISSIONS.OPPORTUNITIES_VIEW },
+      ],
+    },
+    {
+      header: 'Calling',
+      items: [
+        { id: 'call-center', label: 'Call Center', icon: <PhoneCall size={18} />, feature: FEATURES.CALLS, permission: PERMISSIONS.CALLS_MAKE },
+        { id: 'call-history', label: 'Call History', icon: <History size={18} />, feature: FEATURES.CALLS, permission: PERMISSIONS.CALLS_VIEW },
+      ],
+    },
+    {
+      header: 'Analytics',
+      items: [
+        { id: 'reports', label: 'Reports', icon: <BarChart3 size={18} />, feature: FEATURES.REPORTS, permission: PERMISSIONS.REPORTS_VIEW },
+        { id: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
+      ],
+    },
+    {
+      header: 'Help and Support',
+      items: [
+        { id: 'chat', label: 'Chat', icon: <MessageSquare size={18} />, badge: unreadChatCount > 0 ? unreadChatCount : undefined },
         { id: 'smarty-ai', label: 'Smarty AI', icon: <Sparkles size={18} /> },
       ],
     },
@@ -185,8 +271,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
     });
   };
 
-  const isGhlSalesExec = tenant?.slug === 'ghl' && user?.role?.code === 'sales_executive';
-  const sectionsToRender = isSuperAdmin ? superAdminSections : isGhlSalesExec ? ghlSalesExecSections : companySections;
+  const sectionsToRender = isSuperAdmin
+    ? superAdminSections
+    : isIrm
+      ? irmSections
+      : isGhlSalesExec
+        ? ghlSalesExecSections
+        : companySections;
 
   return (
     <aside
@@ -213,13 +304,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
           justifyContent: collapsed
             ? 'center'
             : tenant?.slug === 'ghl'
-            ? 'center'
-            : 'space-between',
+              ? 'center'
+              : 'space-between',
           padding: collapsed
             ? '0'
             : tenant?.slug === 'ghl'
-            ? '0 48px'
-            : '0 20px',
+              ? '0 48px'
+              : '0 20px',
           borderBottom: `1px solid ${isSuperAdmin ? '#1e293b' : 'var(--border-base)'}`,
           position: 'relative',
         }}
@@ -450,12 +541,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
             flexShrink: 0,
             ...(tenant?.slug === 'ghl' && !collapsed
               ? {
-                  position: 'absolute',
-                  right: 10,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  zIndex: 10,
-                }
+                position: 'absolute',
+                right: 10,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 10,
+              }
               : {}),
           }}
           onMouseEnter={() => setIsCollapseHovered(true)}
@@ -527,7 +618,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
                       backgroundColor: isActive
                         ? isSuperAdmin
                           ? 'rgba(139, 92, 246, 0.18)'
-                          : 'rgba(59, 130, 246, 0.1)'
+                          : 'var(--primary-50)'
                         : 'transparent',
                       color: isActive
                         ? isSuperAdmin
@@ -540,7 +631,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
                       border: isActive
                         ? isSuperAdmin
                           ? '1px solid rgba(139, 92, 246, 0.3)'
-                          : '1px solid rgba(59, 130, 246, 0.25)'
+                          : '1px solid rgba(239, 68, 68, 0.25)'
                         : '1px solid transparent',
                     }}
                     title={collapsed ? item.label : undefined}
@@ -548,7 +639,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
                   >
                     <span style={{ display: 'flex', alignItems: 'center' }}>{item.icon}</span>
                     {!collapsed && (
-                      <span style={{ fontSize: 13, marginLeft: 12 }}>{item.label}</span>
+                      <span style={{ fontSize: 13, marginLeft: 12, display: 'flex', alignItems: 'center', gap: 8, width: '100%', justifyContent: 'space-between' }}>
+                        <span>{item.label}</span>
+                        {item.badge !== undefined && (
+                          <span
+                            style={{
+                              backgroundColor: '#ef4444',
+                              color: '#ffffff',
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: '2px 7px',
+                              borderRadius: 10,
+                              lineHeight: 1,
+                            }}
+                          >
+                            {item.badge}
+                          </span>
+                        )}
+                      </span>
                     )}
                   </button>
                 );

@@ -35,7 +35,7 @@ export interface Tenant {
   updatedAt?: string;
 }
 
-export type RoleCode = 'super_admin' | 'company_admin' | 'sales_manager' | 'sales_executive';
+export type RoleCode = 'super_admin' | 'company_admin' | 'sales_manager' | 'sales_executive' | 'irm';
 
 export interface Role {
   id: string;
@@ -516,3 +516,139 @@ export interface ProductService {
   status?: 'active' | 'inactive' | string;
 }
 
+// ── Chat Types ─────────────────────────────────────────────────────────────
+export interface ChatReaction {
+  emoji: string;
+  userId: string;
+  userName: string;
+}
+
+export type FileCategory = 'PDF' | 'Image' | 'Document' | 'Spreadsheet' | 'Other';
+export type FilePermission = 'read_only' | 'view_download' | 'view_edit';
+
+export interface ChatAttachment {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  category?: FileCategory;
+  permission?: FilePermission;
+  dataUrl: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  isDeleted: boolean;
+  isEdited: boolean;
+  createdAt: string;
+  updatedAt: string;
+  reactions: ChatReaction[];
+  attachments?: ChatAttachment[];
+}
+
+export interface ChatMember {
+  id: string;
+  name: string;
+  email?: string;
+  roleCode: string;
+  roleName: string;
+  companyId: string;
+  avatarUrl?: string;
+  status: 'online' | 'offline' | 'busy';
+}
+
+export interface ChatConversation {
+  id: string;
+  companyId: string;
+  type: 'dm' | 'group';
+  name?: string;
+  memberIds: string[];
+  members: ChatMember[];
+  lastMessage?: Pick<ChatMessage, 'content' | 'senderName' | 'isDeleted'>;
+  unreadCount: number;
+  createdAt: string;
+  updatedAt: string;
+  isPinned?: boolean;
+  isMuted?: boolean;
+}
+
+export interface ChatSettings {
+  general?: {
+    theme: 'default' | 'dark' | 'high_contrast';
+    autoStartApp: boolean;
+    openInBackground: boolean;
+    onCloseKeepRunning: boolean;
+    gpuHardwareAcceleration: boolean;
+    registerAsDefaultChatApp: boolean;
+    language: string;
+    keyboardLanguage: string;
+    turnOffAnimations: boolean;
+    outOfOfficeReply: boolean;
+    outOfOfficeMessage: string;
+  };
+  accounts?: {
+    activeTenant: string;
+  };
+  privacy: {
+    readReceipts: boolean;
+    typingIndicator: boolean;
+    whoCanDm: 'everyone' | 'team' | 'managers_admins';
+    priorityAccess?: string[];
+    blockedContacts?: string[];
+    participateInSurveys?: boolean;
+  };
+  notifications: {
+    desktopPush: boolean;
+    sound: boolean;
+    mentionOnly: boolean;
+    notificationStyle?: 'teams' | 'windows';
+    showPreview?: boolean;
+    missedActivityEmails?: 'hourly' | 'daily' | 'asap' | 'off';
+    chatsAndChannels?: 'banner_feed' | 'feed_only' | 'off';
+    meetingsAndCalls?: 'banner' | 'off';
+  };
+  captions?: {
+    autoIdentifyMe: boolean;
+    spokenLanguage: string;
+    autoStartTranscription: boolean;
+  };
+  files?: {
+    fileOpenPreference: 'teams' | 'desktop' | 'browser';
+    downloadLocation: string;
+    alwaysAskWhereToSave: boolean;
+  };
+  calls: {
+    defaultMic: string;
+    defaultCamera: string;
+    defaultSpeaker?: string;
+    noiseSuppression?: 'auto' | 'high' | 'low' | 'off';
+    secondaryRinger?: string;
+    cameraOffOnJoin: boolean;
+    autoAnswer: boolean;
+    callAnsweringRules?: 'ring_me' | 'forward';
+    forwardTo?: 'voicemail' | 'delegates';
+    ringDurationBeforeRedirect?: number;
+    ringtone?: string;
+  };
+  appPermissions?: {
+    media: boolean;
+    location: boolean;
+    notifications: boolean;
+    externalLinks: boolean;
+    midiDevices: boolean;
+  };
+  accessibility?: {
+    signLanguageView: boolean;
+    alwaysShowMeetingControls: boolean;
+    highContrast: boolean;
+  };
+  adminGovernance?: {
+    retentionDays: number; // 0 for forever
+    fileRetentionDays: number;
+    whoCanCreateGroups: 'everyone' | 'managers_admins';
+  };
+}

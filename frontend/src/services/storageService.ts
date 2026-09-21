@@ -27,6 +27,12 @@ import {
   ProductService,
 } from '../types';
 import { DEFAULT_TENANTS } from '../constants/defaultTenants';
+import {
+  INITIAL_CUSTOM_FIELD_DEFINITIONS,
+  INITIAL_INVESTORS,
+  INITIAL_CONSULTATIONS,
+  INITIAL_OPPORTUNITIES,
+} from '../mock_data/mockData';
 
 export type PopupPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
 
@@ -157,8 +163,74 @@ class StorageService {
 
   // Follow-ups (Defaults to empty [] - real-time data only)
   getFollowups(companyId?: string): Followup[] {
-    const followups = this.get<Followup[]>('followups', []);
+    const followups = this.get<Followup[]>('followups', []) || [];
     return companyId ? followups.filter(f => f.companyId === companyId) : followups;
+  }
+
+  cleanupGhlPendingFollowups(companyId?: string): void {
+    try {
+      const allFollowups = this.get<Followup[]>('followups', []) || [];
+      if (!allFollowups.length) return;
+
+      const targetCompanyId = companyId || 't-ghl-01';
+
+      // Load leads so we can check which contacts are already in NI/Junk
+      const allLeads = this.getLeads(targetCompanyId);
+      const niJunkLeadIds = new Set<string>(
+        allLeads
+          .filter(l => l.status === 'Not Interested' || l.status === 'Junk')
+          .map(l => l.id)
+      );
+      const niJunkPhones = new Set<string>(
+        allLeads
+          .filter(l => l.status === 'Not Interested' || l.status === 'Junk')
+          .map(l => (l.phone || '').replace(/\D/g, '').slice(-10))
+          .filter(Boolean)
+      );
+
+      const ghlPending = allFollowups.filter(
+        f => f.companyId === targetCompanyId && f.status === 'Pending'
+      );
+
+      if (!ghlPending.length) return;
+
+      const nonPendingOrOtherCompany = allFollowups.filter(
+        f => f.companyId !== targetCompanyId || f.status !== 'Pending'
+      );
+
+      const seenContacts = new Map<string, Followup>();
+      const keepPending: Followup[] = [];
+
+      for (const item of ghlPending) {
+        // Hard-exclude any Pending followup whose lead is now NI or Junk
+        if (item.contactId && item.contactId !== 'contact-new' && niJunkLeadIds.has(item.contactId)) {
+          continue; // drop — lead is no longer active
+        }
+        const phoneDigits = (item.contactPhone || '').replace(/\D/g, '').slice(-10);
+        if (phoneDigits && niJunkPhones.has(phoneDigits)) {
+          continue; // drop — lead is no longer active (phone match)
+        }
+
+        const contactKey = (item.contactId && item.contactId !== 'contact-new')
+          ? `id:${item.contactId}`
+          : phoneDigits ? `phone:${phoneDigits}` : `raw:${item.id}`;
+
+        if (seenContacts.has(contactKey)) {
+          const existing = seenContacts.get(contactKey)!;
+          if (item.notes && !existing.notes.includes(item.notes)) {
+            existing.notes = `${existing.notes} | ${item.notes}`;
+          }
+        } else {
+          const itemCopy = { ...item };
+          seenContacts.set(contactKey, itemCopy);
+          keepPending.push(itemCopy);
+        }
+      }
+
+      this.set('followups', [...nonPendingOrOtherCompany, ...keepPending]);
+    } catch (e) {
+      console.error('Error in cleanupGhlPendingFollowups:', e);
+    }
   }
 
   saveFollowup(followup: Followup): void {
@@ -170,6 +242,49 @@ class StorageService {
       followups.unshift(followup);
     }
     this.set('followups', followups);
+  }
+
+  deleteFollowup(id: string): void {
+    const followups = this.get<Followup[]>('followups', []).filter(f => f.id !== id);
+    this.set('followups', followups);
+  }
+
+  /**
+   * GHL Sales Exec – atomic purge of ALL Pending followup records for a contact
+   * (by id or phone). Used when routing a lead to Not Interested or Junk so the
+   * record is completely removed from the Follow-up queue instead of just being
+   * marked Completed (which would still appear in "All Tasks").
+   * Scoped to a single companyId; has no effect on other tenants.
+   */
+  purgeFollowupsForContact(
+    companyId: string,
+    contactId?: string | null,
+    contactPhone?: string | null
+  ): void {
+    try {
+      const allFollowups = this.get<Followup[]>('followups', []) || [];
+      const targetPhoneDigits = (contactPhone || '').replace(/\D/g, '').slice(-10);
+
+      const remaining = allFollowups.filter(f => {
+        // Only touch Pending records for this company
+        if (f.companyId !== companyId || f.status !== 'Pending') return true;
+
+        // Match by contactId
+        if (contactId && contactId !== 'contact-new' && f.contactId === contactId) {
+          return false; // purge
+        }
+        // Match by phone
+        const fPhone = (f.contactPhone || '').replace(/\D/g, '').slice(-10);
+        if (fPhone && targetPhoneDigits && fPhone === targetPhoneDigits) {
+          return false; // purge
+        }
+        return true;
+      });
+
+      this.set('followups', remaining);
+    } catch (e) {
+      console.error('Error in purgeFollowupsForContact:', e);
+    }
   }
 
   // Projects & Plots (Defaults to empty [] - real-time data only)
@@ -238,9 +353,19 @@ class StorageService {
     this.set('bookings', bookings);
   }
 
-  // Investors (Defaults to empty [] - real-time data only)
+  // Investors (Defaults to INITIAL_INVESTORS)
   getInvestors(companyId?: string): Investor[] {
-    const investors = this.get<Investor[]>('investors', []);
+    let investors = this.get<Investor[]>('investors', INITIAL_INVESTORS);
+    if (!investors || investors.length === 0) {
+      investors = INITIAL_INVESTORS;
+    } else {
+      const existingIds = new Set(investors.map(i => i.id));
+      const missing = INITIAL_INVESTORS.filter(i => !existingIds.has(i.id));
+      if (missing.length > 0) {
+        investors = [...investors, ...missing];
+        this.set('investors', investors);
+      }
+    }
     return companyId ? investors.filter(i => i.companyId === companyId) : investors;
   }
 
@@ -260,9 +385,19 @@ class StorageService {
     this.set('investors', investors);
   }
 
-  // Consultations (Defaults to empty [] - real-time data only)
+  // Consultations (Defaults to INITIAL_CONSULTATIONS)
   getConsultations(companyId?: string): Consultation[] {
-    const consultations = this.get<Consultation[]>('consultations', []);
+    let consultations = this.get<Consultation[]>('consultations', INITIAL_CONSULTATIONS);
+    if (!consultations || consultations.length === 0) {
+      consultations = INITIAL_CONSULTATIONS;
+    } else {
+      const existingIds = new Set(consultations.map(c => c.id));
+      const missing = INITIAL_CONSULTATIONS.filter(c => !existingIds.has(c.id));
+      if (missing.length > 0) {
+        consultations = [...consultations, ...missing];
+        this.set('consultations', consultations);
+      }
+    }
     return companyId ? consultations.filter(c => c.companyId === companyId) : consultations;
   }
 
@@ -282,9 +417,19 @@ class StorageService {
     this.set('consultations', consultations);
   }
 
-  // Opportunities (Defaults to empty [] - real-time data only)
+  // Opportunities (Defaults to INITIAL_OPPORTUNITIES)
   getOpportunities(companyId?: string): InvestmentOpportunity[] {
-    const opps = this.get<InvestmentOpportunity[]>('opportunities', []);
+    let opps = this.get<InvestmentOpportunity[]>('opportunities', INITIAL_OPPORTUNITIES);
+    if (!opps || opps.length === 0) {
+      opps = INITIAL_OPPORTUNITIES;
+    } else {
+      const existingIds = new Set(opps.map(o => o.id));
+      const missing = INITIAL_OPPORTUNITIES.filter(o => !existingIds.has(o.id));
+      if (missing.length > 0) {
+        opps = [...opps, ...missing];
+        this.set('opportunities', opps);
+      }
+    }
     return companyId ? opps.filter(o => o.companyId === companyId) : opps;
   }
 
@@ -485,8 +630,15 @@ class StorageService {
 
   // Custom Field Definitions
   getCustomFieldDefinitions(companyId?: string): CustomFieldDefinition[] {
-    const definitions = this.get<CustomFieldDefinition[]>('custom_field_definitions', []);
-    return companyId ? definitions.filter(d => d.companyId === companyId) : definitions;
+    const definitions = this.get<CustomFieldDefinition[]>('custom_field_definitions', INITIAL_CUSTOM_FIELD_DEFINITIONS);
+    if (!companyId) return definitions;
+    return definitions.filter(d =>
+      d.companyId === companyId ||
+      (companyId === 'ghl' && d.companyId === 't-ghl-01') ||
+      (companyId === 't-ghl-01' && d.companyId === 'ghl') ||
+      (companyId === 'jamin' && d.companyId === 't-jamin-02') ||
+      (companyId === 't-jamin-02' && d.companyId === 'jamin')
+    );
   }
 
   saveCustomFieldDefinition(def: CustomFieldDefinition): void {
@@ -538,6 +690,7 @@ class StorageService {
     this.set('notifications', mock.INITIAL_NOTIFICATIONS);
     this.set('users', mock.USERS);
     this.set('tenants', Object.values(mock.TENANTS));
+    this.set('custom_field_definitions', mock.INITIAL_CUSTOM_FIELD_DEFINITIONS);
     window.dispatchEvent(new Event('nexus_storage_updated'));
   }
 

@@ -46,6 +46,7 @@ export const CustomersPage: React.FC = () => {
   const [newEmail, setNewEmail] = useState('');
   const [newLocation, setNewLocation] = useState('');
   const [newStatus, setNewStatus] = useState<'Active' | 'VIP' | 'Inactive'>('Active');
+  const [newCustomFields, setNewCustomFields] = useState<Record<string, any>>({});
   const [addErrors, setAddErrors] = useState<{ name?: string; phone?: string }>({});
 
   const [calls, setCalls] = useState<CallRecord[]>([]);
@@ -107,6 +108,7 @@ export const CustomersPage: React.FC = () => {
     setNewEmail('');
     setNewLocation('');
     setNewStatus('Active');
+    setNewCustomFields({});
     setAddErrors({});
   };
 
@@ -133,7 +135,7 @@ export const CustomersPage: React.FC = () => {
       totalValue: 0,
       createdAt: new Date().toISOString().split('T')[0],
       notes: '',
-      customFields: {},
+      customFields: newCustomFields,
     };
     storageService.saveCustomer(newCustomer);
     setIsAddModalOpen(false);
@@ -401,23 +403,45 @@ export const CustomersPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {selectedCustomer.customFields && (
-                    <div className="card customer-custom-card">
-                      <h4 className="customer-custom-heading">
-                        Tenant Specific Relationship Attributes
-                      </h4>
-                      <div className="customer-custom-grid">
-                        {Object.entries(selectedCustomer.customFields).map(([k, v]) => (
-                          <div key={k}>
-                            <span className="customer-custom-label">
-                              {k.replace(/([A-Z])/g, ' $1')}:
-                            </span>
-                            <div className="customer-custom-val">{String(v)}</div>
-                          </div>
-                        ))}
+                  {selectedCustomer.customFields && (() => {
+                    const activeDefs = storageService
+                      .getCustomFieldDefinitions(tenant?.id)
+                      .filter(d => d.active !== false && d.module === 'customers')
+                      .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+
+                    const rows = activeDefs
+                      .map(def => {
+                        const key = def.fieldKey || def.id;
+                        const val = selectedCustomer.customFields?.[key];
+                        if (val === undefined || val === null || val === '') return null;
+                        return {
+                          id: def.id,
+                          label: def.label || key.replace(/([A-Z])/g, ' $1'),
+                          value: String(val),
+                        };
+                      })
+                      .filter(Boolean);
+
+                    if (rows.length === 0) return null;
+
+                    return (
+                      <div className="card customer-custom-card">
+                        <h4 className="customer-custom-heading">
+                          Tenant Specific Relationship Attributes
+                        </h4>
+                        <div className="customer-custom-grid">
+                          {rows.map(item => (
+                            <div key={item!.id}>
+                              <span className="customer-custom-label">
+                                {item!.label}:
+                              </span>
+                              <div className="customer-custom-val">{item!.value}</div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               )}
 
@@ -623,6 +647,54 @@ export const CustomersPage: React.FC = () => {
               <option value="Inactive">Inactive</option>
             </select>
           </div>
+          {/* Tenant-Specific Custom Fields */}
+          {(() => {
+            const customerDefs = storageService
+              .getCustomFieldDefinitions(tenant?.id)
+              .filter(d => d.active !== false && d.module === 'customers')
+              .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+
+            if (customerDefs.length === 0) return null;
+
+            return customerDefs.map(def => {
+              const key = def.fieldKey || def.id;
+              const val = newCustomFields[key] ?? def.defaultValue ?? '';
+              return (
+                <div key={def.id} className="form-group">
+                  <label className="form-label">
+                    {def.label || key}
+                    {def.required ? ' *' : ''}
+                  </label>
+                  {def.fieldType === 'select' && def.options && def.options.length > 0 ? (
+                    <select
+                      className="form-select"
+                      required={def.required}
+                      value={val}
+                      onChange={e => setNewCustomFields(prev => ({ ...prev, [key]: e.target.value }))}
+                    >
+                      {!def.defaultValue && !def.options.includes(val) && (
+                        <option value="">Select {def.label}...</option>
+                      )}
+                      {def.options.map(opt => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type={def.fieldType === 'number' ? 'number' : 'text'}
+                      className="form-input"
+                      required={def.required}
+                      placeholder={`Enter ${def.label}...`}
+                      value={val}
+                      onChange={e => setNewCustomFields(prev => ({ ...prev, [key]: e.target.value }))}
+                    />
+                  )}
+                </div>
+              );
+            });
+          })()}
         </div>
       </Modal>
     </div>

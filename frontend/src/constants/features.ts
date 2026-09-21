@@ -36,6 +36,7 @@ export const FEATURES = {
   PRODUCTS_SERVICES: 'products-services',
   PRESENCE: 'presence',
   ESCALATIONS: 'escalations',
+  CHAT: 'chat',
 } as const;
 
 export type FeatureKey = typeof FEATURES[keyof typeof FEATURES];

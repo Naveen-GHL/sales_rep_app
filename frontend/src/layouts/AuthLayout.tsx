@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Building2, UserCheck, ArrowRight, Lock, Mail, AlertCircle } from 'lucide-react';
+import { Shield, Building2, UserCheck, ArrowRight, Lock, Mail, AlertCircle, TrendingUp } from 'lucide-react';
 import './AuthLayout.css';
 
 export const AuthLayout: React.FC = () => {
@@ -69,6 +69,18 @@ export const AuthLayout: React.FC = () => {
               <div>
                 <div className="auth-preset-title">GHL Sales Agent</div>
                 <div className="auth-preset-subtitle">Ananya Iyer</div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm auth-preset-btn"
+              onClick={() => switchPersona('irm', 'ghl')}
+            >
+              <TrendingUp size={14} color="#ef4444" />
+              <div>
+                <div className="auth-preset-title">GHL IRM</div>
+                <div className="auth-preset-subtitle">Rohan Varma</div>
               </div>
             </button>
 

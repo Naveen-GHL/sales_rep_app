@@ -96,10 +96,10 @@ export const ConsultationsPage: React.FC = () => {
   // ── Role-based scoping ────────────────────────────────────────────────────
   const scopedConsultations = isExec
     ? consultations.filter(
-        c =>
-          (c.consultantId && c.consultantId === user?.id) ||
-          (c.consultantName && c.consultantName === user?.name),
-      )
+      c =>
+        (c.consultantId && c.consultantId === user?.id) ||
+        (c.consultantName && c.consultantName === user?.name),
+    )
     : consultations;
 
   // ── Filter options ────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Papa from 'papaparse';
 import {
   Users,
@@ -6,7 +6,6 @@ import {
   Plus,
   Upload,
   CheckCircle2,
-  UserCheck,
   Trash2,
   Edit,
   ExternalLink,
@@ -48,9 +47,9 @@ export const LeadsPage: React.FC = () => {
   const isExec = roleCode === 'sales_executive';
   const scopedLeads = (isExec
     ? leads.filter(l =>
-        (l.assignedAgentId && l.assignedAgentId === user?.id) ||
-        (l.assignedAgentName && l.assignedAgentName === user?.name)
-      )
+      (l.assignedAgentId && l.assignedAgentId === user?.id) ||
+      (l.assignedAgentName && l.assignedAgentName === user?.name)
+    )
     : leads
   ).filter(l => !MOVED_LEAD_STATUSES.includes(l.status));
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -123,7 +122,23 @@ export const LeadsPage: React.FC = () => {
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
 
+  const isGhlSalesExec = tenant?.slug === 'ghl' && user?.role?.code === 'sales_executive';
+  const ghlPendingFollowups = isGhlSalesExec
+    ? (storageService.getFollowups(tenant?.id) || []).filter(f => f.status === 'Pending')
+    : [];
+
   const filteredLeads = scopedLeads.filter(lead => {
+    if (isGhlSalesExec && lead.status !== 'Callback') {
+      const leadPhoneDigits = (lead.phone || '').replace(/\D/g, '').slice(-10);
+      const hasPendingFollowup = ghlPendingFollowups.some(f => {
+        if (f.contactId && f.contactId !== 'contact-new' && f.contactId === lead.id) {
+          return true;
+        }
+        const fPhoneDigits = (f.contactPhone || '').replace(/\D/g, '').slice(-10);
+        return fPhoneDigits && leadPhoneDigits && fPhoneDigits === leadPhoneDigits;
+      });
+      if (hasPendingFollowup) return false;
+    }
     if (statusFilter !== 'All' && (lead.status as string) !== statusFilter) return false;
     return true;
   });
@@ -258,7 +273,7 @@ export const LeadsPage: React.FC = () => {
         const headers = results.meta.fields || [];
         setCsvHeaders(headers);
         setParsedRows(results.data);
-        
+
         // Auto-map
         const newMap: Record<string, string> = {};
         const targetFields = ['name', 'phone', 'email', 'location', 'source', 'priority'];
@@ -284,12 +299,12 @@ export const LeadsPage: React.FC = () => {
     parsedRows.forEach((row, index) => {
       const nameVal = row[columnMap['name']];
       const phoneVal = row[columnMap['phone']];
-      
+
       if (!nameVal || !phoneVal) {
         skipCount++;
         return;
       }
-      
+
       const emailVal = row[columnMap['email']] || '';
       const locationVal = row[columnMap['location']] || '';
       const sourceVal = row[columnMap['source']] || 'CSV Import';
@@ -588,21 +603,45 @@ export const LeadsPage: React.FC = () => {
             </div>
 
             {/* Tenant-Specific Dynamic Custom Fields */}
-            <div className="card lead-custom-card">
-              <h4 className="lead-custom-title">
-                {tenant?.name} Custom Attributes
-              </h4>
-              <div className="lead-detail-grid">
-                {Object.entries(selectedLead.customFields || {}).map(([key, val]) => (
-                  <div key={key}>
-                    <span className="lead-custom-label">
-                      {key.replace(/([A-Z])/g, ' $1')}:
-                    </span>
-                    <div className="lead-custom-value">{String(val)}</div>
+            {(() => {
+              const activeDefs = storageService
+                .getCustomFieldDefinitions(tenant?.id)
+                .filter(d => d.active !== false && (d.module === 'leads' || !d.module))
+                .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+
+              const rows = activeDefs
+                .map(def => {
+                  const key = def.fieldKey || def.id;
+                  const val = selectedLead.customFields?.[key];
+                  if (val === undefined || val === null || val === '') return null;
+                  return {
+                    id: def.id,
+                    label: def.label || key.replace(/([A-Z])/g, ' $1'),
+                    value: String(val),
+                  };
+                })
+                .filter(Boolean);
+
+              if (rows.length === 0) return null;
+
+              return (
+                <div className="card lead-custom-card">
+                  <h4 className="lead-custom-title">
+                    {tenant?.name} Custom Attributes
+                  </h4>
+                  <div className="lead-detail-grid">
+                    {rows.map(item => (
+                      <div key={item!.id}>
+                        <span className="lead-custom-label">
+                          {item!.label}:
+                        </span>
+                        <div className="lead-custom-value">{item!.value}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              );
+            })()}
 
             {/* Message from User */}
             <div className="card lead-custom-card">
@@ -611,10 +650,10 @@ export const LeadsPage: React.FC = () => {
               </h4>
               <div className="lead-user-message-box">
                 {(selectedLead as any).message ||
-                (selectedLead as any).userMessage ||
-                selectedLead.customFields?.message ||
-                selectedLead.customFields?.userMessage ||
-                selectedLead.notes ? (
+                  (selectedLead as any).userMessage ||
+                  selectedLead.customFields?.message ||
+                  selectedLead.customFields?.userMessage ||
+                  selectedLead.notes ? (
                   <div className="lead-user-message-text">
                     {(selectedLead as any).message ||
                       (selectedLead as any).userMessage ||
@@ -792,6 +831,17 @@ export const LeadsPage: React.FC = () => {
             )}
           </div>
 
+          <div className="form-group">
+            <label className="form-label">Notes & Requirements</label>
+            <textarea
+              className="form-textarea"
+              rows={3}
+              value={formData.notes || ''}
+              onChange={e => setFormData({ ...formData, notes: e.target.value })}
+              placeholder="Client background, key objections, time horizon..."
+            />
+          </div>
+
           <div className="lead-form-footer-actions">
             <button
               type="button"
@@ -879,8 +929,8 @@ export const LeadsPage: React.FC = () => {
               <button className="btn btn-secondary" onClick={resetImportState}>
                 Cancel
               </button>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={handleImportLeads}
                 disabled={!columnMap['name'] || !columnMap['phone']}
               >
@@ -919,8 +969,8 @@ export const LeadsPage: React.FC = () => {
                       <span className="lead-mapping-label">
                         {tf}{['name', 'phone'].includes(tf) ? ' *' : ''}
                       </span>
-                      <select 
-                        className="form-select lead-mapping-select" 
+                      <select
+                        className="form-select lead-mapping-select"
                         value={columnMap[tf] || ''}
                         onChange={e => setColumnMap(prev => ({ ...prev, [tf]: e.target.value }))}
                       >
@@ -984,9 +1034,9 @@ export const LeadsPage: React.FC = () => {
                 <div className="lead-dropzone-sub">
                   Supports .csv only
                 </div>
-                <button 
+                <button
                   type="button"
-                  className="btn btn-secondary btn-sm lead-dropzone-btn" 
+                  className="btn btn-secondary btn-sm lead-dropzone-btn"
                   onClick={e => {
                     e.stopPropagation();
                     fileInputRef.current?.click();
@@ -995,7 +1045,7 @@ export const LeadsPage: React.FC = () => {
                   Browse File
                 </button>
               </div>
-              
+
               {importError && (
                 <div className="lead-import-error">
                   {importError}

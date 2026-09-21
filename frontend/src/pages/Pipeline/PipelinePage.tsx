@@ -35,9 +35,9 @@ export const PipelinePage: React.FC<PipelinePageProps> = ({ onOpenQuickCreate })
   const isExec = roleCode === 'sales_executive';
   const scopedDeals = isExec
     ? deals.filter(d =>
-        (d.assignedAgentId && d.assignedAgentId === user?.id) ||
-        (d.assignedAgentName && d.assignedAgentName === user?.name)
-      )
+      (d.assignedAgentId && d.assignedAgentId === user?.id) ||
+      (d.assignedAgentName && d.assignedAgentName === user?.name)
+    )
     : deals;
 
   // Agent filter options — derived from the already-scoped pool so execs never see this.
@@ -60,8 +60,8 @@ export const PipelinePage: React.FC<PipelinePageProps> = ({ onOpenQuickCreate })
   const stages = tenant?.slug === 'jamin'
     ? PIPELINE_STAGES.jamin
     : tenant?.slug === 'ghl'
-    ? PIPELINE_STAGES.ghl
-    : PIPELINE_STAGES.default;
+      ? PIPELINE_STAGES.ghl
+      : PIPELINE_STAGES.default;
 
   // ID of the won stage for this pipeline
   const wonStageId = stages[stages.length - 1].id;
