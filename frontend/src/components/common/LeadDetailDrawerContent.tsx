@@ -96,6 +96,42 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
     return m > 0 ? `${m}m ${s}s` : `${s}s`;
   };
 
+  // ── Customer Notes (from form/source) vs Agent Reason (from disposition) ───
+  const customerNotes = (() => {
+    if (!selectedLead) return '';
+    if (selectedLead.customFields?.customerNotes && typeof selectedLead.customFields.customerNotes === 'string' && selectedLead.customFields.customerNotes.trim()) {
+      return selectedLead.customFields.customerNotes.trim();
+    }
+    if (!selectedLead.notes) return '';
+    const cleaned = selectedLead.notes
+      .split(/\n\n?\[\d{1,2}\/\d{1,2}\/\d{4}[^\]]*\]\s*Not Interested Reason:?/i)[0]
+      .replace(/(?:\[.*?\]\s*)?Not Interested Reason:[\s\S]*$/i, '')
+      .trim();
+    return cleaned;
+  })();
+
+  const agentReason = (() => {
+    if (!selectedLead) return '';
+    if (selectedLead.customFields?.dispositionReason && typeof selectedLead.customFields.dispositionReason === 'string' && selectedLead.customFields.dispositionReason.trim()) {
+      return selectedLead.customFields.dispositionReason.trim();
+    }
+    if (selectedLead.notes) {
+      const match = selectedLead.notes.match(/Not Interested Reason:\s*([^\n\r]+)/i);
+      if (match && match[1]?.trim()) {
+        return match[1].trim();
+      }
+    }
+    const niCall = selectedCalls.find(c => c.disposition === 'Not Interested');
+    if (niCall?.notes) {
+      const match = niCall.notes.match(/Reason:\s*([^\n\r]+)/i);
+      if (match && match[1]?.trim()) {
+        return match[1].trim();
+      }
+      return niCall.notes.trim();
+    }
+    return '';
+  })();
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
@@ -193,13 +229,62 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
                 <div style={{ fontWeight: 600 }}>{(selectedLead as any).preferredContactTime}</div>
               </div>
             )}
-            {selectedLead.notes && (
-              <div style={{ gridColumn: 'span 2' }}>
-                <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }}>NOTES & REQUIREMENTS</span>
-                <div style={{ backgroundColor: 'var(--bg-surface-hover)', padding: '8px 12px', borderRadius: 6, marginTop: 4 }}>
-                  {selectedLead.notes}
+            {/* Notes & Requirements (Customer Form) + Reason (Agent Typed) */}
+            {selectedLead.status === 'Not Interested' || agentReason ? (
+              <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' }}>
+                    NOTES & REQUIREMENTS
+                  </span>
+                  <div
+                    style={{
+                      backgroundColor: 'var(--bg-surface-hover)',
+                      border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
+                      padding: '8px 12px',
+                      borderRadius: 6,
+                      marginTop: 4,
+                      fontSize: 13,
+                      color: 'var(--text-primary)',
+                      lineHeight: 1.5,
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {customerNotes || 'No notes submitted by customer.'}
+                  </div>
+                </div>
+
+                <div>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' }}>
+                    REASON
+                  </span>
+                  <div
+                    style={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.04)',
+                      border: '1px solid rgba(239, 68, 68, 0.35)',
+                      padding: '8px 12px',
+                      borderRadius: 6,
+                      marginTop: 4,
+                      fontSize: 13,
+                      color: 'var(--text-primary)',
+                      lineHeight: 1.5,
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {agentReason || 'No specific reason provided.'}
+                  </div>
                 </div>
               </div>
+            ) : (
+              selectedLead.notes && (
+                <div style={{ gridColumn: 'span 2' }}>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' }}>
+                    NOTES & REQUIREMENTS
+                  </span>
+                  <div style={{ backgroundColor: 'var(--bg-surface-hover)', padding: '8px 12px', borderRadius: 6, marginTop: 4 }}>
+                    {selectedLead.notes}
+                  </div>
+                </div>
+              )
             )}
 
             {/* Custom Fields */}
@@ -212,6 +297,7 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
               const rows = activeDefs
                 .map(def => {
                   const key = def.fieldKey || def.id;
+                  if (key === 'dispositionReason' || key === 'customerNotes') return null;
                   const val = selectedLead.customFields?.[key];
                   if (val === undefined || val === null || val === '') return null;
                   return { id: def.id, label: def.label || key.replace(/([A-Z])/g, ' $1'), value: String(val) };

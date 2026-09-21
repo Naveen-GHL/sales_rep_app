@@ -407,8 +407,14 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const reasonText = reason || notes || 'Not Interested';
         if (matchedLead) {
           matchedLead.status = 'Not Interested';
+          const originalCustomerNotes = matchedLead.customFields?.customerNotes ||
+            (matchedLead.notes ? matchedLead.notes.split(/\n\n?\[.*?\]\s*Not Interested Reason:?/i)[0].replace(/(?:\[.*?\]\s*)?Not Interested Reason:[\s\S]*$/i, '').trim() : '');
           matchedLead.notes = `${matchedLead.notes ? matchedLead.notes + '\n\n' : ''}[${new Date().toLocaleDateString()}] Not Interested Reason: ${reasonText}`;
-          matchedLead.customFields = { ...matchedLead.customFields, dispositionReason: reasonText };
+          matchedLead.customFields = {
+            ...matchedLead.customFields,
+            customerNotes: originalCustomerNotes,
+            dispositionReason: reasonText,
+          };
           storageService.saveLead(matchedLead);
         } else {
           const newLead: Lead = {
@@ -425,7 +431,10 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
             assignedAgentName: user.name,
             createdAt: new Date().toISOString().split('T')[0],
             notes: `[${new Date().toLocaleDateString()}] Not Interested Reason: ${reasonText}`,
-            customFields: { dispositionReason: reasonText },
+            customFields: {
+              customerNotes: '',
+              dispositionReason: reasonText,
+            },
           };
           storageService.saveLead(newLead);
         }
