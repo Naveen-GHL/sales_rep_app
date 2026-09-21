@@ -47,7 +47,6 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
   consultationReason,
 }) => {
   const [expandedTranscripts, setExpandedTranscripts] = useState<Record<string, boolean>>({});
-  const [callTab, setCallTab] = useState<'agent' | 'irm'>('agent');
 
   // ── Lead record lookup ───────────────────────────────────────────────────────
   const selectedLead = (() => {
@@ -80,9 +79,6 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
     return true;
   });
 
-  const agentCalls = selectedCalls.filter(c => !(c.notes || '').startsWith('Connected to IRM:'));
-  const irmCalls = selectedCalls.filter(c => (c.notes || '').startsWith('Connected to IRM:'));
-  const tabCalls = callTab === 'agent' ? agentCalls : irmCalls;
 
   // ── Active follow-up count ───────────────────────────────────────────────────
   const followups = storageService.getFollowups(tenantId) || [];
@@ -331,28 +327,14 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
           <Phone size={16} color="var(--primary-600)" /> Call Recordings
         </h4>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-          <button
-            className={`btn btn-sm ${callTab === 'agent' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setCallTab('agent')}
-          >
-            Connect via Agent ({agentCalls.length})
-          </button>
-          <button
-            className={`btn btn-sm ${callTab === 'irm' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setCallTab('irm')}
-          >
-            Connect via IRM ({irmCalls.length})
-          </button>
-        </div>
 
-        {tabCalls.length === 0 ? (
+        {selectedCalls.length === 0 ? (
           <div style={{ padding: '16px', backgroundColor: 'var(--bg-surface-hover)', borderRadius: 8, color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>
             No calls in this category yet.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {tabCalls.map(c => {
+            {selectedCalls.map(c => {
               const isExpanded = !!expandedTranscripts[c.id];
               return (
                 <div
