@@ -260,6 +260,7 @@ export function DataTable<T>({
               borderCollapse: 'collapse',
               textAlign: 'left',
               fontSize: 13,
+              tableLayout: 'fixed',
             }}
           >
             <thead>
@@ -381,6 +382,8 @@ export function DataTable<T>({
                           textAlign: col.align || 'left',
                           verticalAlign: 'middle',
                           color: 'var(--text-primary)',
+                          wordBreak: 'break-word',
+                          whiteSpace: 'normal',
                         }}
                       >
                         {col.render ? col.render(item) : (item as any)[col.key]}

@@ -44,7 +44,7 @@ interface CallContextType {
   simulateIncomingCall: (name?: string, phone?: string) => void;
   acceptCall: () => void;
   rejectCall: () => void;
-  endCall: () => void;
+  endCall: (skipDisposition?: boolean | unknown) => void;
   toggleMute: () => void;
   toggleHold: () => void;
   toggleExpanded: () => void;
@@ -181,12 +181,16 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const endCall = () => {
+  const endCall = (skipDisposition?: boolean | unknown) => {
     if (activeCall) {
       const finishedCall = { ...activeCall, status: 'ended' as CallStatus };
       setLastCallRecord(finishedCall);
       setActiveCall(null);
-      setShowDispositionModal(true);
+      if (skipDisposition === true) {
+        setAvailability(prev => prev === 'Busy' ? 'Available' : prev);
+      } else {
+        setShowDispositionModal(true);
+      }
     }
   };
 

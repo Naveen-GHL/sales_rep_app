@@ -93,12 +93,14 @@ export const CallHistoryPage: React.FC = () => {
       key: 'timestamp',
       header: 'Date & Time',
       sortable: true,
+      width: '14%',
       render: c => <span style={{ fontSize: 12, fontWeight: 500 }}>{formatTimestamp(c.timestamp)}</span>,
     },
     {
       key: 'contactName',
       header: 'Contact',
       sortable: true,
+      width: '18%',
       render: c => (
         <div>
           <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{c.contactName}</div>
@@ -110,24 +112,28 @@ export const CallHistoryPage: React.FC = () => {
       key: 'direction',
       header: 'Direction',
       sortable: true,
+      width: '10%',
       render: c => <StatusChip status={c.direction} size="sm" />,
     },
     {
       key: 'duration',
       header: 'Duration',
       sortable: true,
+      width: '10%',
       render: c => <span style={{ fontSize: 12 }}>{formatDuration(c.duration)}</span>,
     },
     {
       key: 'agentName',
       header: 'Agent',
       sortable: true,
+      width: '16%',
       render: c => <span style={{ fontSize: 12 }}>{c.agentName}</span>,
     },
     {
       key: 'disposition',
       header: 'Outcome / Disposition',
       sortable: true,
+      width: '16%',
       render: c => <StatusChip status={c.disposition} size="sm" />,
     },
     // Task 1: "Listen" / recording column removed — replaced by row-click detail drawer

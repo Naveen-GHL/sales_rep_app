@@ -33,6 +33,8 @@ interface LeadDetailDrawerContentProps {
    * Follow-up page passes ['Follow-up Required', 'Call Back'].
    */
   callDispositionFilter?: CallDisposition[];
+  /** Optional — shown as the last row in the Lead/Investor Details card when provided */
+  consultationReason?: string;
 }
 
 export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = ({
@@ -42,8 +44,10 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
   tenantId,
   onCall,
   callDispositionFilter,
+  consultationReason,
 }) => {
   const [expandedTranscripts, setExpandedTranscripts] = useState<Record<string, boolean>>({});
+  const [callTab, setCallTab] = useState<'agent' | 'irm'>('agent');
 
   // ── Lead record lookup ───────────────────────────────────────────────────────
   const selectedLead = (() => {
@@ -63,7 +67,7 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
   const selectedCalls = allCalls.filter(c => {
     const isMatch =
       (contactId && contactId !== 'contact-new' &&
-        (c.leadId === contactId || (c as any).contactId === contactId)) ||
+        (c.leadId === contactId || (c as any).contactId === contactId || (c as any).investorId === contactId)) ||
       ((c.contactPhone || '').replace(/\D/g, '').slice(-10) === fPhoneDigits &&
         fPhoneDigits.length > 0);
 
@@ -75,6 +79,10 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
     }
     return true;
   });
+
+  const agentCalls = selectedCalls.filter(c => !(c.notes || '').startsWith('Connected to IRM:'));
+  const irmCalls = selectedCalls.filter(c => (c.notes || '').startsWith('Connected to IRM:'));
+  const tabCalls = callTab === 'agent' ? agentCalls : irmCalls;
 
   // ── Active follow-up count ───────────────────────────────────────────────────
   const followups = storageService.getFollowups(tenantId) || [];
@@ -257,6 +265,14 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
                 </div>
               </div>
             )}
+            {consultationReason && (
+              <div style={{ gridColumn: 'span 2' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }}>REASON FOR CONSULTATION</span>
+                <div style={{ backgroundColor: 'var(--bg-surface-hover)', padding: '8px 12px', borderRadius: 6, marginTop: 4 }}>
+                  {consultationReason}
+                </div>
+              </div>
+            )}
 
             {/* Custom Fields */}
             {(() => {
@@ -293,25 +309,50 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
             })()}
           </div>
         ) : (
-          <div style={{ padding: '16px', backgroundColor: 'var(--bg-surface-hover)', borderRadius: 8, color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>
-            Lead details unavailable
+          <div>
+            <div style={{ padding: '16px', backgroundColor: 'var(--bg-surface-hover)', borderRadius: 8, color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>
+              Lead details unavailable
+            </div>
+            {consultationReason && (
+              <div style={{ marginTop: 12 }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }}>REASON FOR CONSULTATION</span>
+                <div style={{ backgroundColor: 'var(--bg-surface-hover)', padding: '8px 12px', borderRadius: 6, marginTop: 4 }}>
+                  {consultationReason}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* ── Call Log & Recordings ────────────────────────────────────────────── */}
+      {/* ── Call Recordings ────────────────────────────────────────────── */}
       <div className="card">
         <h4 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Phone size={16} color="var(--primary-600)" /> Call Log &amp; Recordings
+          <Phone size={16} color="var(--primary-600)" /> Call Recordings
         </h4>
 
-        {selectedCalls.length === 0 ? (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <button
+            className={`btn btn-sm ${callTab === 'agent' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setCallTab('agent')}
+          >
+            Connect via Agent ({agentCalls.length})
+          </button>
+          <button
+            className={`btn btn-sm ${callTab === 'irm' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setCallTab('irm')}
+          >
+            Connect via IRM ({irmCalls.length})
+          </button>
+        </div>
+
+        {tabCalls.length === 0 ? (
           <div style={{ padding: '16px', backgroundColor: 'var(--bg-surface-hover)', borderRadius: 8, color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>
-            No previous call logs recorded for this contact.
+            No calls in this category yet.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {selectedCalls.map(c => {
+            {tabCalls.map(c => {
               const isExpanded = !!expandedTranscripts[c.id];
               return (
                 <div
