@@ -725,6 +725,8 @@ export const DispositionModal: React.FC = () => {
   if (!showDispositionModal || !lastCallRecord) return null;
 
   const isGhlSalesExec = (tenant?.slug === 'ghl' || tenant?.id === 't-ghl-01') && user?.role?.code === 'sales_executive';
+  // This call was launched from the Follow-ups page (a previously scheduled follow-up task).
+  const isFollowupCall = !!lastCallRecord.sourceFollowupId;
 
   const allDispositions: CallDisposition[] = [
     'Interested',
@@ -736,9 +738,16 @@ export const DispositionModal: React.FC = () => {
     'No Response',
   ];
 
-  const dispositions: CallDisposition[] = isGhlSalesExec
-    ? allDispositions.filter(d => d !== 'Converted')
-    : allDispositions;
+  // For follow-up calls, "Call Back", "Wrong Number", and "No Response" are not valid outcomes —
+  // this is already a scheduled callback, so another Call Back is redundant, and the agent
+  // is expected to have reached the contact.
+  const FOLLOWUP_CALL_OUTCOMES: CallDisposition[] = ['Interested', 'Follow-up Required', 'Not Interested'];
+
+  const dispositions: CallDisposition[] = isFollowupCall
+    ? FOLLOWUP_CALL_OUTCOMES
+    : isGhlSalesExec
+      ? allDispositions.filter(d => d !== 'Converted')
+      : allDispositions;
 
   const handleSave = () => {
     // Combine date + time into a proper ISO string so scheduledAt is parseable
@@ -787,6 +796,11 @@ export const DispositionModal: React.FC = () => {
         {/* Disposition Selector */}
         <div className="form-group">
           <label className="form-label">Call Outcome / Disposition *</label>
+          {isFollowupCall && (
+            <p className="disposition-followup-context-hint">
+              Follow-up call — outcomes restricted to relevant results.
+            </p>
+          )}
           <div className="disposition-grid">
             {dispositions.map(d => (
               <button
@@ -797,6 +811,11 @@ export const DispositionModal: React.FC = () => {
                   setDisposition(d);
                   if (d === 'Follow-up Required' || d === 'Call Back') {
                     setScheduleFollowup(true);
+                  } else {
+                    setScheduleFollowup(false);
+                    setFollowupDate('');
+                    setFollowupTime('');
+                    setFollowupPriority('High');
                   }
                 }}
               >

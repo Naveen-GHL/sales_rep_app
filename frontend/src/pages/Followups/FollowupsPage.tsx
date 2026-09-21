@@ -297,7 +297,7 @@ export const FollowupsPage: React.FC = () => {
                     className="btn btn-call btn-sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      initiateCall(f.contactName, f.contactPhone, f.contactType as any, f.contactId);
+                      initiateCall(f.contactName, f.contactPhone, f.contactType as any, f.contactId, f.id);
                     }}
                   >
                     <Phone size={13} /> Call
@@ -360,7 +360,8 @@ export const FollowupsPage: React.FC = () => {
                   drawerFollowup.contactName,
                   drawerFollowup.contactPhone,
                   drawerFollowup.contactType as any,
-                  drawerFollowup.contactId
+                  drawerFollowup.contactId,
+                  drawerFollowup.id
                 )
               }
               callDispositionFilter={['Follow-up Required', 'Call Back']}

@@ -29,6 +29,9 @@ interface ActiveCall {
   isVideoMode: boolean;
   // Google Meet integration
   meetingLink: string | null;
+  // Follow-up task linkage — set when the call is initiated from a scheduled follow-up task.
+  // The disposition modal uses this to restrict available Call Outcome options.
+  sourceFollowupId?: string;
 }
 
 interface CallContextType {
@@ -37,7 +40,7 @@ interface CallContextType {
   activeCall: ActiveCall | null;
   showDispositionModal: boolean;
   lastCallRecord: ActiveCall | null;
-  initiateCall: (name: string, phone: string, recordType?: 'lead' | 'customer', recordId?: string) => void;
+  initiateCall: (name: string, phone: string, recordType?: 'lead' | 'customer', recordId?: string, sourceFollowupId?: string) => void;
   simulateIncomingCall: (name?: string, phone?: string) => void;
   acceptCall: () => void;
   rejectCall: () => void;
@@ -82,7 +85,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [activeCall?.status]);
 
-  const initiateCall = (name: string, phone: string, recordType: 'lead' | 'customer' = 'lead', recordId?: string) => {
+  const initiateCall = (name: string, phone: string, recordType: 'lead' | 'customer' = 'lead', recordId?: string, sourceFollowupId?: string) => {
     const newCall: ActiveCall = {
       id: `call-${Date.now()}`,
       contactName: name,
@@ -102,6 +105,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isExpanded: true,
       isVideoMode: false,
       meetingLink: null,
+      sourceFollowupId,
     };
     setActiveCall(newCall);
     const prefs = storageService.getCallPreferences();

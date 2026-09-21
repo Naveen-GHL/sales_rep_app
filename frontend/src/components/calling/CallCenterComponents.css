@@ -549,3 +549,13 @@
   gap: 12px;
   margin-top: 10px;
 }
+
+/* Hint shown when Call Outcome options are restricted for follow-up calls */
+.disposition-followup-context-hint {
+  font-size: 11.5px;
+  color: var(--text-muted, #888);
+  margin: 2px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
