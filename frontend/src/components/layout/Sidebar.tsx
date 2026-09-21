@@ -180,9 +180,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
       header: 'Sales',
       items: [
         { id: 'leads', label: 'Leads', icon: <Users size={18} />, feature: FEATURES.LEADS, permission: PERMISSIONS.LEADS_VIEW },
-        { id: 'customers', label: 'Customers 360', icon: <Building2 size={18} />, feature: FEATURES.CUSTOMERS, permission: PERMISSIONS.CUSTOMERS_VIEW },
         { id: 'followups', label: 'Follow-ups', icon: <CalendarCheck size={18} />, feature: FEATURES.FOLLOWUPS, permission: PERMISSIONS.FOLLOWUPS_VIEW },
         { id: 'consultations', label: 'Consultations', icon: <Calendar size={18} />, feature: FEATURES.CONSULTATIONS, permission: PERMISSIONS.CONSULTATIONS_VIEW },
+        { id: 'customers', label: 'Customers 360', icon: <Building2 size={18} />, feature: FEATURES.CUSTOMERS, permission: PERMISSIONS.CUSTOMERS_VIEW },
         { id: 'not-interested', label: 'Not - Interested', icon: <XCircle size={18} /> },
         { id: 'junk', label: 'Junk', icon: <Trash2 size={18} /> },
       ],

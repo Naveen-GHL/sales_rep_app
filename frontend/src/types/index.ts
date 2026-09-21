@@ -183,6 +183,7 @@ export interface CallRecord {
   recordingUrl?: string;
   transcription?: string;
   notes?: string;
+  reason?: string;
   providerCallId?: string;
   contactId?: string;
   leadId?: string;

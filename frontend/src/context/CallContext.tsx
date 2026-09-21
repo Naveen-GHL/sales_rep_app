@@ -246,7 +246,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         timestamp: new Date().toISOString(),
         recordingUrl: 'https://cdn.nexusplatform.io/recordings/sample.mp3',
         transcription: `Automated Call Transcript: Agent ${user.name} connected with ${lastCallRecord.contactName}. Call disposition marked as ${disposition}.`,
-        notes: reason ? `${notes}\n\nReason: ${reason}` : (notes || lastCallRecord.quickNotes),
+        notes: notes || lastCallRecord.quickNotes || undefined,
+        reason: reason || undefined,
       };
 
       storageService.addCall(callRecord);
@@ -407,7 +408,6 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const reasonText = reason || notes || 'Not Interested';
         if (matchedLead) {
           matchedLead.status = 'Not Interested';
-          matchedLead.notes = `${matchedLead.notes ? matchedLead.notes + '\n\n' : ''}[${new Date().toLocaleDateString()}] Not Interested Reason: ${reasonText}`;
           matchedLead.customFields = { ...matchedLead.customFields, dispositionReason: reasonText };
           storageService.saveLead(matchedLead);
         } else {
@@ -424,7 +424,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
             assignedAgentId: user.id,
             assignedAgentName: user.name,
             createdAt: new Date().toISOString().split('T')[0],
-            notes: `[${new Date().toLocaleDateString()}] Not Interested Reason: ${reasonText}`,
+            notes: '',
             customFields: { dispositionReason: reasonText },
           };
           storageService.saveLead(newLead);
@@ -436,7 +436,6 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const reasonText = reason || notes || 'Wrong Number';
         if (matchedLead) {
           matchedLead.status = 'Junk';
-          matchedLead.notes = `${matchedLead.notes ? matchedLead.notes + '\n\n' : ''}[${new Date().toLocaleDateString()}] Junk / Wrong Number Reason: ${reasonText}`;
           matchedLead.customFields = { ...matchedLead.customFields, dispositionReason: reasonText };
           storageService.saveLead(matchedLead);
         } else {
@@ -453,7 +452,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
             assignedAgentId: user.id,
             assignedAgentName: user.name,
             createdAt: new Date().toISOString().split('T')[0],
-            notes: `[${new Date().toLocaleDateString()}] Wrong Number Reason: ${reasonText}`,
+            notes: '',
             customFields: { dispositionReason: reasonText },
           };
           storageService.saveLead(newLead);

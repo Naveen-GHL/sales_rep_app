@@ -193,11 +193,31 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
                 <div style={{ fontWeight: 600 }}>{(selectedLead as any).preferredContactTime}</div>
               </div>
             )}
-            {selectedLead.notes && (
+            {(() => {
+              // Strip legacy "[date] ... Reason: ..." lines that were previously
+              // appended to notes before reason was stored separately.
+              const reasonLinePattern = /^\[[\d/]+\]\s.*(Reason|Wrong Number|Not Interested).*/i;
+              const cleanedNotes = (selectedLead.notes || '')
+                .split('\n')
+                .filter(line => !reasonLinePattern.test(line.trim()))
+                .join('\n')
+                .trim();
+              if (!cleanedNotes) return null;
+              return (
+                <div style={{ gridColumn: 'span 2' }}>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }}>NOTES & REQUIREMENTS</span>
+                  <div style={{ backgroundColor: 'var(--bg-surface-hover)', padding: '8px 12px', borderRadius: 6, marginTop: 4, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                    {cleanedNotes}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {selectedLead.customFields?.dispositionReason && (
               <div style={{ gridColumn: 'span 2' }}>
-                <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }}>NOTES & REQUIREMENTS</span>
-                <div style={{ backgroundColor: 'var(--bg-surface-hover)', padding: '8px 12px', borderRadius: 6, marginTop: 4 }}>
-                  {selectedLead.notes}
+                <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }}>REASON</span>
+                <div style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', padding: '8px 12px', borderRadius: 6, marginTop: 4, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                  {selectedLead.customFields.dispositionReason as string}
                 </div>
               </div>
             )}
@@ -291,6 +311,14 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
                   {c.notes && (
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
                       <strong>Notes:</strong> {c.notes}
+                    </div>
+                  )}
+
+                  {/* Reason (from Call Wrap-up & Disposition) */}
+                  {(c as any).reason && (
+                    <div style={{ fontSize: 12, marginTop: 6, backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', padding: '5px 10px', borderRadius: 5 }}>
+                      <strong style={{ color: 'var(--text-secondary)' }}>Reason:</strong>{' '}
+                      <span style={{ color: 'var(--text-primary)' }}>{(c as any).reason}</span>
                     </div>
                   )}
 
