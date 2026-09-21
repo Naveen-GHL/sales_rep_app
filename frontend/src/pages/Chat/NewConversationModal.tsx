@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Modal } from '../../components/common/Modal';
 import { ChatMember, ChatConversation } from '../../types';
 import * as cs from '../../services/chatStorage';
@@ -8,11 +8,12 @@ function initials(name: string) {
   return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 }
 
-const ROLE_ORDER = ['company_admin', 'sales_manager', 'sales_executive'];
+const ROLE_ORDER = ['company_admin', 'sales_manager', 'sales_executive', 'irm'];
 const ROLE_LABELS: Record<string, string> = {
   company_admin: 'Admins',
   sales_manager: 'Sales Managers',
   sales_executive: 'Sales Executives',
+  irm: 'Investor Relationship Managers (IRM)',
 };
 
 interface Props {

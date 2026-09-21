@@ -27,7 +27,12 @@ import {
   ProductService,
 } from '../types';
 import { DEFAULT_TENANTS } from '../constants/defaultTenants';
-import { INITIAL_CUSTOM_FIELD_DEFINITIONS } from '../mock_data/mockData';
+import {
+  INITIAL_CUSTOM_FIELD_DEFINITIONS,
+  INITIAL_INVESTORS,
+  INITIAL_CONSULTATIONS,
+  INITIAL_OPPORTUNITIES,
+} from '../mock_data/mockData';
 
 export type PopupPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
 
@@ -348,9 +353,19 @@ class StorageService {
     this.set('bookings', bookings);
   }
 
-  // Investors (Defaults to empty [] - real-time data only)
+  // Investors (Defaults to INITIAL_INVESTORS)
   getInvestors(companyId?: string): Investor[] {
-    const investors = this.get<Investor[]>('investors', []);
+    let investors = this.get<Investor[]>('investors', INITIAL_INVESTORS);
+    if (!investors || investors.length === 0) {
+      investors = INITIAL_INVESTORS;
+    } else {
+      const existingIds = new Set(investors.map(i => i.id));
+      const missing = INITIAL_INVESTORS.filter(i => !existingIds.has(i.id));
+      if (missing.length > 0) {
+        investors = [...investors, ...missing];
+        this.set('investors', investors);
+      }
+    }
     return companyId ? investors.filter(i => i.companyId === companyId) : investors;
   }
 
@@ -370,9 +385,19 @@ class StorageService {
     this.set('investors', investors);
   }
 
-  // Consultations (Defaults to empty [] - real-time data only)
+  // Consultations (Defaults to INITIAL_CONSULTATIONS)
   getConsultations(companyId?: string): Consultation[] {
-    const consultations = this.get<Consultation[]>('consultations', []);
+    let consultations = this.get<Consultation[]>('consultations', INITIAL_CONSULTATIONS);
+    if (!consultations || consultations.length === 0) {
+      consultations = INITIAL_CONSULTATIONS;
+    } else {
+      const existingIds = new Set(consultations.map(c => c.id));
+      const missing = INITIAL_CONSULTATIONS.filter(c => !existingIds.has(c.id));
+      if (missing.length > 0) {
+        consultations = [...consultations, ...missing];
+        this.set('consultations', consultations);
+      }
+    }
     return companyId ? consultations.filter(c => c.companyId === companyId) : consultations;
   }
 
@@ -392,9 +417,19 @@ class StorageService {
     this.set('consultations', consultations);
   }
 
-  // Opportunities (Defaults to empty [] - real-time data only)
+  // Opportunities (Defaults to INITIAL_OPPORTUNITIES)
   getOpportunities(companyId?: string): InvestmentOpportunity[] {
-    const opps = this.get<InvestmentOpportunity[]>('opportunities', []);
+    let opps = this.get<InvestmentOpportunity[]>('opportunities', INITIAL_OPPORTUNITIES);
+    if (!opps || opps.length === 0) {
+      opps = INITIAL_OPPORTUNITIES;
+    } else {
+      const existingIds = new Set(opps.map(o => o.id));
+      const missing = INITIAL_OPPORTUNITIES.filter(o => !existingIds.has(o.id));
+      if (missing.length > 0) {
+        opps = [...opps, ...missing];
+        this.set('opportunities', opps);
+      }
+    }
     return companyId ? opps.filter(o => o.companyId === companyId) : opps;
   }
 

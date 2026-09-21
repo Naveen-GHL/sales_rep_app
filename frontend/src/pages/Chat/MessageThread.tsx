@@ -209,11 +209,20 @@ export const MessageThread: React.FC<Props> = ({
             {conversation.type === 'group' ? (conversation.name || 'Group') : (otherMember?.name || 'Chat')}
           </div>
           <div className="chat-thread-sub">
-            {conversation.type === 'group'
-              ? `${conversation.members.length} members`
-              : otherMember
-                ? `${otherMember.roleName} · ${otherMember.status === 'online' ? '🟢 Available' : otherMember.status === 'busy' ? '🟠 Busy' : '⚫ Offline'}`
-                : ''}
+            {conversation.type === 'group' ? (
+              `${conversation.members.length} members`
+            ) : otherMember ? (
+              <span className="chat-thread-sub-row">
+                <span>{otherMember.roleName}</span>
+                <span className="chat-thread-sub-sep">·</span>
+                <span className={`chat-status-indicator status-${otherMember.status}`}>
+                  <span className="chat-status-dot" />
+                  <span className="chat-status-text">
+                    {otherMember.status === 'online' ? 'Available' : otherMember.status === 'busy' ? 'Busy' : 'Offline'}
+                  </span>
+                </span>
+              </span>
+            ) : ''}
           </div>
         </div>
 
@@ -347,7 +356,7 @@ export const MessageThread: React.FC<Props> = ({
                         </div>
                       </div>
                     ) : (
-                      <div className="chat-msg-bubble">
+                      <div className={`chat-msg-bubble${!msg.content && msg.attachments && msg.attachments.length > 0 ? ' file-only' : ''}`}>
                         {msg.isDeleted ? (
                           <span className="chat-msg-deleted">🚫 This message was deleted</span>
                         ) : (
@@ -361,56 +370,61 @@ export const MessageThread: React.FC<Props> = ({
 
                                   return (
                                     <div key={att.id} className="chat-file-card">
-                                      <div className="chat-file-icon-wrap">
-                                        {att.category === 'Image' ? (
-                                          <img src={att.dataUrl} alt={att.name} className="chat-file-thumb" onClick={() => setPreviewAttachment(att)} />
-                                        ) : att.category === 'PDF' ? (
-                                          <FileText size={24} className="cat-icon-pdf" />
-                                        ) : att.category === 'Spreadsheet' ? (
-                                          <FileSpreadsheet size={24} className="cat-icon-sheet" />
-                                        ) : (
-                                          <File size={24} className="cat-icon-doc" />
-                                        )}
+                                      <div className="chat-file-card-top">
+                                        <div className="chat-file-icon-wrap">
+                                          {att.category === 'Image' ? (
+                                            <img src={att.dataUrl} alt={att.name} className="chat-file-thumb" onClick={() => setPreviewAttachment(att)} />
+                                          ) : att.category === 'PDF' ? (
+                                            <FileText size={24} className="cat-icon-pdf" />
+                                          ) : att.category === 'Spreadsheet' ? (
+                                            <FileSpreadsheet size={24} className="cat-icon-sheet" />
+                                          ) : (
+                                            <File size={24} className="cat-icon-doc" />
+                                          )}
+                                        </div>
+
+                                        <div className="chat-file-details">
+                                          <div className="chat-file-name" title={att.name} onClick={() => setPreviewAttachment(att)}>
+                                            {att.name}
+                                          </div>
+                                          <div className="chat-file-meta-row">
+                                            <span>{formatBytes(att.size)}</span>
+                                            <span className="chat-file-sep">·</span>
+                                            <span className={`chat-file-perm-badge perm-${att.permission || 'view_download'}`}>
+                                              <Shield size={10} />
+                                              {getPermissionLabel(att.permission)}
+                                            </span>
+                                          </div>
+                                        </div>
                                       </div>
 
-                                      <div className="chat-file-details">
-                                        <div className="chat-file-name" title={att.name} onClick={() => setPreviewAttachment(att)}>
-                                          {att.name}
-                                        </div>
-                                        <div className="chat-file-meta-row">
-                                          <span>{formatBytes(att.size)}</span>
-                                          <span className="chat-file-sep">·</span>
-                                          <span className={`chat-file-perm-badge perm-${att.permission || 'view_download'}`}>
-                                            <Shield size={10} />
-                                            {getPermissionLabel(att.permission)}
-                                          </span>
-                                        </div>
-                                      </div>
+                                      <div className="chat-file-card-divider" />
 
-                                      <div className="chat-file-actions-wrap">
+                                      <div className="chat-file-card-actions">
                                         <button
                                           type="button"
-                                          className="chat-file-btn preview"
-                                          title="View Preview"
+                                          className="chat-file-action-link"
                                           onClick={() => setPreviewAttachment(att)}
                                         >
                                           <Eye size={14} />
+                                          <span>View</span>
                                         </button>
                                         {canDownload ? (
                                           <a
                                             href={att.dataUrl}
                                             download={att.name}
-                                            className="chat-file-btn download"
-                                            title="Download File"
+                                            className="chat-file-action-link"
                                           >
                                             <Download size={14} />
+                                            <span>Download</span>
                                           </a>
                                         ) : (
                                           <span
-                                            className="chat-file-btn disabled"
+                                            className="chat-file-action-link disabled"
                                             title="Download disabled by sender (Read-only)"
                                           >
-                                            <Shield size={14} />
+                                            <Download size={14} />
+                                            <span>Download</span>
                                           </span>
                                         )}
                                       </div>

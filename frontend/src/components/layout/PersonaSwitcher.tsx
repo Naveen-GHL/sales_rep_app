@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Shield, Building2, UserCheck, RefreshCw, ChevronDown } from 'lucide-react';
+import { Shield, Building2, UserCheck, RefreshCw, ChevronDown, TrendingUp } from 'lucide-react';
 import { storageService } from '../../services/storageService';
 import './PersonaSwitcher.css';
 
@@ -31,6 +31,14 @@ export const PersonaSwitcher: React.FC = () => {
       badge: 'Sales Agent',
       icon: <UserCheck size={14} color="#ef4444" />,
       desc: 'Assigned Leads, Calling, Consultations',
+    },
+    {
+      label: 'GHL India (IRM)',
+      role: 'irm' as const,
+      slug: 'ghl' as const,
+      badge: 'Relationship Mgr',
+      icon: <TrendingUp size={14} color="#ef4444" />,
+      desc: 'Investors 360, Consultations, Opportunities, Calling',
     },
     {
       label: 'Jamin Bazaar (Admin)',

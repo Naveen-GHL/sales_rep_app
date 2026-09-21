@@ -78,17 +78,27 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
 
     const roleCode = user?.role?.code;
     const isExec = roleCode === 'sales_executive';
-    const scopedLeads = isExec
+    const isIrm = roleCode === 'irm';
+    const scopedLeads = isIrm
+      ? []
+      : isExec
       ? leads.filter(l => l.assignedAgentId === user?.id || l.assignedAgentName === user?.name)
       : leads;
-    const scopedCustomers = isExec
+    const scopedCustomers = isIrm
+      ? []
+      : isExec
       ? customers.filter(c => c.assignedAgentId === user?.id || c.assignedAgentName === user?.name)
       : customers;
-    const scopedDeals = isExec
+    const scopedDeals = isIrm
+      ? []
+      : isExec
       ? deals.filter(d => d.assignedAgentId === user?.id || d.assignedAgentName === user?.name)
       : deals;
+    const scopedInvestors = (isExec || isIrm)
+      ? investors.filter(i => i.assignedAgentId === user?.id || i.assignedAgentName === user?.name)
+      : investors;
 
-    return { leads: scopedLeads, customers: scopedCustomers, deals: scopedDeals, plots, investors };
+    return { leads: scopedLeads, customers: scopedCustomers, deals: scopedDeals, plots: isIrm ? [] : plots, investors: scopedInvestors };
   }, [searchQuery, tenant?.id, enabledFeatures, user?.id, user?.name, user?.role?.code]);
 
   const unreadCount = notifications.filter(n => !n.read).length;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, MessageSquare, Settings, Pin, VolumeX, Volume2, MoreVertical, Edit2, Trash2, LogOut } from 'lucide-react';
+import { Plus, Users, MessageSquare, Settings, Pin, VolumeX, Volume2, MoreVertical, Edit2, Trash2, LogOut, UserPlus, Search } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
 import * as cs from '../../services/chatStorage';
 import { ChatConversation, ChatMember } from '../../types';
@@ -163,13 +163,21 @@ export const ConversationList: React.FC<Props> = ({
           )}
         </div>
 
-        <button className="chat-new-btn" onClick={onNew}>
-          <Plus size={15} />
-          <span>New Chat</span>
-        </button>
+        <div className="chat-sidebar-section-row">
+          <span className="chat-section-label">Chat</span>
+          <button
+            type="button"
+            className="chat-add-user-btn"
+            title="New Chat"
+            onClick={onNew}
+          >
+            <UserPlus size={16} />
+          </button>
+        </div>
       </div>
 
       <div className="chat-search-wrap">
+        <Search size={15} className="chat-search-icon" />
         <input
           className="chat-search"
           placeholder="Search teammates or groups…"

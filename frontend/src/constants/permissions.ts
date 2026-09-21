@@ -43,14 +43,25 @@ export const PERMISSIONS = {
   // Investors / Consultations (GHL)
   INVESTORS_VIEW: 'investors.view',
   INVESTORS_CREATE: 'investors.create',
+  INVESTORS_EDIT: 'investors.edit',
   CONSULTATIONS_VIEW: 'consultations.view',
   CONSULTATIONS_CREATE: 'consultations.create',
+  CONSULTATIONS_EDIT: 'consultations.edit',
   OPPORTUNITIES_VIEW: 'opportunities.view',
   OPPORTUNITIES_CREATE: 'opportunities.create',
+  OPPORTUNITIES_EDIT: 'opportunities.edit',
+
+  // Calling & Telephony aliases
+  CALL_CENTER: 'calls.make',
+  CALL_HISTORY: 'calls.view',
+  CALL_SETTINGS: 'calls.view',
 
   // Reports
   REPORTS_VIEW: 'reports.view',
   REPORTS_EXPORT: 'reports.export',
+
+  // Notifications
+  NOTIFICATIONS_VIEW: 'notifications.view',
 
   // Admin & Settings
   USERS_VIEW: 'users.view',
@@ -85,9 +96,12 @@ export const PERMISSIONS = {
   ESCALATIONS_VIEW: 'escalations.view',
   ESCALATIONS_MANAGE: 'escalations.manage',
 
-  // Chat
+  // Chat & AI & Profile
+  CHAT: 'chat.view',
   CHAT_VIEW: 'chat.view',
   CHAT_SEND: 'chat.send',
+  SMARTY_AI: 'smarty_ai.view',
+  PROFILE: 'profile.view',
 } as const;
 
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS];

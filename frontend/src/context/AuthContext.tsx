@@ -116,11 +116,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             : slug === 'jamin'
               ? 'Kavita Rao'
               : `${targetTenant.name} Admin`
-          : slug === 'ghl'
-            ? 'Ananya Iyer'
-            : slug === 'jamin'
-              ? 'Pooja Hegde'
-              : `${targetTenant.name} Agent`,
+          : roleCode === 'irm'
+            ? 'Rohan Varma'
+            : slug === 'ghl'
+              ? 'Ananya Iyer'
+              : slug === 'jamin'
+                ? 'Pooja Hegde'
+                : `${targetTenant.name} Agent`,
       email: `${roleCode}@${slug}.com`,
       phone: '+91 98450 00000',
       role: SYSTEM_ROLES[roleCode] || SYSTEM_ROLES.company_admin,

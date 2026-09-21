@@ -16,7 +16,7 @@ import { storageService } from '../../services/storageService';
 import { DataTable, Column, RowAction } from '../../components/common/DataTable';
 import { StatusChip } from '../../components/common/StatusChip';
 import { Modal } from '../../components/common/Modal';
-import { User } from '../../types';
+import { User, RoleCode } from '../../types';
 import './CompanyUsersPage.css';
 
 export const CompanyUsersPage: React.FC = () => {
@@ -40,16 +40,21 @@ export const CompanyUsersPage: React.FC = () => {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // ── Assignable Tenant Roles ──────────────────────────────────────────────
+  const assignableRoles = Object.values(SYSTEM_ROLES).filter(
+    r => r.code !== 'super_admin' && r.code !== 'company_admin'
+  );
+
   // ── Invite Modal State ────────────────────────────────────────────────────
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'sales_manager' | 'sales_executive'>('sales_executive');
+  const [inviteRole, setInviteRole] = useState<RoleCode>('sales_executive');
   const [inviteError, setInviteError] = useState<string | null>(null);
 
   // ── Edit Role Modal State ─────────────────────────────────────────────────
   const [editingRoleUser, setEditingRoleUser] = useState<User | null>(null);
-  const [newRoleCode, setNewRoleCode] = useState<'sales_manager' | 'sales_executive'>('sales_executive');
+  const [newRoleCode, setNewRoleCode] = useState<RoleCode>('sales_executive');
 
   // ── Invite Handlers ───────────────────────────────────────────────────────
   const handleOpenInvite = () => {
@@ -196,9 +201,7 @@ export const CompanyUsersPage: React.FC = () => {
 
   const openEditRoleModal = (u: User) => {
     setEditingRoleUser(u);
-    const currentCode =
-      u.role.code === 'sales_manager' ? 'sales_manager' : 'sales_executive';
-    setNewRoleCode(currentCode);
+    setNewRoleCode(u.role.code);
   };
 
   const handleSaveRole = () => {
@@ -421,11 +424,14 @@ export const CompanyUsersPage: React.FC = () => {
               className="form-select"
               value={inviteRole}
               onChange={e =>
-                setInviteRole(e.target.value as 'sales_manager' | 'sales_executive')
+                setInviteRole(e.target.value as RoleCode)
               }
             >
-              <option value="sales_executive">Sales Executive (Own Leads & Calling)</option>
-              <option value="sales_manager">Sales Manager (Team Management & Reports)</option>
+              {assignableRoles.map(r => (
+                <option key={r.code} value={r.code}>
+                  {r.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -477,11 +483,14 @@ export const CompanyUsersPage: React.FC = () => {
             className="form-select"
             value={newRoleCode}
             onChange={e =>
-              setNewRoleCode(e.target.value as 'sales_manager' | 'sales_executive')
+              setNewRoleCode(e.target.value as RoleCode)
             }
           >
-            <option value="sales_executive">Sales Executive (Own Leads & Calling)</option>
-            <option value="sales_manager">Sales Manager (Team Management & Reports)</option>
+            {assignableRoles.map(r => (
+              <option key={r.code} value={r.code}>
+                {r.name}
+              </option>
+            ))}
           </select>
         </div>
       </Modal>
