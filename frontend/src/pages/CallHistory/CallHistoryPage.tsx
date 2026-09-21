@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { History, Phone, FileText, Download, AlertCircle } from 'lucide-react';
+import { History, Phone, FileText, Download, AlertCircle, Users } from 'lucide-react';
 import Papa from 'papaparse';
 import { CallRecord } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -9,6 +9,7 @@ import { DataTable, Column, RowAction } from '../../components/common/DataTable'
 import { StatusChip } from '../../components/common/StatusChip';
 import { Drawer } from '../../components/common/Drawer';
 import { FilterBar } from '../../components/common/FilterBar';
+import { LeadDetailDrawerContent } from '../../components/common/LeadDetailDrawerContent';
 import './CallHistoryPage.css';
 
 export const CallHistoryPage: React.FC = () => {
@@ -17,6 +18,7 @@ export const CallHistoryPage: React.FC = () => {
 
   const [calls, setCalls] = useState<CallRecord[]>([]);
   const [selectedCall, setSelectedCall] = useState<CallRecord | null>(null);
+  const [transcriptCall, setTranscriptCall] = useState<CallRecord | null>(null);
   const [dispositionFilter, setDispositionFilter] = useState('All');
   const [directionFilter, setDirectionFilter] = useState('All');
 
@@ -92,59 +94,61 @@ export const CallHistoryPage: React.FC = () => {
     {
       key: 'timestamp',
       header: 'Date & Time',
+      width: '20%',
       sortable: true,
-      width: '14%',
       render: c => <span style={{ fontSize: 12, fontWeight: 500 }}>{formatTimestamp(c.timestamp)}</span>,
     },
     {
       key: 'contactName',
       header: 'Contact',
+      width: '20%',
       sortable: true,
-      width: '18%',
-      render: c => (
-        <div>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{c.contactName}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.contactPhone}</div>
-        </div>
-      ),
+      render: c => {
+        const connectedViaIrm = (c.notes || '').startsWith('Connected to IRM:');
+        return (
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {c.contactName}
+              {connectedViaIrm && (
+                <span title="Connected via IRM" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <Users size={13} color="var(--primary-600)" />
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.contactPhone}</div>
+          </div>
+        );
+      },
     },
     {
       key: 'direction',
       header: 'Direction',
+      width: '20%',
       sortable: true,
-      width: '10%',
       render: c => <StatusChip status={c.direction} size="sm" />,
     },
     {
       key: 'duration',
       header: 'Duration',
+      width: '20%',
       sortable: true,
-      width: '10%',
       render: c => <span style={{ fontSize: 12 }}>{formatDuration(c.duration)}</span>,
-    },
-    {
-      key: 'agentName',
-      header: 'Agent',
-      sortable: true,
-      width: '16%',
-      render: c => <span style={{ fontSize: 12 }}>{c.agentName}</span>,
     },
     {
       key: 'disposition',
       header: 'Outcome / Disposition',
+      width: '20%',
       sortable: true,
-      width: '16%',
       render: c => <StatusChip status={c.disposition} size="sm" />,
     },
-    // Task 1: "Listen" / recording column removed — replaced by row-click detail drawer
   ];
 
   // ── Row actions ───────────────────────────────────────────────────────────
   const rowActions: RowAction<CallRecord>[] = [
     {
-      label: 'View Call Log & Transcript',
+      label: 'View Transcript',
       icon: <FileText size={14} style={{ marginRight: 6 }} />,
-      onClick: c => setSelectedCall(c),
+      onClick: c => setTranscriptCall(c),
     },
     // Task 4: Call Back quick action
     {
@@ -153,6 +157,26 @@ export const CallHistoryPage: React.FC = () => {
       onClick: c => initiateCall(c.contactName, c.contactPhone),
     },
   ];
+
+  // ── Related consultation for contact profile drawer ───────────────────────
+  const matchingConsultations = selectedCall
+    ? storageService
+        .getConsultations(tenant?.id)
+        .filter(c => {
+          const sPhone = (selectedCall.contactPhone || '').replace(/\D/g, '').slice(-10);
+          const cPhone = (c.investorPhone || '').replace(/\D/g, '').slice(-10);
+          const phoneMatch = !!(sPhone && cPhone && sPhone === cPhone);
+          const idMatch = !!(
+            (selectedCall.investorId && c.investorId === selectedCall.investorId) ||
+            (selectedCall.leadId && c.investorId === selectedCall.leadId)
+          );
+          return idMatch || phoneMatch;
+        })
+        .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())
+    : [];
+
+  const relatedConsultation =
+    matchingConsultations.find(c => c.status === 'Scheduled') || matchingConsultations[0];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -218,15 +242,36 @@ export const CallHistoryPage: React.FC = () => {
         }
       />
 
-      {/* Call Detail Drawer */}
+      {/* Contact Profile Drawer (opened on row click) */}
       <Drawer
         isOpen={!!selectedCall}
         onClose={() => setSelectedCall(null)}
-        title="Call Detail & Transcription"
-        subtitle={`${selectedCall?.contactName} (${selectedCall?.contactPhone}) • ${selectedCall ? formatTimestamp(selectedCall.timestamp) : ''}`}
-        width={560}
+        title={selectedCall?.contactName || 'Contact Profile'}
+        subtitle={`Phone: ${selectedCall?.contactPhone || '—'} • ${tenant?.name}`}
+        width={600}
       >
         {selectedCall && (
+          <LeadDetailDrawerContent
+            contactName={selectedCall.contactName}
+            contactPhone={selectedCall.contactPhone}
+            contactId={selectedCall.leadId || selectedCall.investorId || selectedCall.customerId}
+            tenantId={tenant?.id}
+            tenantName={tenant?.name}
+            consultationReason={relatedConsultation?.agenda}
+            onCall={() => initiateCall(selectedCall.contactName, selectedCall.contactPhone)}
+          />
+        )}
+      </Drawer>
+
+      {/* Single Call Detail & Transcript Drawer (accessible via row action) */}
+      <Drawer
+        isOpen={!!transcriptCall}
+        onClose={() => setTranscriptCall(null)}
+        title="Call Detail & Transcription"
+        subtitle={`${transcriptCall?.contactName} (${transcriptCall?.contactPhone}) • ${transcriptCall ? formatTimestamp(transcriptCall.timestamp) : ''}`}
+        width={560}
+      >
+        {transcriptCall && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Outcome Overview */}
             <div
@@ -242,12 +287,12 @@ export const CallHistoryPage: React.FC = () => {
             >
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <StatusChip status={selectedCall.direction} />
-                  <StatusChip status={selectedCall.disposition} />
+                  <StatusChip status={transcriptCall.direction} />
+                  <StatusChip status={transcriptCall.disposition} />
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
-                  Agent: <strong>{selectedCall.agentName}</strong> • Duration:{' '}
-                  <strong>{formatDuration(selectedCall.duration)}</strong>
+                  Agent: <strong>{transcriptCall.agentName}</strong> • Duration:{' '}
+                  <strong>{formatDuration(transcriptCall.duration)}</strong>
                 </div>
               </div>
 
@@ -255,7 +300,7 @@ export const CallHistoryPage: React.FC = () => {
               <button
                 className="btn btn-primary btn-sm"
                 style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
-                onClick={() => initiateCall(selectedCall.contactName, selectedCall.contactPhone)}
+                onClick={() => initiateCall(transcriptCall.contactName, transcriptCall.contactPhone)}
               >
                 <Phone size={13} /> Call Back
               </button>
@@ -288,7 +333,7 @@ export const CallHistoryPage: React.FC = () => {
                 Automated Call Transcript
               </h4>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, fontStyle: 'italic' }}>
-                {selectedCall.transcription || 'Transcription processing completed.'}
+                {transcriptCall.transcription || 'Transcription processing completed.'}
               </p>
             </div>
 
@@ -298,7 +343,7 @@ export const CallHistoryPage: React.FC = () => {
                 Agent Post-Call Notes
               </h4>
               <p style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                {selectedCall.notes || 'No custom agent notes entered during disposition.'}
+                {transcriptCall.notes || 'No custom agent notes entered during disposition.'}
               </p>
             </div>
           </div>
