@@ -229,62 +229,33 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
                 <div style={{ fontWeight: 600 }}>{(selectedLead as any).preferredContactTime}</div>
               </div>
             )}
-            {/* Notes & Requirements (Customer Form) + Reason (Agent Typed) */}
-            {selectedLead.status === 'Not Interested' || agentReason ? (
-              <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' }}>
-                    NOTES & REQUIREMENTS
-                  </span>
-                  <div
-                    style={{
-                      backgroundColor: 'var(--bg-surface-hover)',
-                      border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
-                      padding: '8px 12px',
-                      borderRadius: 6,
-                      marginTop: 4,
-                      fontSize: 13,
-                      color: 'var(--text-primary)',
-                      lineHeight: 1.5,
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    {customerNotes || 'No notes submitted by customer.'}
+            {(() => {
+              // Strip legacy "[date] ... Reason: ..." lines that were previously
+              // appended to notes before reason was stored separately.
+              const reasonLinePattern = /^\[[\d/]+\]\s.*(Reason|Wrong Number|Not Interested).*/i;
+              const cleanedNotes = (selectedLead.notes || '')
+                .split('\n')
+                .filter(line => !reasonLinePattern.test(line.trim()))
+                .join('\n')
+                .trim();
+              if (!cleanedNotes) return null;
+              return (
+                <div style={{ gridColumn: 'span 2' }}>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }}>NOTES & REQUIREMENTS</span>
+                  <div style={{ backgroundColor: 'var(--bg-surface-hover)', padding: '8px 12px', borderRadius: 6, marginTop: 4, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                    {cleanedNotes}
                   </div>
                 </div>
+              );
+            })()}
 
-                <div>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' }}>
-                    REASON
-                  </span>
-                  <div
-                    style={{
-                      backgroundColor: 'rgba(239, 68, 68, 0.04)',
-                      border: '1px solid rgba(239, 68, 68, 0.35)',
-                      padding: '8px 12px',
-                      borderRadius: 6,
-                      marginTop: 4,
-                      fontSize: 13,
-                      color: 'var(--text-primary)',
-                      lineHeight: 1.5,
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    {agentReason || 'No specific reason provided.'}
-                  </div>
+            {selectedLead.customFields?.dispositionReason && (
+              <div style={{ gridColumn: 'span 2' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }}>REASON</span>
+                <div style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', padding: '8px 12px', borderRadius: 6, marginTop: 4, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                  {selectedLead.customFields.dispositionReason as string}
                 </div>
               </div>
-            ) : (
-              selectedLead.notes && (
-                <div style={{ gridColumn: 'span 2' }}>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' }}>
-                    NOTES & REQUIREMENTS
-                  </span>
-                  <div style={{ backgroundColor: 'var(--bg-surface-hover)', padding: '8px 12px', borderRadius: 6, marginTop: 4 }}>
-                    {selectedLead.notes}
-                  </div>
-                </div>
-              )
             )}
 
             {/* Custom Fields */}
@@ -377,6 +348,14 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
                   {c.notes && (
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
                       <strong>Notes:</strong> {c.notes}
+                    </div>
+                  )}
+
+                  {/* Reason (from Call Wrap-up & Disposition) */}
+                  {(c as any).reason && (
+                    <div style={{ fontSize: 12, marginTop: 6, backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', padding: '5px 10px', borderRadius: 5 }}>
+                      <strong style={{ color: 'var(--text-secondary)' }}>Reason:</strong>{' '}
+                      <span style={{ color: 'var(--text-primary)' }}>{(c as any).reason}</span>
                     </div>
                   )}
 
