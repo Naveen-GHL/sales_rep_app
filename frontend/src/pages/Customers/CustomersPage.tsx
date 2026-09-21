@@ -35,7 +35,7 @@ export const CustomersPage: React.FC = () => {
     )
     : customers;
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'calls' | 'followups' | 'deals' | 'timeline' | 'documents'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'calls' | 'followups' | 'timeline' | 'documents'>('overview');
   const [statusFilter, setStatusFilter] = useState('All');
   const [agentFilter, setAgentFilter] = useState('All');
 
@@ -357,7 +357,6 @@ export const CustomersPage: React.FC = () => {
                 { id: 'overview', label: 'Overview' },
                 { id: 'calls', label: `Calls (${customerCalls.length})` },
                 { id: 'followups', label: `Follow-ups (${customerFollowups.length})` },
-                { id: 'deals', label: `Deals (${customerDeals.length})` },
                 { id: 'timeline', label: 'Activity Timeline' },
                 { id: 'documents', label: 'Documents' },
               ].map(tab => (
@@ -387,7 +386,12 @@ export const CustomersPage: React.FC = () => {
                       <div>
                         <span className="customer-profile-label">Total Committed Value:</span>
                         <div className="customer-profile-val-green">
-                          {formatCurrency(selectedCustomer.totalValue || 0)}
+                          {(() => {
+                            const ic = selectedCustomer.customFields?.investmentCapacity as string | undefined;
+                            if (ic && ic.trim()) return ic;
+                            if (selectedCustomer.totalValue && selectedCustomer.totalValue > 0) return formatCurrency(selectedCustomer.totalValue);
+                            return '—';
+                          })()}
                         </div>
                       </div>
                       <div>
@@ -522,32 +526,6 @@ export const CustomersPage: React.FC = () => {
                 </div>
               )}
 
-              {activeTab === 'deals' && (
-                <div className="customer-deals-stack">
-                  {customerDeals.length === 0 ? (
-                    <div className="customer-empty-text">
-                      No active deals linked yet.
-                    </div>
-                  ) : (
-                    customerDeals.map(d => (
-                      <div
-                        key={d.id}
-                        className="card customer-deal-card"
-                      >
-                        <div>
-                          <div className="customer-deal-title">{d.title}</div>
-                          <div className="customer-deal-sub">
-                            Stage: <StatusChip status={d.stage} size="sm" /> • Expected Close: {d.expectedCloseDate}
-                          </div>
-                        </div>
-                        <div className="customer-deal-val">
-                          {formatCurrency(d.value)}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
 
               {activeTab === 'timeline' && <Timeline events={timelineEvents} />}
 
