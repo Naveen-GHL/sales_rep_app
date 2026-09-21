@@ -3,24 +3,20 @@ import {
   Calendar,
   Plus,
   Phone,
-  Edit2,
-  Trash2,
-  CheckCircle,
   Clock,
-  UserX,
-  XCircle,
 } from 'lucide-react';
 import { Consultation, Investor } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
 import { storageService } from '../../services/storageService';
 import { DataTable, Column, RowAction } from '../../components/common/DataTable';
-import { StatusChip } from '../../components/common/StatusChip';
 import { FilterBar } from '../../components/common/FilterBar';
 import { Modal } from '../../components/common/Modal';
+import { Drawer } from '../../components/common/Drawer';
+import { LeadDetailDrawerContent } from '../../components/common/LeadDetailDrawerContent';
 import './ConsultationsPage.css';
 
-// ─── Status Options ─────────────────────────────────────────────────────────
+// ─── Status Options (kept for the create/reschedule form only) ───────────────
 const STATUS_OPTIONS: { value: Consultation['status']; label: string }[] = [
   { value: 'Scheduled', label: 'Scheduled' },
   { value: 'Completed', label: 'Completed' },
@@ -28,8 +24,6 @@ const STATUS_OPTIONS: { value: Consultation['status']; label: string }[] = [
   { value: 'Cancelled', label: 'Cancelled' },
   { value: 'No-show', label: 'No-show' },
 ];
-
-const filterStatusOptions = STATUS_OPTIONS.map(s => ({ value: s.value, label: s.label }));
 
 // ─── Form State Shape ───────────────────────────────────────────────────────
 interface ConsultationForm {
@@ -65,12 +59,11 @@ export const ConsultationsPage: React.FC = () => {
   const roleCode = user?.role?.code;
   const isExec = roleCode === 'sales_executive';
 
-  // ── Core data ─────────────────────────────────────────────────────────────
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [investors, setInvestors] = useState<Investor[]>([]);
+  const [drawerConsultation, setDrawerConsultation] = useState<Consultation | null>(null);
 
   // ── Filters ───────────────────────────────────────────────────────────────
-  const [statusFilter, setStatusFilter] = useState('All');
   const [consultantFilter, setConsultantFilter] = useState('All');
 
   // ── Create / Edit / Reschedule Modal ──────────────────────────────────────
@@ -94,13 +87,7 @@ export const ConsultationsPage: React.FC = () => {
   }, [tenant?.id]);
 
   // ── Role-based scoping ────────────────────────────────────────────────────
-  const scopedConsultations = isExec
-    ? consultations.filter(
-      c =>
-        (c.consultantId && c.consultantId === user?.id) ||
-        (c.consultantName && c.consultantName === user?.name),
-    )
-    : consultations;
+  const scopedConsultations = consultations;
 
   // ── Filter options ────────────────────────────────────────────────────────
   const consultantOptions = Array.from(
@@ -111,7 +98,6 @@ export const ConsultationsPage: React.FC = () => {
 
   // ── Filtered list ─────────────────────────────────────────────────────────
   const filteredConsultations = scopedConsultations.filter(c => {
-    if (statusFilter !== 'All' && c.status !== statusFilter) return false;
     if (consultantFilter !== 'All' && c.consultantName !== consultantFilter) return false;
     return true;
   });
@@ -126,24 +112,6 @@ export const ConsultationsPage: React.FC = () => {
       agenda: 'Commercial REIT yield analysis & pass-through taxation discussion.',
       consultantId: user?.id ?? '',
       consultantName: user?.name ?? 'Advisor',
-    });
-    setFormErrors({});
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (c: Consultation) => {
-    setEditingConsultation(c);
-    setIsRescheduleMode(false);
-    setForm({
-      investorId: c.investorId,
-      investorName: c.investorName,
-      investorPhone: c.investorPhone,
-      scheduledAt: c.scheduledAt,
-      consultantId: c.consultantId,
-      consultantName: c.consultantName,
-      status: c.status,
-      agenda: c.agenda || '',
-      outcomeNotes: c.outcomeNotes || '',
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -238,6 +206,7 @@ export const ConsultationsPage: React.FC = () => {
       key: 'scheduledAt',
       header: 'Session Slot',
       sortable: true,
+      width: '18%',
       render: c => (
         <div>
           <div className="consultation-slot-title">{c.scheduledAt}</div>
@@ -249,6 +218,7 @@ export const ConsultationsPage: React.FC = () => {
       key: 'investorName',
       header: 'Investor Profile',
       sortable: true,
+      width: '18%',
       render: c => (
         <div>
           <div className="consultation-client-name">{c.investorName}</div>
@@ -258,7 +228,8 @@ export const ConsultationsPage: React.FC = () => {
     },
     {
       key: 'agenda',
-      header: 'Advisory Agenda & Scope',
+      header: 'Reason for Consultation',
+      width: '38%',
       render: c => (
         <div>
           <span className="consultation-agenda-text">{c.agenda}</span>
@@ -279,14 +250,9 @@ export const ConsultationsPage: React.FC = () => {
     },
     {
       key: 'consultantName',
-      header: 'Private Wealth Advisor',
+      header: 'IRM Profile',
+      width: '16%',
       render: c => <span className="consultation-advisor-name">{c.consultantName}</span>,
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      sortable: true,
-      render: c => <StatusChip status={c.status} size="sm" />,
     },
   ];
 
@@ -298,103 +264,10 @@ export const ConsultationsPage: React.FC = () => {
       onClick: c => initiateCall(c.investorName, c.investorPhone, 'customer', c.investorId),
     },
     {
-      label: 'Edit',
-      icon: <Edit2 size={14} color="var(--primary-600)" style={{ marginRight: 6 }} />,
-      onClick: c => openEditModal(c),
-    },
-    {
       label: 'Reschedule',
       icon: <Clock size={14} color="#d97706" style={{ marginRight: 6 }} />,
       hidden: c => c.status === 'Completed' || c.status === 'Cancelled',
       onClick: c => openRescheduleModal(c),
-    },
-    {
-      label: 'Mark Completed',
-      icon: <CheckCircle size={14} color="#2563eb" style={{ marginRight: 6 }} />,
-      hidden: c => c.status === 'Completed' || c.status === 'Cancelled',
-      onClick: c => {
-        storageService.saveConsultation({ ...c, status: 'Completed' });
-        storageService.addAuditLog({
-          id: `aud-${Date.now()}`,
-          timestamp: 'Just now',
-          actorName: user?.name || 'Advisor',
-          actorEmail: user?.email || 'advisor@ghl.com',
-          action: 'CONSULTATION_COMPLETED',
-          entityType: 'Consultation',
-          entityId: c.id,
-          companyId: tenant?.id,
-          companyName: tenant?.name,
-          details: `Marked consultation with ${c.investorName} as Completed.`,
-        });
-      },
-    },
-    {
-      label: 'Mark No-show',
-      icon: <UserX size={14} color="#ea580c" style={{ marginRight: 6 }} />,
-      hidden: c =>
-        c.status === 'Completed' || c.status === 'Cancelled' || c.status === 'No-show',
-      onClick: c => {
-        storageService.saveConsultation({ ...c, status: 'No-show' });
-        storageService.addAuditLog({
-          id: `aud-${Date.now()}`,
-          timestamp: 'Just now',
-          actorName: user?.name || 'Advisor',
-          actorEmail: user?.email || 'advisor@ghl.com',
-          action: 'CONSULTATION_NO_SHOW',
-          entityType: 'Consultation',
-          entityId: c.id,
-          companyId: tenant?.id,
-          companyName: tenant?.name,
-          details: `Marked consultation with ${c.investorName} as No-show.`,
-        });
-      },
-    },
-    {
-      label: 'Cancel',
-      icon: <XCircle size={14} color="#dc2626" style={{ marginRight: 6 }} />,
-      hidden: c => c.status === 'Completed' || c.status === 'Cancelled',
-      onClick: c => {
-        if (window.confirm(`Cancel consultation with ${c.investorName}?`)) {
-          storageService.saveConsultation({ ...c, status: 'Cancelled' });
-          storageService.addAuditLog({
-            id: `aud-${Date.now()}`,
-            timestamp: 'Just now',
-            actorName: user?.name || 'Advisor',
-            actorEmail: user?.email || 'advisor@ghl.com',
-            action: 'CONSULTATION_CANCELLED',
-            entityType: 'Consultation',
-            entityId: c.id,
-            companyId: tenant?.id,
-            companyName: tenant?.name,
-            details: `Cancelled consultation with ${c.investorName}.`,
-          });
-        }
-      },
-    },
-    {
-      label: 'Delete',
-      icon: <Trash2 size={14} color="#dc2626" style={{ marginRight: 6 }} />,
-      onClick: c => {
-        if (
-          window.confirm(
-            `Delete consultation with ${c.investorName}? This cannot be undone.`,
-          )
-        ) {
-          storageService.deleteConsultation(c.id);
-          storageService.addAuditLog({
-            id: `aud-${Date.now()}`,
-            timestamp: 'Just now',
-            actorName: user?.name || 'Advisor',
-            actorEmail: user?.email || 'advisor@ghl.com',
-            action: 'CONSULTATION_DELETED',
-            entityType: 'Consultation',
-            entityId: c.id,
-            companyId: tenant?.id,
-            companyName: tenant?.name,
-            details: `Deleted consultation record with ${c.investorName}.`,
-          });
-        }
-      },
     },
   ];
 
@@ -428,18 +301,11 @@ export const ConsultationsPage: React.FC = () => {
         data={filteredConsultations}
         keyExtractor={c => c.id}
         rowActions={rowActions}
-        onRowClick={c => openEditModal(c)}
+        onRowClick={c => setDrawerConsultation(c)}
         searchPlaceholder="Search consultations by investor or agenda..."
         filtersNode={
           <FilterBar
             filters={[
-              {
-                key: 'status',
-                label: 'Status',
-                value: statusFilter,
-                onChange: setStatusFilter,
-                options: filterStatusOptions,
-              },
               {
                 key: 'consultant',
                 label: 'Consultant',
@@ -449,7 +315,6 @@ export const ConsultationsPage: React.FC = () => {
               },
             ]}
             onClearAll={() => {
-              setStatusFilter('All');
               setConsultantFilter('All');
             }}
           />
@@ -463,16 +328,12 @@ export const ConsultationsPage: React.FC = () => {
         title={
           isRescheduleMode
             ? 'Reschedule Consultation'
-            : editingConsultation
-              ? 'Edit Consultation'
-              : 'Schedule Private Wealth Advisory Consultation'
+            : 'Schedule Private Wealth Advisory Consultation'
         }
         subtitle={
           isRescheduleMode
             ? `Reschedule advisory slot for ${form.investorName || 'client'}`
-            : editingConsultation
-              ? `Update advisory session details for ${form.investorName || 'client'}`
-              : 'Book an advisory slot with a high-net-worth client'
+            : 'Book an advisory slot with a high-net-worth client'
         }
         maxWidth={620}
         footer={
@@ -487,9 +348,7 @@ export const ConsultationsPage: React.FC = () => {
             >
               {isRescheduleMode
                 ? 'Save Reschedule'
-                : editingConsultation
-                  ? 'Update Consultation'
-                  : 'Confirm Advisory Slot'}
+                : 'Confirm Advisory Slot'}
             </button>
           </>
         }
@@ -658,6 +517,33 @@ export const ConsultationsPage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      <Drawer
+        isOpen={!!drawerConsultation}
+        onClose={() => setDrawerConsultation(null)}
+        title={drawerConsultation?.investorName || 'Investor Profile'}
+        subtitle={`Phone: ${drawerConsultation?.investorPhone || '—'} • ${tenant?.name}`}
+        width={600}
+      >
+        {drawerConsultation && (
+          <LeadDetailDrawerContent
+            contactName={drawerConsultation.investorName}
+            contactPhone={drawerConsultation.investorPhone}
+            contactId={drawerConsultation.investorId}
+            tenantId={tenant?.id}
+            tenantName={tenant?.name}
+            consultationReason={drawerConsultation.agenda}
+            onCall={() =>
+              initiateCall(
+                drawerConsultation.investorName,
+                drawerConsultation.investorPhone,
+                'customer',
+                drawerConsultation.investorId
+              )
+            }
+          />
+        )}
+      </Drawer>
     </div>
   );
 };

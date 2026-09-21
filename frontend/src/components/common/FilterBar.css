@@ -49,7 +49,19 @@
 }
 
 .filterbar-select.active {
-  background-color: var(--primary-50);
+  background-color: var(--bg-surface-active);
+  border-color: var(--primary-600, var(--primary-500));
+}
+
+.filterbar-select option {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.filterbar-select option:checked,
+.filterbar-select option:hover {
+  background-color: var(--primary-600, var(--primary-500));
+  color: #ffffff;
 }
 
 .filterbar-date-group {
@@ -72,7 +84,8 @@
 }
 
 .filterbar-date-input.active {
-  background-color: var(--primary-50);
+  background-color: var(--bg-surface-active);
+  border-color: var(--primary-600, var(--primary-500));
 }
 
 .filterbar-clear-btn {
