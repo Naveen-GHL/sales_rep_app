@@ -301,24 +301,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, onOpenQuickCreate })
                   >
                     + New Lead
                   </button>
-                  <button
-                    className="btn btn-ghost btn-sm topbar-menu-item-btn"
-                    onClick={() => {
-                      setIsNewMenuOpen(false);
-                      onOpenQuickCreate('followup');
-                    }}
-                  >
-                    + New Follow-up
-                  </button>
-                  <button
-                    className="btn btn-ghost btn-sm topbar-menu-item-btn"
-                    onClick={() => {
-                      setIsNewMenuOpen(false);
-                      onOpenQuickCreate('deal');
-                    }}
-                  >
-                    + New Deal
-                  </button>
+
                   {enabledFeatures.includes(FEATURES.SITE_VISITS) && (
                     <button
                       className="btn btn-ghost btn-sm topbar-menu-item-btn"

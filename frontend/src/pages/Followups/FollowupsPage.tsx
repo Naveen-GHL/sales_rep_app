@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   CalendarCheck,
   Phone,
-  CheckCircle,
   AlertTriangle,
 } from 'lucide-react';
 import { Followup } from '../../types';
@@ -21,7 +20,7 @@ export const FollowupsPage: React.FC = () => {
   const { initiateCall } = useCall();
 
   const [followups, setFollowups] = useState<Followup[]>([]);
-  const [activeTab, setActiveTab] = useState<'all' | 'due' | 'overdue' | 'completed'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'due' | 'overdue'>('all');
   const [rescheduleItem, setRescheduleItem] = useState<Followup | null>(null);
   const [newDate, setNewDate] = useState('');
 
@@ -53,12 +52,6 @@ export const FollowupsPage: React.FC = () => {
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
 
-  const handleComplete = (f: Followup) => {
-    storageService.saveFollowup({
-      ...f,
-      status: f.status === 'Completed' ? 'Pending' : 'Completed',
-    });
-  };
 
   const handleSaveReschedule = () => {
     if (rescheduleItem && newDate) {
@@ -161,12 +154,9 @@ export const FollowupsPage: React.FC = () => {
     if (activeTab === 'overdue') {
       return f.status === 'Pending' && (f.scheduledAt || '').toLowerCase().includes('yesterday');
     }
-    if (activeTab === 'completed') {
-      return f.status === 'Completed';
-    }
-    // 'all' tab: for GHL exec show only Pending tasks (Completed are in Completed tab)
+    // 'all' tab: for GHL exec show only Pending tasks
     if (isGhlSalesExec) return f.status === 'Pending';
-    return true;
+    return f.status === 'Pending';
   });
 
 
@@ -191,7 +181,6 @@ export const FollowupsPage: React.FC = () => {
           { id: 'all', label: `All Tasks (${activePendingFollowups.length})` },
           { id: 'due', label: `Due Today (${activePendingFollowups.filter(f => (f.scheduledAt || '').toLowerCase().includes('today')).length})` },
           { id: 'overdue', label: `Overdue (${activePendingFollowups.filter(f => (f.scheduledAt || '').toLowerCase().includes('yesterday')).length})`, danger: true },
-          { id: 'completed', label: `Completed (${processedFollowups.filter(f => f.status === 'Completed').length})` },
         ].map(tab => (
           <button
             key={tab.id}
@@ -218,30 +207,16 @@ export const FollowupsPage: React.FC = () => {
             return (
               <div
                 key={f.id}
-                className={`card card-hover followup-item-card ${isOverdue ? 'overdue' : ''} ${f.status === 'Completed' ? 'completed' : ''}`}
+                className={`card card-hover followup-item-card ${isOverdue ? 'overdue' : ''}`}
                 onClick={isGhlSalesExec ? () => setDrawerFollowup(f) : undefined}
                 style={isGhlSalesExec ? { cursor: 'pointer' } : undefined}
               >
                 <div className="followup-item-left">
-                  <button
-                    className="btn btn-ghost btn-icon btn-sm followup-check-btn"
-                    title={f.status === 'Completed' ? 'Completed' : 'Mark Completed'}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleComplete(f);
-                    }}
-                  >
-                    {f.status === 'Completed' ? (
-                      <CheckCircle size={16} color="#059669" />
-                    ) : (
-                      <span className="followup-check-empty" />
-                    )}
-                  </button>
 
                   <div>
                     <div className="followup-contact-header" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span
-                        className={`followup-contact-name ${f.status === 'Completed' ? 'completed' : ''}`}
+                        className="followup-contact-name"
                         style={isGhlSalesExec ? { color: 'var(--primary-600)', fontWeight: 700 } : undefined}
                       >
                         {f.contactName}
