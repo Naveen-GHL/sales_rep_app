@@ -37,6 +37,22 @@ import {
 export type PopupPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
 
 class StorageService {
+  constructor() {
+    this.runLeadsDedupMigration();
+  }
+
+  private runLeadsDedupMigration(): void {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return;
+      const MIGRATION_KEY = 'nexus_leads_deduped_v1';
+      if (localStorage.getItem(MIGRATION_KEY)) return;
+      this.cleanupDuplicateLeads();
+      localStorage.setItem(MIGRATION_KEY, 'true');
+    } catch (e) {
+      console.error('Error in runLeadsDedupMigration:', e);
+    }
+  }
+
   private get<T>(key: string, fallback: T): T {
     try {
       const data = localStorage.getItem(`nexus_${key}`);
@@ -99,6 +115,17 @@ class StorageService {
     return companyId ? leads.filter(l => l.companyId === companyId) : leads;
   }
 
+  findLeadByPhone(phone: string, companyId?: string): Lead | undefined {
+    if (!phone) return undefined;
+    const digits = phone.replace(/\D/g, '').slice(-10);
+    if (!digits) return undefined;
+    const leads = this.getLeads(companyId);
+    return leads.find(l => {
+      const lDigits = (l.phone || '').replace(/\D/g, '').slice(-10);
+      return Boolean(lDigits && lDigits === digits);
+    });
+  }
+
   saveLead(lead: Lead): void {
     const leads = this.getLeads();
     const index = leads.findIndex(l => l.id === lead.id);
@@ -113,6 +140,86 @@ class StorageService {
   deleteLead(id: string): void {
     const leads = this.getLeads().filter(l => l.id !== id);
     this.set('leads', leads);
+  }
+
+  cleanupDuplicateLeads(companyId?: string): { removedCount: number } {
+    try {
+      const allLeads = this.get<Lead[]>('leads', []) || [];
+      if (!allLeads.length) return { removedCount: 0 };
+
+      const leadsToProcess = companyId
+        ? allLeads.filter(l => !l.companyId || l.companyId === companyId)
+        : allLeads;
+      const otherCompanyLeads = companyId
+        ? allLeads.filter(l => l.companyId && l.companyId !== companyId)
+        : [];
+
+      const groups = new Map<string, Lead[]>();
+      const ungrouped: Lead[] = [];
+
+      for (const lead of leadsToProcess) {
+        const digits = (lead.phone || '').replace(/\D/g, '').slice(-10);
+        if (digits) {
+          if (!groups.has(digits)) {
+            groups.set(digits, []);
+          }
+          groups.get(digits)!.push(lead);
+        } else {
+          ungrouped.push(lead);
+        }
+      }
+
+      let removedCount = 0;
+      const deduplicated: Lead[] = [];
+
+      groups.forEach(groupLeads => {
+        if (groupLeads.length === 1) {
+          deduplicated.push(groupLeads[0]);
+          return;
+        }
+
+        removedCount += groupLeads.length - 1;
+
+        // Sort by recency descending: most recently updated record first
+        groupLeads.sort((a, b) => {
+          const getRecency = (l: Lead) => {
+            const tUp = Date.parse((l as { updatedAt?: string }).updatedAt || '') || 0;
+            const tCr = Date.parse(l.createdAt || '') || 0;
+            const tCall = Date.parse(l.lastCallAt || l.lastContactedAt || '') || 0;
+            const match = (l.id || '').match(/(\d{10,})/);
+            const idTime = match ? parseInt(match[1], 10) : 0;
+            return Math.max(tUp, tCr, tCall, idTime);
+          };
+          return getRecency(b) - getRecency(a);
+        });
+
+        const winner = { ...groupLeads[0] };
+        for (let i = 1; i < groupLeads.length; i++) {
+          const other = groupLeads[i];
+          if (!winner.companyId && other.companyId) winner.companyId = other.companyId;
+          if (!winner.email && other.email) winner.email = other.email;
+          if (!winner.location && other.location) winner.location = other.location;
+          if (other.notes && !winner.notes.includes(other.notes)) {
+            winner.notes = winner.notes ? `${winner.notes} | ${other.notes}` : other.notes;
+          }
+          if (other.customFields) {
+            winner.customFields = { ...other.customFields, ...(winner.customFields || {}) };
+          }
+        }
+        deduplicated.push(winner);
+      });
+
+      const finalLeads = [...otherCompanyLeads, ...deduplicated, ...ungrouped];
+
+      if (removedCount > 0) {
+        this.set('leads', finalLeads);
+      }
+
+      return { removedCount };
+    } catch (e) {
+      console.error('Error in cleanupDuplicateLeads:', e);
+      return { removedCount: 0 };
+    }
   }
 
   // Customers (Defaults to empty [] - real-time data only)

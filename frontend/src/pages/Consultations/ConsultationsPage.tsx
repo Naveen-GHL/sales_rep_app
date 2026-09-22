@@ -86,18 +86,82 @@ export const ConsultationsPage: React.FC = () => {
     return () => window.removeEventListener('nexus_storage_updated', handleUpdate);
   }, [tenant?.id]);
 
+  // ── Helper to parse timestamp for newest-first sorting / deduplication ────
+  const getConsultationTimestamp = (c: Consultation): number => {
+    // 1. Highest timestamp parsed from the cns-<timestamp> id
+    const match = (c.id || '').match(/^cns-(\d+)$/);
+    if (match) {
+      const ts = parseInt(match[1], 10);
+      if (!isNaN(ts) && ts > 10000000000) return ts;
+    }
+    // 2. Fall back to parsing scheduledAt
+    if (c.scheduledAt) {
+      const parsed = Date.parse(c.scheduledAt);
+      if (!isNaN(parsed)) return parsed;
+    }
+    // 3. Fall back to any numeric value from id (e.g. seed data cns-01 -> 1)
+    if (match) {
+      const ts = parseInt(match[1], 10);
+      if (!isNaN(ts)) return ts;
+    }
+    return 0;
+  };
+
   // ── Role-based scoping ────────────────────────────────────────────────────
   const scopedConsultations = consultations;
 
-  // ── Filter options ────────────────────────────────────────────────────────
+  // ── Group by investor & derive latestByInvestor (at most ONE row per investor) ──
+  const latestByInvestor = (() => {
+    // Pre-pass: map normalized phone digits to investorId if any consultation for that phone has one
+    const phoneToInvestorId = new Map<string, string>();
+    for (const c of scopedConsultations) {
+      if (c.investorId && c.investorId.trim()) {
+        const phone = (c.investorPhone || '').replace(/\D/g, '').slice(-10);
+        if (phone) phoneToInvestorId.set(phone, c.investorId.trim());
+      }
+    }
+
+    const getInvestorKey = (c: Consultation): string => {
+      if (c.investorId && c.investorId.trim()) {
+        return `id:${c.investorId.trim()}`;
+      }
+      const phone = (c.investorPhone || '').replace(/\D/g, '').slice(-10);
+      if (phone && phoneToInvestorId.has(phone)) {
+        return `id:${phoneToInvestorId.get(phone)}`;
+      }
+      if (phone) {
+        return `phone:${phone}`;
+      }
+      return `cns:${c.id}`;
+    };
+
+    const map = new Map<string, Consultation>();
+    for (const c of scopedConsultations) {
+      const key = getInvestorKey(c);
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, c);
+      } else {
+        if (getConsultationTimestamp(c) > getConsultationTimestamp(existing)) {
+          map.set(key, c);
+        }
+      }
+    }
+
+    return Array.from(map.values()).sort(
+      (a, b) => getConsultationTimestamp(b) - getConsultationTimestamp(a)
+    );
+  })();
+
+  // ── Filter options (operates on deduplicated latestByInvestor) ────────────
   const consultantOptions = Array.from(
-    new Set(scopedConsultations.map(c => c.consultantName)),
+    new Set(latestByInvestor.map(c => c.consultantName)),
   )
     .filter(Boolean)
     .map(name => ({ value: name, label: name }));
 
-  // ── Filtered list ─────────────────────────────────────────────────────────
-  const filteredConsultations = scopedConsultations.filter(c => {
+  // ── Filtered list (operates on deduplicated latestByInvestor) ─────────────
+  const filteredConsultations = latestByInvestor.filter(c => {
     if (consultantFilter !== 'All' && c.consultantName !== consultantFilter) return false;
     return true;
   });
@@ -525,24 +589,42 @@ export const ConsultationsPage: React.FC = () => {
         subtitle={`Phone: ${drawerConsultation?.investorPhone || '—'} • ${tenant?.name}`}
         width={600}
       >
-        {drawerConsultation && (
-          <LeadDetailDrawerContent
-            contactName={drawerConsultation.investorName}
-            contactPhone={drawerConsultation.investorPhone}
-            contactId={drawerConsultation.investorId}
-            tenantId={tenant?.id}
-            tenantName={tenant?.name}
-            consultationReason={drawerConsultation.agenda}
-            onCall={() =>
-              initiateCall(
-                drawerConsultation.investorName,
-                drawerConsultation.investorPhone,
-                'customer',
-                drawerConsultation.investorId
-              )
+        {drawerConsultation && (() => {
+          const dPhone = (drawerConsultation.investorPhone || '').replace(/\D/g, '').slice(-10);
+          const matchingConsultations = consultations.filter(c => {
+            if (drawerConsultation.investorId && c.investorId === drawerConsultation.investorId) {
+              return true;
             }
-          />
-        )}
+            const cPhone = (c.investorPhone || '').replace(/\D/g, '').slice(-10);
+            return !!(dPhone && cPhone && dPhone === cPhone);
+          });
+
+          const sortedConsultations = [...matchingConsultations].sort(
+            (a, b) => getConsultationTimestamp(b) - getConsultationTimestamp(a)
+          );
+
+          const consultationHistory = sortedConsultations.filter(c => c.id !== drawerConsultation.id);
+
+          return (
+            <LeadDetailDrawerContent
+              contactName={drawerConsultation.investorName}
+              contactPhone={drawerConsultation.investorPhone}
+              contactId={drawerConsultation.investorId}
+              tenantId={tenant?.id}
+              tenantName={tenant?.name}
+              consultationReason={drawerConsultation.agenda}
+              consultationHistory={consultationHistory}
+              onCall={() =>
+                initiateCall(
+                  drawerConsultation.investorName,
+                  drawerConsultation.investorPhone,
+                  'customer',
+                  drawerConsultation.investorId
+                )
+              }
+            />
+          );
+        })()}
       </Drawer>
     </div>
   );

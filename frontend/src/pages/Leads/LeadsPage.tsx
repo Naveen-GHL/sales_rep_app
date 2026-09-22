@@ -116,6 +116,7 @@ export const LeadsPage: React.FC = () => {
   };
 
   useEffect(() => {
+    storageService.cleanupDuplicateLeads(tenant?.id);
     loadData();
     const handleUpdate = () => loadData();
     window.addEventListener('nexus_storage_updated', handleUpdate);
@@ -144,6 +145,13 @@ export const LeadsPage: React.FC = () => {
   });
 
   const handleOpenCreate = () => {
+    if (!user) {
+      console.warn('[LeadsPage] Cannot create lead: user session is not yet loaded.');
+      return;
+    }
+    const defaultAgentId = user.id || (tenant?.slug === 'jamin' ? 'usr-jamin-exec' : 'usr-ghl-exec');
+    const defaultAgentName = user.name || (tenant?.slug === 'jamin' ? 'Pooja Hegde' : 'Ananya Iyer');
+
     setFormData({
       id: `lead-${Date.now()}`,
       companyId: tenant?.id || 't-ghl-01',
@@ -154,8 +162,8 @@ export const LeadsPage: React.FC = () => {
       source: 'Website Inbound',
       status: 'New',
       priority: 'Medium',
-      assignedAgentId: user?.id || 'usr-exec',
-      assignedAgentName: user?.name || 'Agent',
+      assignedAgentId: defaultAgentId,
+      assignedAgentName: defaultAgentName,
       createdAt: new Date().toISOString().split('T')[0],
       notes: '',
       customFields: tenant?.slug === 'jamin'
@@ -174,18 +182,65 @@ export const LeadsPage: React.FC = () => {
     e.preventDefault();
     if (!formData.name || !formData.phone) return;
 
-    const leadToSave = {
-      ...formData,
-      status: formData.status || 'New',
-    } as Lead;
+    // Pull real agent ID and name at save-time to prevent stale/fallback placeholder IDs from leaking
+    const resolvedAgentId = (isExec && user?.id)
+      ? user.id
+      : (formData.assignedAgentId && formData.assignedAgentId !== 'usr-exec' ? formData.assignedAgentId : (user?.id || 'usr-exec'));
+    const resolvedAgentName = (isExec && user?.name)
+      ? user.name
+      : (formData.assignedAgentName && formData.assignedAgentName !== 'Agent' ? formData.assignedAgentName : (user?.name || 'Agent'));
+
+    const isExistingById = leads.some(l => l.id === formData.id);
+    const targetCompanyId = formData.companyId || tenant?.id || 't-ghl-01';
+
+    let leadToSave: Lead;
+    let isUpdated = isExistingById;
+
+    if (!isExistingById) {
+      const existingMatch = storageService.findLeadByPhone(formData.phone, targetCompanyId);
+      if (existingMatch) {
+        isUpdated = true;
+        leadToSave = {
+          ...existingMatch,
+          ...formData,
+          id: existingMatch.id, // Preserve existing ID
+          companyId: existingMatch.companyId || targetCompanyId,
+          status: formData.status || existingMatch.status || 'New',
+          assignedAgentId: resolvedAgentId || existingMatch.assignedAgentId,
+          assignedAgentName: resolvedAgentName || existingMatch.assignedAgentName,
+          customFields: {
+            ...(existingMatch.customFields || {}),
+            ...(formData.customFields || {}),
+          },
+        };
+      } else {
+        leadToSave = {
+          ...formData,
+          status: formData.status || 'New',
+          assignedAgentId: resolvedAgentId,
+          assignedAgentName: resolvedAgentName,
+          companyId: targetCompanyId,
+          createdAt: formData.createdAt || new Date().toISOString().split('T')[0],
+        } as Lead;
+      }
+    } else {
+      leadToSave = {
+        ...formData,
+        status: formData.status || 'New',
+        assignedAgentId: resolvedAgentId,
+        assignedAgentName: resolvedAgentName,
+        companyId: targetCompanyId,
+      } as Lead;
+    }
+
     storageService.saveLead(leadToSave);
 
     storageService.addAuditLog({
       id: `aud-${Date.now()}`,
       timestamp: 'Just now',
-      actorName: user?.name || 'Agent',
+      actorName: user?.name || resolvedAgentName,
       actorEmail: user?.email || 'agent@nexus.io',
-      action: leads.some(l => l.id === leadToSave.id) ? 'LEAD_UPDATED' : 'LEAD_CREATED',
+      action: isUpdated ? 'LEAD_UPDATED' : 'LEAD_CREATED',
       entityType: 'Lead',
       entityId: leadToSave.id,
       companyId: tenant?.id,
@@ -295,6 +350,8 @@ export const LeadsPage: React.FC = () => {
   const handleImportLeads = () => {
     let successCount = 0;
     let skipCount = 0;
+    let updatedCount = 0;
+    const companyId = tenant?.id || 't-ghl-01';
 
     parsedRows.forEach((row, index) => {
       const nameVal = row[columnMap['name']];
@@ -314,9 +371,26 @@ export const LeadsPage: React.FC = () => {
         priorityVal = rawPriority;
       }
 
+      // Check for existing lead by phone in this company
+      const existingMatch = storageService.findLeadByPhone(phoneVal, companyId);
+      if (existingMatch) {
+        const updatedLead: Lead = {
+          ...existingMatch,
+          name: nameVal || existingMatch.name,
+          email: emailVal || existingMatch.email,
+          location: locationVal || existingMatch.location,
+          source: sourceVal || existingMatch.source,
+          priority: (priorityVal as any) || existingMatch.priority,
+        };
+        storageService.saveLead(updatedLead);
+        updatedCount++;
+        successCount++;
+        return;
+      }
+
       const newLead: Lead = {
         id: `lead-${Date.now()}-${index}`,
-        companyId: tenant?.id || 't-ghl-01',
+        companyId,
         name: nameVal,
         phone: phoneVal,
         email: emailVal,
@@ -345,7 +419,7 @@ export const LeadsPage: React.FC = () => {
       entityId: `batch-${Date.now()}`,
       companyId: tenant?.id,
       companyName: tenant?.name,
-      details: `Bulk imported ${successCount} leads, skipped ${skipCount}.`,
+      details: `Bulk imported ${successCount} leads (${updatedCount} updated, ${successCount - updatedCount} created), skipped ${skipCount}.`,
     });
 
     setImportResults({ success: successCount, skipped: skipCount });
@@ -494,7 +568,7 @@ export const LeadsPage: React.FC = () => {
           >
             <Upload size={15} /> Import CSV
           </button>
-          <button className="btn btn-primary" onClick={handleOpenCreate}>
+          <button className="btn btn-primary" onClick={handleOpenCreate} disabled={!user} title={!user ? 'Loading user...' : undefined}>
             <Plus size={15} /> Add New Lead
           </button>
         </div>
@@ -685,6 +759,8 @@ export const LeadsPage: React.FC = () => {
               type="text"
               className="form-input"
               required
+              autoComplete="off"
+              name="fld-fullname-nexus"
               value={formData.name || ''}
               onChange={e => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g. Ramesh Chandra"
@@ -698,6 +774,8 @@ export const LeadsPage: React.FC = () => {
                 type="text"
                 className="form-input"
                 required
+                autoComplete="off"
+                name="fld-phone-nexus"
                 value={formData.phone || ''}
                 onChange={e => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="+91 98800 00000"
@@ -708,6 +786,8 @@ export const LeadsPage: React.FC = () => {
               <input
                 type="email"
                 className="form-input"
+                autoComplete="off"
+                name="fld-email-nexus"
                 value={formData.email || ''}
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
                 placeholder="ramesh@example.com"
@@ -721,6 +801,8 @@ export const LeadsPage: React.FC = () => {
               <input
                 type="text"
                 className="form-input"
+                autoComplete="off"
+                name="fld-location-nexus"
                 value={formData.location || ''}
                 onChange={e => setFormData({ ...formData, location: e.target.value })}
                 placeholder="e.g. Bengaluru, Indiranagar"
@@ -885,6 +967,8 @@ export const LeadsPage: React.FC = () => {
             <input
               type="text"
               className="form-input"
+              autoComplete="off"
+              name="fld-deal-title-nexus"
               value={convertDealTitle}
               onChange={e => setConvertDealTitle(e.target.value)}
             />
@@ -895,6 +979,8 @@ export const LeadsPage: React.FC = () => {
             <input
               type="number"
               className="form-input"
+              autoComplete="off"
+              name="fld-deal-value-nexus"
               value={convertDealValue}
               onChange={e => setConvertDealValue(Number(e.target.value))}
             />

@@ -171,8 +171,8 @@ export const App: React.FC = () => {
         source: quickSource,
         status: 'New',
         priority: 'Medium',
-        assignedAgentId: user?.id || 'usr-exec',
-        assignedAgentName: user?.name || 'Agent',
+        assignedAgentId: user?.id || (tenant?.slug === 'jamin' ? 'usr-jamin-exec' : 'usr-ghl-exec'),
+        assignedAgentName: user?.name || (tenant?.slug === 'jamin' ? 'Pooja Hegde' : 'Ananya Iyer'),
         createdAt: new Date().toISOString().split('T')[0],
         notes: quickNotes,
         customFields: {

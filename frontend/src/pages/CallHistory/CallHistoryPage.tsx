@@ -89,6 +89,9 @@ export const CallHistoryPage: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const isIrmConnectedCall = (c: CallRecord | null): boolean =>
+    !!(c && (c.notes || '').trim().startsWith('Connected to IRM:'));
+
   // ── Table columns ─────────────────────────────────────────────────────────
   const columns: Column<CallRecord>[] = [
     {
@@ -104,7 +107,7 @@ export const CallHistoryPage: React.FC = () => {
       width: '20%',
       sortable: true,
       render: c => {
-        const connectedViaIrm = (c.notes || '').startsWith('Connected to IRM:');
+        const connectedViaIrm = isIrmConnectedCall(c);
         return (
           <div>
             <div style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -177,6 +180,14 @@ export const CallHistoryPage: React.FC = () => {
 
   const relatedConsultation =
     matchingConsultations.find(c => c.status === 'Scheduled') || matchingConsultations[0];
+
+  const irmConsultationReason = (() => {
+    if (!selectedCall || !isIrmConnectedCall(selectedCall)) return undefined;
+    const match = (selectedCall.notes || '').match(/Reason:\s*([\s\S]*)$/i);
+    const parsedReason = match && match[1]?.trim();
+    if (parsedReason) return parsedReason;
+    return relatedConsultation?.agenda;
+  })();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -257,7 +268,8 @@ export const CallHistoryPage: React.FC = () => {
             contactId={selectedCall.leadId || selectedCall.investorId || selectedCall.customerId}
             tenantId={tenant?.id}
             tenantName={tenant?.name}
-            consultationReason={relatedConsultation?.agenda}
+            consultationReason={irmConsultationReason}
+            hideAutoNotes={true}
             onCall={() => initiateCall(selectedCall.contactName, selectedCall.contactPhone)}
           />
         )}

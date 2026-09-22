@@ -7,7 +7,7 @@ import {
   ExternalLink,
   Filter,
 } from 'lucide-react';
-import { Customer, CallRecord, Followup, Deal } from '../../types';
+import { Customer, CallRecord, Followup, Deal, Lead } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
 import { storageService } from '../../services/storageService';
@@ -147,6 +147,53 @@ export const CustomersPage: React.FC = () => {
     if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
     if (val >= 100000) return `₹${(val / 100000).toFixed(1)} L`;
     return `₹${val.toLocaleString('en-IN')}`;
+  };
+
+  // Build leads lookup map by last 10 digits of phone once per render
+  const leadsByPhone = new Map<string, Lead>();
+  (storageService.getLeads(tenant?.id) || []).forEach(l => {
+    const digits = (l.phone || '').replace(/\D/g, '').slice(-10);
+    if (digits && !leadsByPhone.has(digits)) {
+      leadsByPhone.set(digits, l);
+    }
+  });
+
+  const getInvestmentRange = (c: Customer): string => {
+    const checkVal = (v: unknown): string => {
+      if (typeof v === 'string' && v.trim()) {
+        return v.trim();
+      }
+      return '';
+    };
+
+    // 1. c.customFields?.investmentCapacity
+    const c1 = checkVal(c.customFields?.investmentCapacity);
+    if (c1) return c1;
+
+    // 2. c.customFields?.budgetRange
+    const c2 = checkVal(c.customFields?.budgetRange);
+    if (c2) return c2;
+
+    // 3. matching lead from the map (by the last 10 digits of c.phone)
+    const digits = (c.phone || '').replace(/\D/g, '').slice(-10);
+    const lead = digits ? leadsByPhone.get(digits) : undefined;
+    if (lead) {
+      const l1 = checkVal(lead.customFields?.investmentCapacity);
+      if (l1) return l1;
+      const l2 = checkVal(lead.customFields?.budgetRange);
+      if (l2) return l2;
+    }
+
+    return '';
+  };
+
+  const getCustomerValueDisplay = (c: Customer): string => {
+    const range = getInvestmentRange(c);
+    if (range) return range;
+    if (typeof c.totalValue === 'number' && c.totalValue > 0) {
+      return formatCurrency(c.totalValue);
+    }
+    return '—';
   };
 
   const rawEvents: TimelineEvent[] = [];
@@ -304,7 +351,7 @@ export const CustomersPage: React.FC = () => {
                     </div>
                     <div className="customer-list-bottom">
                       <span className="customer-list-val">
-                        {formatCurrency(c.totalValue || 0)}
+                        {getCustomerValueDisplay(c)}
                       </span>
                       <button
                         className="btn btn-call btn-sm btn-icon customer-list-call-btn"
@@ -384,14 +431,9 @@ export const CustomersPage: React.FC = () => {
                         <div className="customer-profile-val">{selectedCustomer.assignedAgentName}</div>
                       </div>
                       <div>
-                        <span className="customer-profile-label">Total Committed Value:</span>
+                        <span className="customer-profile-label">Investment Range:</span>
                         <div className="customer-profile-val-green">
-                          {(() => {
-                            const ic = selectedCustomer.customFields?.investmentCapacity as string | undefined;
-                            if (ic && ic.trim()) return ic;
-                            if (selectedCustomer.totalValue && selectedCustomer.totalValue > 0) return formatCurrency(selectedCustomer.totalValue);
-                            return '—';
-                          })()}
+                          {getCustomerValueDisplay(selectedCustomer)}
                         </div>
                       </div>
                       <div>

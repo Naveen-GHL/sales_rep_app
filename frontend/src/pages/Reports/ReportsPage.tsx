@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Download, TrendingUp, PhoneCall, Users, Award, MapPin, Calendar, Clock, DollarSign, Building } from 'lucide-react';
+import { BarChart3, Download, TrendingUp, PhoneCall, Users, Award, MapPin, Building } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { storageService } from '../../services/storageService';
 import { PIPELINE_STAGES } from '../../constants/pipelineStages';
 import { FEATURES } from '../../constants/features';
 import { EmptyState } from '../../components/common/EmptyState';
-import { Lead, Deal, CallRecord, SiteVisit, Booking, Consultation, InvestmentOpportunity } from '../../types';
+import { Lead, Deal, CallRecord, SiteVisit, Booking, Consultation, InvestmentOpportunity, Followup, Customer } from '../../types';
 import './ReportsPage.css';
 
 export const ReportsPage: React.FC = () => {
@@ -19,15 +19,19 @@ export const ReportsPage: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [opportunities, setOpportunities] = useState<InvestmentOpportunity[]>([]);
+  const [followups, setFollowups] = useState<Followup[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
 
   const loadData = () => {
-    setLeads(storageService.getLeads(tenant?.id));
-    setDeals(storageService.getDeals(tenant?.id));
-    setCalls(storageService.getCalls(tenant?.id));
-    setSiteVisits(storageService.getSiteVisits(tenant?.id));
-    setBookings(storageService.getBookings(tenant?.id));
-    setConsultations(storageService.getConsultations(tenant?.id));
-    setOpportunities(storageService.getOpportunities(tenant?.id));
+    setLeads(storageService.getLeads(tenant?.id) || []);
+    setDeals(storageService.getDeals(tenant?.id) || []);
+    setCalls(storageService.getCalls(tenant?.id) || []);
+    setSiteVisits(storageService.getSiteVisits(tenant?.id) || []);
+    setBookings(storageService.getBookings(tenant?.id) || []);
+    setConsultations(storageService.getConsultations(tenant?.id) || []);
+    setOpportunities(storageService.getOpportunities(tenant?.id) || []);
+    setFollowups(storageService.getFollowups(tenant?.id) || []);
+    setCustomers(storageService.getCustomers(tenant?.id) || []);
   };
 
   useEffect(() => {
@@ -127,15 +131,77 @@ export const ReportsPage: React.FC = () => {
   const wonDeals = scopedDeals.filter(d => d.stage === wonStageId || d.stage === 'won' || d.stage === 'converted');
   const closedValue = wonDeals.reduce((sum, d) => sum + (d.value || 0), 0);
 
-  // Conversion Funnel steps
-  const funnelSteps = stages.map((stage, idx) => {
-    const count = scopedDeals.filter(d => d.stage === stage.id).length;
-    const pct = scopedDeals.length > 0 ? `${((count / scopedDeals.length) * 100).toFixed(1)}%` : '0%';
+  const scopedCustomers = isExec
+    ? customers.filter(c => (c.assignedAgentId && c.assignedAgentId === user?.id) || (c.assignedAgentName && c.assignedAgentName === user?.name))
+    : customers;
+
+  const scopedFollowups = isExec
+    ? followups.filter(f => (f.assignedAgentId && f.assignedAgentId === user?.id) || (f.assignedAgentName && f.assignedAgentName === user?.name))
+    : followups;
+
+  // 1. Leads (total leads is the 100% base)
+  const totalLeads = scopedLeads.length;
+
+  // 2. Follow-ups (Pending, excluding Not Interested / Junk leads, deduplicated by contact)
+  const excludedLeadContactIds = new Set<string>();
+  const excludedLeadPhones = new Set<string>();
+  (leads || []).forEach(l => {
+    if (l.status === 'Not Interested' || l.status === 'Junk') {
+      if (l.id) excludedLeadContactIds.add(l.id);
+      const digits = (l.phone || '').replace(/\D/g, '').slice(-10);
+      if (digits) excludedLeadPhones.add(digits);
+    }
+  });
+
+  const seenFollowupContacts = new Set<string>();
+  const uniquePendingFollowups = (scopedFollowups || []).filter(f => {
+    if (f.status !== 'Pending') return false;
+    const fPhone = (f.contactPhone || '').replace(/\D/g, '').slice(-10);
+    const isExcludedLead =
+      (Boolean(f.contactId) && f.contactId !== 'contact-new' && excludedLeadContactIds.has(f.contactId!)) ||
+      (Boolean(fPhone) && excludedLeadPhones.has(fPhone));
+    if (isExcludedLead) return false;
+
+    const contactKey = (f.contactId && f.contactId !== 'contact-new')
+      ? f.contactId
+      : (fPhone || f.id);
+    if (!contactKey || seenFollowupContacts.has(contactKey)) return false;
+    seenFollowupContacts.add(contactKey);
+    return true;
+  });
+  const followupsCount = uniquePendingFollowups.length;
+
+  // 3. Consultations (all consultations for the tenant - unscoped)
+  const consultationsCount = (consultations || []).length;
+
+  // 4. Customers 360
+  const customersCount = (scopedCustomers || []).length;
+
+  // 5. Not-Interested
+  const notInterestedCount = (scopedLeads || []).filter(l => l.status === 'Not Interested').length;
+
+  // 6. Junk
+  const junkCount = (scopedLeads || []).filter(l => l.status === 'Junk').length;
+
+  const stepConfigs = [
+    { label: '1. Leads', count: totalLeads, color: '#3b82f6' },
+    { label: '2. Follow-ups', count: followupsCount, color: '#f59e0b' },
+    { label: '3. Consultations', count: consultationsCount, color: '#8b5cf6' },
+    { label: '4. Customers 360', count: customersCount, color: '#10b981' },
+    { label: '5. Not-Interested', count: notInterestedCount, color: '#64748b' },
+    { label: '6. Junk', count: junkCount, color: '#ef4444' },
+  ];
+
+  const funnelSteps = stepConfigs.map(step => {
+    const rawPct = totalLeads > 0 ? (step.count / totalLeads) * 100 : 0;
+    const pct = totalLeads > 0 ? `${rawPct.toFixed(1)}%` : '0%';
+    const barWidth = `${Math.min(Math.max(rawPct, 0), 100)}%`;
     return {
-      label: `${idx + 1}. ${stage.name}`,
-      count,
+      label: step.label,
+      count: step.count,
       pct,
-      color: stage.color || '#3b82f6',
+      barWidth,
+      color: step.color,
     };
   });
 
@@ -384,11 +450,11 @@ export const ReportsPage: React.FC = () => {
             {isExec ? 'My Conversion Funnel' : 'Lead-to-Close Conversion Funnel'}
           </h3>
 
-          {deals.length === 0 ? (
+          {totalLeads === 0 ? (
             <EmptyState
               icon={<TrendingUp size={24} />}
-              title="No Pipeline Deals"
-              description="No deals currently in the pipeline to construct a conversion funnel."
+              title="No Leads Yet"
+              description="No leads recorded yet to build the sales funnel."
             />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -402,7 +468,7 @@ export const ReportsPage: React.FC = () => {
                     <div
                       style={{
                         height: '100%',
-                        width: step.pct,
+                        width: step.barWidth,
                         backgroundColor: step.color,
                         borderRadius: 5,
                         transition: 'width 0.8s ease-in-out',

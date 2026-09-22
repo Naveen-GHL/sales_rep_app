@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Phone,
   FileText,
@@ -6,8 +6,10 @@ import {
   ChevronDown,
   ChevronUp,
   Building2,
+  Calendar,
+  Clock,
 } from 'lucide-react';
-import { CallDisposition } from '../../types';
+import { CallDisposition, Consultation } from '../../types';
 import { storageService } from '../../services/storageService';
 import { StatusChip } from './StatusChip';
 
@@ -35,6 +37,10 @@ interface LeadDetailDrawerContentProps {
   callDispositionFilter?: CallDisposition[];
   /** Optional — shown as the last row in the Lead/Investor Details card when provided */
   consultationReason?: string;
+  /** Optional — past consultations for this investor when viewing from ConsultationsPage */
+  consultationHistory?: Consultation[];
+  /** Optional — when true, strips system-generated disposition lines from Notes & Requirements */
+  hideAutoNotes?: boolean;
 }
 
 export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = ({
@@ -45,8 +51,16 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
   onCall,
   callDispositionFilter,
   consultationReason,
+  consultationHistory,
+  hideAutoNotes = false,
 }) => {
   const [expandedTranscripts, setExpandedTranscripts] = useState<Record<string, boolean>>({});
+  const [callTab, setCallTab] = useState<'agent' | 'irm'>('agent');
+  const [isPreviousConsultationsOpen, setIsPreviousConsultationsOpen] = useState(true);
+
+  useEffect(() => {
+    setCallTab('agent');
+  }, [contactPhone, contactId]);
 
   // ── Lead record lookup ───────────────────────────────────────────────────────
   const selectedLead = (() => {
@@ -79,6 +93,9 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
     return true;
   });
 
+  const agentCalls = selectedCalls.filter(c => !(c.notes || '').startsWith('Connected to IRM:'));
+  const irmCalls = selectedCalls.filter(c => (c.notes || '').startsWith('Connected to IRM:'));
+  const tabCalls = callTab === 'agent' ? agentCalls : irmCalls;
 
   // ── Active follow-up count ───────────────────────────────────────────────────
   const followups = storageService.getFollowups(tenantId) || [];
@@ -237,17 +254,46 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
               // Strip legacy "[date] ... Reason: ..." lines that were previously
               // appended to notes before reason was stored separately.
               const reasonLinePattern = /^\[[\d/]+\]\s.*(Reason|Wrong Number|Not Interested).*/i;
-              const cleanedNotes = (selectedLead.notes || '')
-                .split('\n')
-                .filter(line => !reasonLinePattern.test(line.trim()))
-                .join('\n')
-                .trim();
-              if (!cleanedNotes) return null;
+
+              let notesContent = '';
+              if (hideAutoNotes) {
+                if (
+                  selectedLead.customFields?.customerNotes &&
+                  typeof selectedLead.customFields.customerNotes === 'string' &&
+                  selectedLead.customFields.customerNotes.trim()
+                ) {
+                  notesContent = selectedLead.customFields.customerNotes.trim();
+                } else {
+                  const autoNotePattern1 =
+                    /^\[\d{1,2}\/\d{1,2}\/\d{4}\]\s*(Interested|Follow-up Required|Call Back|No Response|Converted|Not Interested|Wrong Number)/i;
+                  const autoNotePattern2 = /^\[Call Disposition\s*-.*?\]:/i;
+
+                  notesContent = (selectedLead.notes || '')
+                    .split('\n')
+                    .filter(line => {
+                      const trimmed = line.trim();
+                      if (reasonLinePattern.test(trimmed)) return false;
+                      if (autoNotePattern1.test(trimmed)) return false;
+                      if (autoNotePattern2.test(trimmed)) return false;
+                      return true;
+                    })
+                    .join('\n')
+                    .trim();
+                }
+              } else {
+                notesContent = (selectedLead.notes || '')
+                  .split('\n')
+                  .filter(line => !reasonLinePattern.test(line.trim()))
+                  .join('\n')
+                  .trim();
+              }
+
+              if (!notesContent) return null;
               return (
                 <div style={{ gridColumn: 'span 2' }}>
                   <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }}>NOTES & REQUIREMENTS</span>
                   <div style={{ backgroundColor: 'var(--bg-surface-hover)', padding: '8px 12px', borderRadius: 6, marginTop: 4, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                    {cleanedNotes}
+                    {notesContent}
                   </div>
                 </div>
               );
@@ -321,20 +367,137 @@ export const LeadDetailDrawerContent: React.FC<LeadDetailDrawerContentProps> = (
         )}
       </div>
 
+      {/* ── Previous Consultations ─────────────────────────────────────── */}
+      {consultationHistory && consultationHistory.length > 0 && (
+        <div className="card">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              marginBottom: isPreviousConsultationsOpen ? 12 : 0,
+            }}
+            onClick={() => setIsPreviousConsultationsOpen(prev => !prev)}
+          >
+            <h4
+              style={{
+                fontSize: 15,
+                fontWeight: 700,
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <Calendar size={16} color="var(--primary-600)" /> Previous Consultations ({consultationHistory.length})
+            </h4>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              style={{ padding: '2px 6px' }}
+              onClick={e => {
+                e.stopPropagation();
+                setIsPreviousConsultationsOpen(prev => !prev);
+              }}
+            >
+              {isPreviousConsultationsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+          </div>
+
+          {isPreviousConsultationsOpen && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {consultationHistory.map(item => (
+                <div
+                  key={item.id}
+                  style={{
+                    border: '1px solid var(--border-base)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '12px 14px',
+                    backgroundColor: 'var(--bg-surface)',
+                  }}
+                >
+                  {/* Header row: slot (scheduledAt) and StatusChip */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: 10,
+                          backgroundColor: 'var(--bg-surface-hover)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        <Clock size={11} style={{ display: 'inline', marginRight: 4, verticalAlign: '-1px' }} />
+                        {item.scheduledAt}
+                      </span>
+                      <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                        Consultant: <strong>{item.consultantName}</strong>
+                      </span>
+                    </div>
+                    <StatusChip status={item.status} size="sm" />
+                  </div>
+
+                  {/* Agenda / Reason */}
+                  {item.agenda && (
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8 }}>
+                      <strong>Reason / Agenda:</strong> {item.agenda}
+                    </div>
+                  )}
+
+                  {/* Outcome Notes (if any) */}
+                  {item.outcomeNotes && (
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                      <strong>Outcome Notes:</strong> {item.outcomeNotes}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Call Recordings ────────────────────────────────────────────── */}
       <div className="card">
         <h4 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Phone size={16} color="var(--primary-600)" /> Call Recordings
         </h4>
 
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <button
+            type="button"
+            className={`btn btn-sm ${callTab === 'agent' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setCallTab('agent')}
+          >
+            Connect via Agent ({agentCalls.length})
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm ${callTab === 'irm' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setCallTab('irm')}
+          >
+            Connect via IRM ({irmCalls.length})
+          </button>
+        </div>
 
-        {selectedCalls.length === 0 ? (
+        {tabCalls.length === 0 ? (
           <div style={{ padding: '16px', backgroundColor: 'var(--bg-surface-hover)', borderRadius: 8, color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>
             No calls in this category yet.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {selectedCalls.map(c => {
+            {tabCalls.map(c => {
               const isExpanded = !!expandedTranscripts[c.id];
               return (
                 <div

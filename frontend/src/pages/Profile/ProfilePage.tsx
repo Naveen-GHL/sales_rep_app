@@ -27,10 +27,16 @@ import {
   Camera,
   Image,
   X,
+  Search,
+  ArrowLeft,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
 import { storageService } from '../../services/storageService';
+import { Drawer } from '../../components/common/Drawer';
+import { LeadDetailDrawerContent } from '../../components/common/LeadDetailDrawerContent';
+import { StatusChip } from '../../components/common/StatusChip';
+import { CallRecord, Lead, Followup } from '../../types';
 import './ProfilePage.css';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -45,6 +51,53 @@ const fmtAvgDuration = (secs: number) => {
   if (!secs) return '0m 0s';
   return fmtDuration(Math.round(secs));
 };
+
+const formatCallDateTime = (ts?: string): string => {
+  if (!ts) return '—';
+  const parsed = Date.parse(ts);
+  if (isNaN(parsed)) return '—';
+  return new Date(parsed).toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+const getInitials = (name?: string): string => {
+  const clean = (name || '').trim();
+  if (!clean || clean === '—') return '?';
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+type StatViewKey =
+  | 'total-calls'
+  | 'inbound'
+  | 'outbound'
+  | 'avg-duration'
+  | 'converted'
+  | 'conv-rate'
+  | 'total-leads'
+  | 'active-leads'
+  | 'pending-followups';
+
+interface StatPerson {
+  key: string;
+  name: string;
+  phone: string;
+  contactId?: string;
+  callCount?: number;
+  totalDuration?: number;
+  latestTimestamp?: string;
+  latestDisposition?: string;
+  location?: string;
+  leadStatus?: string;
+  createdAt?: string;
+  pendingCount?: number;
+  earliestScheduledAt?: string;
+}
 
 const GaugeBar: React.FC<{ label: string; value: number; color: string }> = ({ label, value, color }) => (
   <div className="profile-gauge-item">
@@ -72,14 +125,34 @@ const BANNER_PRESETS = [
 const AVATAR_KEY = 'nexus_profile_avatar';
 const BANNER_KEY = 'nexus_profile_banner';
 
+// Statuses counted as "Active" leads
+const ACTIVE_LEAD_STATUSES = ['Follow-up Required', 'Contacted'];
+
 type Tab = 'overview' | 'performance' | 'edit';
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export const ProfilePage: React.FC = () => {
   const { user, tenant, setUser } = useAuth();
-  const { availability } = useCall();
+  const { availability, initiateCall } = useCall();
 
   const [tab, setTab] = useState<Tab>('overview');
+
+  // ── Clickable stats drawer state ──────────────────────────────────────────
+  const [statView, setStatView] = useState<StatViewKey | null>(null);
+  const [statSearch, setStatSearch] = useState('');
+  const [statPerson, setStatPerson] = useState<StatPerson | null>(null);
+
+  const handleCloseDrawer = () => {
+    setStatView(null);
+    setStatSearch('');
+    setStatPerson(null);
+  };
+
+  const handleStatClick = (key: StatViewKey) => {
+    setStatView(key);
+    setStatSearch('');
+    setStatPerson(null);
+  };
 
   // ── Avatar & banner customization ─────────────────────────────────────────
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => localStorage.getItem(AVATAR_KEY));
@@ -147,16 +220,261 @@ export const ProfilePage: React.FC = () => {
   const inboundCalls = myCalls.filter(c => c.direction === 'inbound').length;
   const outboundCalls = myCalls.filter(c => c.direction === 'outbound').length;
   const avgDuration = totalCalls ? myCalls.reduce((s, c) => s + c.duration, 0) / totalCalls : 0;
-  const convertedCalls = myCalls.filter(c => c.disposition === 'Converted').length;
+
+  // Deduped total leads: 1 row per unique phone (fallback: name)
+  const dedupedLeads = useMemo(() => {
+    const seen = new Set<string>();
+    const result: typeof myLeads = [];
+    // Prefer most recently created lead per phone
+    const sorted = [...myLeads].sort((a, b) => {
+      const ta = Date.parse(a.createdAt || '') || 0;
+      const tb = Date.parse(b.createdAt || '') || 0;
+      return tb - ta;
+    });
+    for (const l of sorted) {
+      const digits = (l.phone || '').replace(/\D/g, '').slice(-10);
+      const key = digits || (l.name || '').trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      result.push(l);
+    }
+    return result;
+  }, [myLeads]);
+
+  const totalLeadsCount = dedupedLeads.length;
+  // Unique customers with Interested disposition calls
+  const interestedContactKeys = useMemo(() => {
+    const keys = new Set<string>();
+    myCalls.filter(c => c.disposition === 'Interested').forEach(c => {
+      const digits = (c.contactPhone || '').replace(/\D/g, '').slice(-10);
+      const key = digits || (c.contactName || '').trim().toLowerCase();
+      if (key) keys.add(key);
+    });
+    return keys;
+  }, [myCalls]);
+  const convertedCalls = interestedContactKeys.size;
   const interestedCalls = myCalls.filter(c => c.disposition === 'Interested').length;
   const conversionRate = totalCalls ? Math.round((convertedCalls / totalCalls) * 100) : 0;
-  const activeLeads = myLeads.filter(l => !['Converted', 'Lost', 'Junk', 'Not Interested'].includes(l.status)).length;
+  const activeLeads = dedupedLeads.filter(l => ACTIVE_LEAD_STATUSES.includes(l.status)).length;
   const convertedLeads = myLeads.filter(l => l.status === 'Converted').length;
   const pendingFollowups = myFollowups.filter(f => f.status === 'Pending').length;
   const completedFollowups = myFollowups.filter(f => f.status === 'Completed').length;
   const followupCompletionRate = myFollowups.length
     ? Math.round((completedFollowups / myFollowups.length) * 100)
     : 0;
+
+  // ── Stat Grouped Lists (Computed once per statView/data change) ───────────
+  const { people, rawCount } = useMemo(() => {
+    if (!statView) return { people: [] as StatPerson[], rawCount: 0 };
+
+    if (
+      statView === 'total-calls' ||
+      statView === 'inbound' ||
+      statView === 'outbound' ||
+      statView === 'avg-duration' ||
+      statView === 'converted' ||
+      statView === 'conv-rate'
+    ) {
+      let sourceCalls = myCalls;
+      if (statView === 'inbound') sourceCalls = myCalls.filter(c => c.direction === 'inbound');
+      else if (statView === 'outbound') sourceCalls = myCalls.filter(c => c.direction === 'outbound');
+      else if (statView === 'avg-duration') sourceCalls = myCalls.filter(c => (c.duration || 0) > 0);
+      else if (statView === 'converted' || statView === 'conv-rate') {
+        sourceCalls = myCalls.filter(c => c.disposition === 'Interested');
+      }
+
+      const total = sourceCalls.length;
+      const groups = new Map<string, CallRecord[]>();
+
+      sourceCalls.forEach(c => {
+        const digits = (c.contactPhone || '').replace(/\D/g, '').slice(-10);
+        const key = digits || (c.contactName || '').trim().toLowerCase() || c.id;
+        if (!groups.has(key)) {
+          groups.set(key, []);
+        }
+        groups.get(key)!.push(c);
+      });
+
+      const personList: StatPerson[] = [];
+
+      groups.forEach((calls, key) => {
+        const sortedCalls = [...calls].sort((a, b) => {
+          const ta = Date.parse(a.timestamp) || 0;
+          const tb = Date.parse(b.timestamp) || 0;
+          return tb - ta;
+        });
+
+        const latestCall = sortedCalls[0];
+        const name = sortedCalls.find(c => (c.contactName || '').trim())?.contactName || latestCall.contactName || '—';
+        const phone = sortedCalls.find(c => (c.contactPhone || '').trim())?.contactPhone || latestCall.contactPhone || '—';
+        const rawContactId = latestCall.leadId || latestCall.customerId || latestCall.investorId || latestCall.contactId;
+        const contactId = (rawContactId && rawContactId !== 'contact-new') ? rawContactId : undefined;
+        const totalDuration = sortedCalls.reduce((s, c) => s + (c.duration || 0), 0);
+
+        personList.push({
+          key,
+          name,
+          phone,
+          contactId,
+          callCount: sortedCalls.length,
+          totalDuration,
+          latestTimestamp: latestCall.timestamp,
+          latestDisposition: latestCall.disposition,
+        });
+      });
+
+      if (statView === 'avg-duration') {
+        personList.sort((a, b) => (b.totalDuration || 0) - (a.totalDuration || 0));
+      } else {
+        personList.sort((a, b) => {
+          const ta = Date.parse(a.latestTimestamp || '') || 0;
+          const tb = Date.parse(b.latestTimestamp || '') || 0;
+          return tb - ta;
+        });
+      }
+
+      return { people: personList, rawCount: total };
+    }
+
+    if (statView === 'total-leads' || statView === 'active-leads') {
+      const sourceLeads = statView === 'active-leads'
+        ? dedupedLeads.filter(l => ACTIVE_LEAD_STATUSES.includes(l.status))
+        : dedupedLeads;
+
+      const total = sourceLeads.length;
+
+      const personList: StatPerson[] = sourceLeads.map((l: Lead, idx: number) => {
+        const contactId = (l.id && l.id !== 'contact-new') ? l.id : undefined;
+        return {
+          key: l.id || `lead-${idx}`,
+          name: (l.name || '').trim() || '—',
+          phone: (l.phone || '').trim() || '—',
+          contactId,
+          location: l.location,
+          leadStatus: l.status,
+          createdAt: l.createdAt,
+        };
+      });
+
+      personList.sort((a, b) => {
+        const ta = Date.parse(a.createdAt || '') || 0;
+        const tb = Date.parse(b.createdAt || '') || 0;
+        return tb - ta;
+      });
+
+      return { people: personList, rawCount: total };
+    }
+
+    if (statView === 'pending-followups') {
+      const sourceFollowups = myFollowups.filter(f => f.status === 'Pending');
+      const total = sourceFollowups.length;
+      const groups = new Map<string, Followup[]>();
+
+      sourceFollowups.forEach(f => {
+        const digits = (f.contactPhone || '').replace(/\D/g, '').slice(-10);
+        const key = digits || (f.contactName || '').trim().toLowerCase() || f.id;
+        if (!groups.has(key)) {
+          groups.set(key, []);
+        }
+        groups.get(key)!.push(f);
+      });
+
+      const personList: StatPerson[] = [];
+
+      groups.forEach((fups, key) => {
+        const sortedFups = [...fups].sort((a, b) => {
+          const ta = Date.parse(a.scheduledAt || '') || Number.MAX_SAFE_INTEGER;
+          const tb = Date.parse(b.scheduledAt || '') || Number.MAX_SAFE_INTEGER;
+          return ta - tb;
+        });
+
+        const earliestFup = sortedFups[0];
+        const name = sortedFups.find(f => (f.contactName || '').trim())?.contactName || earliestFup.contactName || '—';
+        const phone = sortedFups.find(f => (f.contactPhone || '').trim())?.contactPhone || earliestFup.contactPhone || '—';
+        const rawContactId = sortedFups.find(f => f.contactId && f.contactId !== 'contact-new')?.contactId;
+        const contactId = rawContactId || undefined;
+
+        personList.push({
+          key,
+          name,
+          phone,
+          contactId,
+          pendingCount: sortedFups.length,
+          earliestScheduledAt: earliestFup.scheduledAt,
+        });
+      });
+
+      personList.sort((a, b) => {
+        const ta = Date.parse(a.earliestScheduledAt || '') || Number.MAX_SAFE_INTEGER;
+        const tb = Date.parse(b.earliestScheduledAt || '') || Number.MAX_SAFE_INTEGER;
+        return ta - tb;
+      });
+
+      return { people: personList, rawCount: total };
+    }
+
+    return { people: [] as StatPerson[], rawCount: 0 };
+  }, [statView, myCalls, myLeads, myFollowups]);
+
+  const filteredPeople = useMemo(() => {
+    const q = statSearch.trim().toLowerCase();
+    if (!q) return people;
+    const qDigits = q.replace(/\D/g, '');
+    return people.filter(p => {
+      const nameMatch = (p.name || '').toLowerCase().includes(q);
+      const phoneMatch = (p.phone || '').toLowerCase().includes(q);
+      const digitsMatch = Boolean(qDigits && (p.phone || '').replace(/\D/g, '').includes(qDigits));
+      return nameMatch || phoneMatch || digitsMatch;
+    });
+  }, [people, statSearch]);
+
+  const drawerTitle = useMemo(() => {
+    switch (statView) {
+      case 'inbound':
+        return 'Inbound Calls';
+      case 'outbound':
+        return 'Outbound Calls';
+      case 'total-calls':
+        return 'Total Calls';
+      case 'avg-duration':
+        return 'Avg Duration — Talk Time';
+      case 'converted':
+      case 'conv-rate':
+        return 'Converted Calls';
+      case 'total-leads':
+        return 'Total Leads';
+      case 'active-leads':
+        return 'Active Leads';
+      case 'pending-followups':
+        return 'Pending Follow-ups';
+      default:
+        return 'Call Stats';
+    }
+  }, [statView]);
+
+  const drawerSubtitle = useMemo(() => {
+    const peopleCount = people.length;
+    const peopleStr = `${peopleCount} ${peopleCount === 1 ? 'person' : 'people'}`;
+    if (
+      statView === 'total-calls' ||
+      statView === 'inbound' ||
+      statView === 'outbound' ||
+      statView === 'avg-duration' ||
+      statView === 'converted' ||
+      statView === 'conv-rate'
+    ) {
+      const callsStr = `${rawCount} ${rawCount === 1 ? 'call' : 'calls'}`;
+      return `${callsStr} · ${peopleStr}`;
+    }
+    if (statView === 'total-leads' || statView === 'active-leads') {
+      const leadsStr = `${rawCount} ${rawCount === 1 ? 'lead' : 'leads'}`;
+      return `${leadsStr} · ${peopleStr}`;
+    }
+    if (statView === 'pending-followups') {
+      return `${rawCount} pending · ${peopleStr}`;
+    }
+    return `${rawCount} items · ${peopleStr}`;
+  }, [statView, rawCount, people.length]);
 
   // ── Disposition breakdown ─────────────────────────────────────────────────
   const dispoColors: Record<string, string> = {
@@ -467,14 +785,27 @@ export const ProfilePage: React.FC = () => {
               <div className="profile-card-title"><PhoneCall size={14} /> My Call Stats (All Time)</div>
               <div className="profile-kpi-grid">
                 {[
-                  { icon: <PhoneCall size={16} />, val: totalCalls, label: 'Total Calls', color: '#2563eb', bg: 'rgba(37,99,235,0.1)' },
-                  { icon: <PhoneIncoming size={16} />, val: inboundCalls, label: 'Inbound', color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
-                  { icon: <PhoneOutgoing size={16} />, val: outboundCalls, label: 'Outbound', color: '#7c3aed', bg: 'rgba(139,92,246,0.1)' },
-                  { icon: <Clock size={16} />, val: fmtAvgDuration(avgDuration), label: 'Avg Duration', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
-                  { icon: <CheckCircle size={16} />, val: convertedCalls, label: 'Converted', color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
-                  { icon: <TrendingUp size={16} />, val: `${conversionRate}%`, label: 'Conv. Rate', color: '#2563eb', bg: 'rgba(37,99,235,0.1)' },
+                  { id: 'total-calls' as const, icon: <PhoneCall size={16} />, val: totalCalls, label: 'Total Calls', color: '#2563eb', bg: 'rgba(37,99,235,0.1)' },
+                  { id: 'inbound' as const, icon: <PhoneIncoming size={16} />, val: inboundCalls, label: 'Inbound', color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
+                  { id: 'outbound' as const, icon: <PhoneOutgoing size={16} />, val: outboundCalls, label: 'Outbound', color: '#7c3aed', bg: 'rgba(139,92,246,0.1)' },
+                  { id: 'avg-duration' as const, icon: <Clock size={16} />, val: fmtAvgDuration(avgDuration), label: 'Avg Duration', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+                  { id: 'converted' as const, icon: <CheckCircle size={16} />, val: convertedCalls, label: 'Converted Calls', color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
+                  { id: 'conv-rate' as const, icon: <TrendingUp size={16} />, val: `${conversionRate}%`, label: 'Conv. Rate', color: '#2563eb', bg: 'rgba(37,99,235,0.1)' },
                 ].map(k => (
-                  <div key={k.label} className="profile-kpi-box">
+                  <div
+                    key={k.label}
+                    className="profile-kpi-box profile-stat-clickable"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View ${k.label}`}
+                    onClick={() => handleStatClick(k.id)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleStatClick(k.id);
+                      }
+                    }}
+                  >
                     <div className="profile-kpi-icon" style={{ background: k.bg, color: k.color }}>{k.icon}</div>
                     <div className="profile-kpi-value">{k.val}</div>
                     <div className="profile-kpi-label">{k.label}</div>
@@ -486,11 +817,24 @@ export const ProfilePage: React.FC = () => {
 
               <div className="profile-kpi-grid">
                 {[
-                  { icon: <Users size={16} />, val: myLeads.length, label: 'Total Leads', color: '#6366f1', bg: 'rgba(99,102,241,0.1)' },
-                  { icon: <Star size={16} />, val: activeLeads, label: 'Active Leads', color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
-                  { icon: <Calendar size={16} />, val: pendingFollowups, label: 'Pending F/ups', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+                  { id: 'total-leads' as const, icon: <Users size={16} />, val: totalLeadsCount, label: 'Total Leads', color: '#6366f1', bg: 'rgba(99,102,241,0.1)' },
+                  { id: 'active-leads' as const, icon: <Star size={16} />, val: activeLeads, label: 'Active Leads', color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
+                  { id: 'pending-followups' as const, icon: <Calendar size={16} />, val: pendingFollowups, label: 'Pending F/ups', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
                 ].map(k => (
-                  <div key={k.label} className="profile-kpi-box">
+                  <div
+                    key={k.label}
+                    className="profile-kpi-box profile-stat-clickable"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View ${k.label}`}
+                    onClick={() => handleStatClick(k.id)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleStatClick(k.id);
+                      }
+                    }}
+                  >
                     <div className="profile-kpi-icon" style={{ background: k.bg, color: k.color }}>{k.icon}</div>
                     <div className="profile-kpi-value">{k.val}</div>
                     <div className="profile-kpi-label">{k.label}</div>
@@ -764,6 +1108,153 @@ export const ProfilePage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ── Stat Person / Call Details Drawer ── */}
+      <Drawer
+        isOpen={statView !== null}
+        onClose={handleCloseDrawer}
+        title={statPerson ? (statPerson.name || '—') : drawerTitle}
+        subtitle={statPerson ? `Phone: ${statPerson.phone || '—'} • ${tenant?.name || ''}` : drawerSubtitle}
+        width={600}
+      >
+        {statPerson ? (
+          <div className="profile-stat-person-view">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm profile-stat-back-btn"
+              onClick={() => setStatPerson(null)}
+            >
+              <ArrowLeft size={14} /> Back
+            </button>
+            <LeadDetailDrawerContent
+              contactName={statPerson.name}
+              contactPhone={statPerson.phone}
+              contactId={statPerson.contactId}
+              tenantId={tenant?.id}
+              tenantName={tenant?.name}
+              hideAutoNotes={true}
+              onCall={() => initiateCall(statPerson.name, statPerson.phone)}
+            />
+          </div>
+        ) : (
+          <div className="profile-stat-drawer-body">
+            <div className="profile-stat-search-wrap">
+              <Search size={15} className="profile-stat-search-icon" />
+              <input
+                type="text"
+                className="profile-stat-search-input"
+                placeholder="Search by name or phone…"
+                value={statSearch}
+                onChange={e => setStatSearch(e.target.value)}
+                autoFocus
+              />
+              {statSearch.length > 0 && (
+                <button
+                  type="button"
+                  className="profile-stat-search-clear"
+                  onClick={() => setStatSearch('')}
+                  aria-label="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {statSearch.trim() !== '' && (
+              <div className="profile-stat-search-meta">
+                Showing {filteredPeople.length} of {people.length} people
+              </div>
+            )}
+
+            {people.length === 0 ? (
+              <div className="profile-stat-empty">
+                {statView === 'total-leads' || statView === 'active-leads'
+                  ? 'No leads yet.'
+                  : statView === 'pending-followups'
+                    ? 'No pending follow-ups.'
+                    : 'No calls yet.'}
+              </div>
+            ) : filteredPeople.length === 0 ? (
+              <div className="profile-stat-empty">
+                No people match &ldquo;{statSearch}&rdquo;.
+              </div>
+            ) : (
+              <div className="profile-stat-list">
+                {filteredPeople.map(p => {
+                  const isCallTile =
+                    statView === 'total-calls' ||
+                    statView === 'inbound' ||
+                    statView === 'outbound' ||
+                    statView === 'avg-duration' ||
+                    statView === 'converted' ||
+                    statView === 'conv-rate';
+                  const isLeadTile = statView === 'total-leads' || statView === 'active-leads';
+                  const isFollowupTile = statView === 'pending-followups';
+
+                  return (
+                    <div
+                      key={p.key}
+                      className="profile-stat-row"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setStatPerson(p)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setStatPerson(p);
+                        }
+                      }}
+                    >
+                      <div className="profile-stat-row-left">
+                        <div className="profile-stat-avatar">{getInitials(p.name)}</div>
+                        <div className="profile-stat-person-info">
+                          <div className="profile-stat-person-name">{p.name || '—'}</div>
+                          <div className="profile-stat-person-meta">
+                            <span>{p.phone || '—'}</span>
+                            {isCallTile && (
+                              <>
+                                <span>•</span>
+                                <span>{p.callCount} {p.callCount === 1 ? 'call' : 'calls'}</span>
+                                <span>•</span>
+                                <span>{fmtDuration(p.totalDuration || 0)}</span>
+                              </>
+                            )}
+                            {isLeadTile && p.location && (
+                              <>
+                                <span>•</span>
+                                <span>{p.location}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="profile-stat-person-right">
+                        {isCallTile && (
+                          <>
+                            <span className="profile-stat-person-date">
+                              {formatCallDateTime(p.latestTimestamp)}
+                            </span>
+                            <StatusChip status={p.latestDisposition || 'No Response'} size="sm" />
+                          </>
+                        )}
+                        {isLeadTile && (
+                          <StatusChip status={p.leadStatus || 'New'} size="sm" />
+                        )}
+                        {isFollowupTile && (
+                          <span className="profile-stat-pending-badge">
+                            {p.pendingCount} pending
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 };
