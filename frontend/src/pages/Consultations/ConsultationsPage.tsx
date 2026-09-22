@@ -323,7 +323,7 @@ export const ConsultationsPage: React.FC = () => {
   // ── Row actions ───────────────────────────────────────────────────────────
   const rowActions: RowAction<Consultation>[] = [
     {
-      label: 'Call Investor',
+      label: 'Call Customer',
       icon: <Phone size={14} color="#059669" style={{ marginRight: 6 }} />,
       onClick: c => initiateCall(c.investorName, c.investorPhone, 'customer', c.investorId),
     },

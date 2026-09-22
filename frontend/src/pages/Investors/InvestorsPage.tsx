@@ -313,7 +313,7 @@ export const InvestorsPage: React.FC = () => {
 
   const rowActions: RowAction<Investor>[] = [
     {
-      label: 'Call Investor',
+      label: 'Call Customer',
       icon: <Phone size={14} color="#059669" style={{ marginRight: 6 }} />,
       onClick: inv => initiateCall(inv.name, inv.phone, 'customer', inv.id),
     },
@@ -458,7 +458,7 @@ export const InvestorsPage: React.FC = () => {
                 className="btn btn-primary btn-sm investor-call-btn-blue"
                 onClick={() => initiateCall(selectedInvestor.name, selectedInvestor.phone, 'customer', selectedInvestor.id)}
               >
-                <Phone size={13} /> Call Investor
+                <Phone size={13} /> Call Customer
               </button>
             </div>
 

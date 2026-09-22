@@ -267,7 +267,7 @@ export const OpportunitiesPage: React.FC = () => {
   // ── Row actions ───────────────────────────────────────────────────────────
   const rowActions: RowAction<InvestmentOpportunity>[] = [
     {
-      label: 'Call Investor',
+      label: 'Call Customer',
       icon: <Phone size={14} color="#059669" style={{ marginRight: 6 }} />,
       onClick: o => {
         const inv = investors.find(i => i.id === o.investorId);
