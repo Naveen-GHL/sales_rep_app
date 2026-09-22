@@ -14,6 +14,12 @@ public class ApplicationDbContext : DbContext
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<Lead> Leads => Set<Lead>();
+    public DbSet<Followup> Followups => Set<Followup>();
+    public DbSet<CallRecord> CallRecords => Set<CallRecord>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<ExecutiveProfile> ExecutiveProfiles => Set<ExecutiveProfile>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
